@@ -1,0 +1,15 @@
+# docker-compose.yml (v1.0)
+version: '3.8'
+
+services:
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      # Здесь можно переопределить путь к БД, например, для использования Postgres в будущем
+      - DATABASE_URL=sqlite:///./fire_extinguishers.db
+      - SECRET_KEY=your-super-secret-key-for-dev
+    volumes:
+      - .:/app
+    restart: always

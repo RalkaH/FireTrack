@@ -1,37 +1,213 @@
-# routers/auth.py
+# auth.py (v1.1)
+"""
+Модуль аутентификации и авторизации пользователей.
+Обеспечивает хеширование паролей, проверку токенов JWT,
+а также зависимости FastAPI для защиты маршрутов по ролям.
+"""
 
-from datetime import timedelta, datetime, timezone
-from typing import Annotated
+from datetime import datetime, timedelta, timezone
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from jose import JWTError, jwt
+from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 
-from auth import (
-    authenticate_user,
-    create_access_token,
-    get_current_active_user,
-    get_password_hash,
-    ACCESS_TOKEN_EXPIRE_MINUTES,
-    require_role
-)
 from db import get_db
 from models import User
-from schemas import Token, UserCreate, UserRead
+from schemas import TokenData
 
-# ИСПРАВЛЕНИЕ: Определить router В НАЧАЛЕ
 router = APIRouter(
     prefix="/auth",
-    tags=["Authentication"],
+    tags=["Auth"],
 )
 
+# Настройки
+SECRET_KEY = "your-secret-key-change-this-in-production"  # замени в production
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
-@router.post("/token", response_model=Token)
-async def login(
-    form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
-    db: Session = Depends(get_db)
+# Используем pbkdf2_sha256
+pwd_context = CryptContext(
+    schemes=["pbkdf2_sha256"],
+    deprecated="auto",
+)
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
+
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """
+    Проверяет соответствие введенного пароля его хешу.
+
+    Args:
+        plain_password (str): Введенный пользователем пароль.
+        hashed_password (str): Хеш пароля из базы данных.
+
+    Returns:
+        bool: True, если пароль верен, иначе False.
+    """
+    return pwd_context.verify(plain_password, hashed_password)
+
+
+def get_password_hash(password: str) -> str:
+    """
+    Генерирует хеш для заданного пароля с использованием pbkdf2_sha256.
+
+    Args:
+        password (str): Исходный пароль.
+
+    Returns:
+        str: Захешированная строка.
+    """
+    return pwd_context.hash(password)
+
+
+def create_access_token(
+    data: dict,
+    expires_delta: Optional[timedelta] = None,
+) -> str:
+    """
+    Создает JWT токен доступа для пользователя.
+
+    Args:
+        data (dict): Полезная нагрузка (payload) токена (например, имя пользователя).
+        expires_delta (Optional[timedelta]): Время жизни токена. Если не указано, используется ACCESS_TOKEN_EXPIRE_MINUTES.
+
+    Returns:
+        str: Закодированный JWT токен.
+    """
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.now(timezone.utc) + expires_delta
+    else:
+        expire = datetime.now(timezone.utc) + timedelta(
+            minutes=ACCESS_TOKEN_EXPIRE_MINUTES
+        )
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+
+def authenticate_user(db: Session, username: str, password: str) -> Optional[User]:
+    """
+    Аутентифицирует пользователя по имени и паролю.
+
+    Args:
+        db (Session): Сессия базы данных.
+        username (str): Имя пользователя.
+        password (str): Пароль пользователя.
+
+    Returns:
+        Optional[User]: Объект пользователя, если аутентификация успешна, иначе None.
+    """
+    user = db.query(User).filter(User.username == username).first()
+    if not user:
+        return None
+
+    stored_hash: str = user.hashed_password  # type: ignore[assignment]
+
+    if not verify_password(password, stored_hash):
+        return None
+    return user
+
+
+async def get_current_user(
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db),
+) -> User:
+    """
+    Зависимость FastAPI для получения текущего пользователя из JWT токена.
+
+    Args:
+        token (str): JWT токен из заголовка Authorization.
+        db (Session): Сессия базы данных.
+
+    Returns:
+        User: Объект текущего пользователя.
+
+    Raises:
+        HTTPException: Если токен недействителен или пользователь не найден.
+    """
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username_value = payload.get("sub")
+        if not isinstance(username_value, str):
+            raise credentials_exception
+        token_data = TokenData(username=username_value)
+    except JWTError:
+        raise credentials_exception
+
+    user = db.query(User).filter(User.username == token_data.username).first()
+    if user is None:
+        raise credentials_exception
+    return user
+
+
+async def get_current_active_user(
+    current_user: User = Depends(get_current_user),
+) -> User:
+    """
+    Зависимость FastAPI, проверяющая, активен ли текущий пользователь.
+
+    Args:
+        current_user (User): Текущий аутентифицированный пользователь.
+
+    Returns:
+        User: Активный пользователь.
+
+    Raises:
+        HTTPException: Если учетная запись пользователя деактивирована.
+    """
+    is_active: bool = bool(current_user.is_active)  # type: ignore[arg-type]
+    if not is_active:
+        raise HTTPException(status_code=400, detail="Inactive user")
+    return current_user
+
+
+def require_role(allowed_roles: list):
+    """
+    Зависимость FastAPI для проверки роли пользователя (RBAC).
+
+    Args:
+        allowed_roles (list): Список ролей (например, ["admin", "engineer"]), имеющих доступ к эндпоинту.
+
+    Returns:
+        Callable: Функция-проверщик, которая будет использована как зависимость.
+    """
+    def role_checker(current_user: User = Depends(get_current_active_user)) -> User:
+        """Внутренняя функция для проверки совпадения роли пользователя со списком разрешенных."""
+        if current_user.role not in allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not enough permissions",
+            )
+        return current_user
+
+    return role_checker
+
+
+@router.post("/token")
+async def login_for_access_token(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: Session = Depends(get_db),
 ):
-    """Авторизация пользователя."""
+    """
+    Эндпоинт для входа в систему и получения JWT токена доступа.
+
+    Args:
+        form_data (OAuth2PasswordRequestForm): Данные формы с именем пользователя и паролем.
+        db (Session): Сессия базы данных.
+
+    Returns:
+        dict: Содержит access_token и тип токена.
+    """
     user = authenticate_user(db, form_data.username, form_data.password)
     if not user:
         raise HTTPException(
@@ -41,132 +217,7 @@ async def login(
         )
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": user.username}, expires_delta=access_token_expires
+        data={"sub": user.username},
+        expires_delta=access_token_expires,
     )
     return {"access_token": access_token, "token_type": "bearer"}
-
-
-@router.post("/register", response_model=UserRead, status_code=status.HTTP_201_CREATED)
-async def register(
-    user_data: UserCreate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(require_role(["admin"]))
-):
-    """Регистрация нового пользователя. Доступно только администраторам."""
-    existing_user = db.query(User).filter(User.username == user_data.username).first()
-    if existing_user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Username already registered"
-        )
-    
-    existing_email = db.query(User).filter(User.email == user_data.email).first()
-    if existing_email:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email already registered"
-        )
-    
-    if user_data.role not in ["admin", "engineer", "viewer"]:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid role. Allowed: admin, engineer, viewer"
-        )
-    
-    hashed_password = get_password_hash(user_data.password)
-    new_user = User(
-        username=user_data.username,
-        email=user_data.email,
-        hashed_password=hashed_password,
-        full_name=user_data.full_name,
-        role=user_data.role,
-        is_active=1,
-        created_at=datetime.now(timezone.utc)
-    )
-    
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
-    
-    return new_user
-
-
-@router.get("/me", response_model=UserRead)
-async def read_users_me(
-    current_user: Annotated[User, Depends(get_current_active_user)]
-):
-    """Получить информацию о текущем пользователе."""
-    return current_user
-
-
-@router.post("/init-admin")
-async def init_admin_user(db: Session = Depends(get_db)):
-    """Создать первого администратора. Работает только если в системе нет пользователей."""
-    existing_users = db.query(User).count()
-    if existing_users > 0:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Admin already exists. Use /auth/register to create new users."
-        )
-    
-    admin = User(
-        username="admin",
-        email="admin@example.com",
-        hashed_password=get_password_hash("admin123"),
-        full_name="Администратор системы",
-        role="admin",
-        is_active=1,
-        created_at=datetime.now(timezone.utc)
-    )
-    
-    db.add(admin)
-    db.commit()
-    
-    return {
-        "message": "Admin user created successfully",
-        "username": "admin",
-        "password": "admin123",
-        "warning": "ВАЖНО: Смените пароль после первого входа!"
-    }
-
-
-@router.get("/users", response_model=list[UserRead])
-async def list_users(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(require_role(["admin"]))
-):
-    """Получить список всех пользователей. Доступно только администраторам."""
-    return db.query(User).all()
-
-
-@router.delete("/users/{user_id}")
-async def delete_user(
-    user_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(require_role(["admin"]))
-):
-    """Удалить пользователя. Доступно только администраторам."""
-    user = db.query(User).filter(User.id == user_id).first()
-    
-    if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
-        )
-    
-    # ИСПРАВЛЕНИЕ: Использовать getattr с fallback
-    user_id_val = getattr(user, 'id', None)
-    current_user_id_val = getattr(current_user, 'id', None)
-    
-    if user_id_val == current_user_id_val:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot delete yourself"
-        )
-    
-    db.delete(user)
-    db.commit()
-    
-    return {"message": f"User {user.username} deleted successfully"}
-
-

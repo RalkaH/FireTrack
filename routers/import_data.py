@@ -1,3 +1,9 @@
+# import_data.py (v1.1)
+"""
+Модуль для импорта данных в систему из CSV-файлов.
+Предоставляет эндпоинты для массовой загрузки местоположений, 
+сотрудников, огнетушителей и истории проверок, а также для скачивания шаблонов.
+"""
 import csv
 from io import StringIO
 from datetime import datetime, timezone
@@ -25,8 +31,15 @@ async def import_locations(
     current_user: User = Depends(require_role(["admin", "engineer"]))
 ):
     """
-    Импорт мест из CSV.
-    Формат: name;description
+    Импорт мест (локаций) из загружаемого CSV-файла.
+
+    Args:
+        file (UploadFile): Файл формата CSV. Требуемый формат колонок: name;description
+        db (Session): Сессия базы данных.
+        current_user (User): Текущий авторизованный пользователь (проверка прав).
+
+    Returns:
+        dict: Статистика импорта (количество успешно созданных записей, список созданных, список ошибок).
     """
     if not file.filename or not file.filename.endswith(".csv"):
         raise HTTPException(
@@ -81,8 +94,15 @@ async def import_employees(
     current_user: User = Depends(require_role(["admin", "engineer"]))
 ):
     """
-    Импорт сотрудников из CSV.
-    Формат: full_name;position
+    Импорт списка сотрудников из загружаемого CSV-файла.
+
+    Args:
+        file (UploadFile): Файл формата CSV. Требуемый формат колонок: full_name;position
+        db (Session): Сессия базы данных.
+        current_user (User): Текущий авторизованный пользователь.
+
+    Returns:
+        dict: Статистика импорта.
     """
     if not file.filename or not file.filename.endswith(".csv"):
         raise HTTPException(
@@ -126,9 +146,18 @@ async def import_extinguishers(
     current_user: User = Depends(require_role(["admin", "engineer"]))
 ):
     """
-    Импорт огнетушителей из CSV.
-    Формат: inventory_number;type;capacity;manufacturer;manufacture_date;
-            commissioning_date;location_name;status_name
+    Импорт реестра огнетушителей из загружаемого CSV-файла.
+
+    Связывает огнетушители с существующими локациями и статусами по их названиям.
+    Формат колонок: inventory_number;type;capacity;manufacturer;manufacture_date;commissioning_date;location_name;status_name
+
+    Args:
+        file (UploadFile): Файл формата CSV.
+        db (Session): Сессия базы данных.
+        current_user (User): Текущий авторизованный пользователь.
+
+    Returns:
+        dict: Статистика импорта.
     """
     if not file.filename or not file.filename.endswith(".csv"):
         raise HTTPException(
@@ -236,8 +265,17 @@ async def import_inspections(
     current_user: User = Depends(require_role(["admin", "engineer"]))
 ):
     """
-    Импорт проверок из CSV.
-    Формат совпадает с экспортируемым журналом.
+    Импорт истории проверок из загружаемого CSV-файла.
+
+    Связывает проверки с огнетушителями (по инвентарному номеру) и сотрудниками (по ФИО).
+
+    Args:
+        file (UploadFile): Файл формата CSV. Формат совпадает с экспортируемым журналом.
+        db (Session): Сессия базы данных.
+        current_user (User): Текущий авторизованный пользователь.
+
+    Returns:
+        dict: Статистика импорта.
     """
     if not file.filename or not file.filename.endswith(".csv"):
         raise HTTPException(
@@ -283,7 +321,7 @@ async def import_inspections(
             try:
                 inspection_date_str = row["Дата проверки"].strip()
                 next_inspection_str = row["Дата следующей проверки"].strip()
-                
+
                 # Попробуем формат дд.мм.гггг
                 if "." in inspection_date_str:
                     inspection_date = datetime.strptime(
@@ -341,7 +379,8 @@ async def import_inspections(
             )
 
             # Обновить updated_at огнетушителя
-            extinguisher.updated_at = datetime.now(timezone.utc) # type: ignore[attr-defined]
+            extinguisher.updated_at = datetime.now(
+                timezone.utc)  # type: ignore[attr-defined]
 
         except Exception as e:
             errors.append(f"Строка {row_num}: {str(e)}")
@@ -357,7 +396,12 @@ async def import_inspections(
 
 @router.get("/templates/locations")
 def download_locations_template():
-    """Скачать шаблон CSV для импорта мест."""
+    """
+    Отдает шаблон CSV-файла для импорта местоположений.
+
+    Returns:
+        StreamingResponse: Файл CSV с заголовками и примером данных.
+    """
     csv_content = "name;description\n"
     csv_content += "Кабинет 101;Первый этаж административного корпуса\n"
     csv_content += "Коридор 2 этаж;Второй этаж возле лестницы\n"
@@ -376,7 +420,12 @@ def download_locations_template():
 
 @router.get("/templates/employees")
 def download_employees_template():
-    """Скачать шаблон CSV для импорта сотрудников."""
+    """
+    Отдает шаблон CSV-файла для импорта сотрудников.
+
+    Returns:
+        StreamingResponse: Файл CSV с заголовками и примером данных.
+    """
     csv_content = "full_name;position\n"
     csv_content += (
         "Иванов Иван Иванович;Инженер по технике безопасности\n"
@@ -397,7 +446,12 @@ def download_employees_template():
 
 @router.get("/templates/extinguishers")
 def download_extinguishers_template():
-    """Скачать шаблон CSV для импорта огнетушителей."""
+    """
+    Отдает шаблон CSV-файла для импорта огнетушителей.
+
+    Returns:
+        StreamingResponse: Файл CSV с заголовками и примером данных.
+    """
     csv_content = (
         "inventory_number;type;capacity;manufacturer;manufacture_date;"
         "commissioning_date;location_name;status_name\n"
@@ -425,7 +479,12 @@ def download_extinguishers_template():
 
 @router.get("/templates/inspections")
 def download_inspections_template():
-    """Скачать шаблон CSV для импорта проверок."""
+    """
+    Отдает шаблон CSV-файла для импорта проверок оборудования.
+
+    Returns:
+        StreamingResponse: Файл CSV с заголовками и примером данных.
+    """
     csv_content = (
         "Дата проверки;Инвентарный номер;Тип;Место расположения;"
         "Статус;ФИО проверяющего;Должность;Давление;Вес;Визуальный осмотр;"

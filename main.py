@@ -1,5 +1,9 @@
-# main.py (v1.1)
-# uvicorn main:app
+# main.py (v1.2) uvicorn main:app
+"""
+Главный модуль приложения FireTrack.
+Инициализирует FastAPI, подключает маршрутизаторы (роутеры),
+настраивает статические файлы и создает базовые данные (администратора и статусы) при старте.
+"""
 
 from datetime import datetime, timezone
 from pathlib import Path
@@ -41,7 +45,11 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
 def init_admin() -> None:
-    """Создать пользователя admin/admin123, если его ещё нет."""
+    """
+    Создает пользователя администратора по умолчанию (admin/admin123),
+    если в базе данных еще нет пользователя с логином 'admin'.
+    Выполняется при запуске приложения.
+    """
     db = SessionLocal()
     try:
         user = db.query(User).filter(User.username == "admin").first()
@@ -62,7 +70,11 @@ def init_admin() -> None:
 
 
 def init_statuses() -> None:
-    """Создать стандартные статусы, если их ещё нет."""
+    """
+    Инициализирует стандартные статусы огнетушителей в базе данных,
+    если они отсутствуют. Включает статусы: Актуально, Просрочено,
+    Требует обслуживания, На техническом обслуживании, Списан.
+    """
     db = SessionLocal()
     try:
         defaults = [
@@ -107,10 +119,22 @@ app.include_router(auth_router.router)
 # Health check
 @app.get("/health", response_model=HealthResponse)
 def health_check():
+    """
+    Эндпоинт для проверки работоспособности (Health Check) API.
+
+    Returns:
+        dict: Словарь со статусом 'ok', если сервер работает.
+    """
     return {"status": "ok"}
 
 
 # Главная страница
 @app.get("/")
 async def read_root():
+    """
+    Отдает главную страницу Frontend-приложения (index.html).
+
+    Returns:
+        FileResponse: HTML-файл интерфейса системы.
+    """
     return FileResponse(Path("static") / "index.html")

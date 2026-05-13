@@ -1,6 +1,11 @@
-# routers/inspections.py
+# inspections.py (v1.1)
+"""
+Модуль для управления процессом проверок огнетушителей.
+Содержит маршруты для создания новых записей о проверках,
+а также получения истории обслуживания оборудования.
+"""
 
-from datetime import datetime, timezone, date, timedelta  # <-- добавь date и timedelta
+from datetime import datetime, timezone, date, timedelta
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -28,7 +33,17 @@ def create_inspection(
     Зарегистрировать новую проверку огнетушителя.
     Проверяет существование огнетушителя и сотрудника,
     сохраняет результаты проверки и обновляет время изменения огнетушителя.
-    Автоматически рассчитывает дату следующей проверки если не указана.
+    Автоматически рассчитывает дату следующей проверки (через 180 дней), если она не указана.
+
+    Args:
+        data (InspectionCreate): Данные для создания проверки.
+        db (Session): Сессия базы данных.
+
+    Returns:
+        Inspection: Объект созданной проверки.
+
+    Raises:
+        HTTPException: Если дата из будущего, либо не найден огнетушитель/сотрудник.
     """
     # Валидация даты проверки (не из будущего)
     if data.inspection_date > date.today():
@@ -36,7 +51,7 @@ def create_inspection(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Дата проверки не может быть из будущего",
         )
-    
+
     # Проверяем, что огнетушитель существует
     extinguisher = db.query(FireExtinguisher).get(data.fire_extinguisher_id)
     if extinguisher is None:
@@ -52,7 +67,7 @@ def create_inspection(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Сотрудник не найден",
         )
-    
+
     # Если не указана дата следующей проверки, рассчитываем автоматически
     # По ГОСТ проверка каждые 6 месяцев
     next_inspection = data.next_inspection_date
@@ -76,18 +91,18 @@ def create_inspection(
     )
 
     db.add(insp)
-    
+
     # Обновляем у огнетушителя дату последнего изменения
     extinguisher.updated_at = datetime.now(timezone.utc)
-    
+
     # Автоматически пересчитываем статус
     status_actual = db.query(Status).filter(Status.name == "Актуально").first()
     if status_actual:
         extinguisher.status_id = status_actual.id
-    
+
     db.commit()
     db.refresh(insp)
-    
+
     return insp
 
 
@@ -100,8 +115,15 @@ def inspections_by_extinguisher(
     db: Session = Depends(get_db),
 ):
     """
-    Получить историю всех проверок для заданного огнетушителя,
-    отсортированную по дате от более новых к более старым.
+    Получить историю всех проверок для заданного огнетушителя.
+    Сортировка по убыванию даты проверки (новые сверху).
+
+    Args:
+        extinguisher_id (int): ID огнетушителя.
+        db (Session): Сессия базы данных.
+
+    Returns:
+        List[Inspection]: Список записей о проверках.
     """
     return (
         db.query(Inspection)
@@ -110,6 +132,7 @@ def inspections_by_extinguisher(
         .all()
     )
 
+
 @router.get("/", response_model=List[InspectionRead])
 def list_inspections(
     date_from: date | None = None,
@@ -117,7 +140,16 @@ def list_inspections(
     db: Session = Depends(get_db),
 ):
     """
-    Журнал проверок с фильтрами по дате.
+    Получить общий журнал проверок всех огнетушителей.
+    Позволяет фильтровать результаты по периоду дат.
+
+    Args:
+        date_from (date | None): Фильтр "с даты" (включительно).
+        date_to (date | None): Фильтр "по дату" (включительно).
+        db (Session): Сессия базы данных.
+
+    Returns:
+        List[Inspection]: Отфильтрованный список проверок.
     """
     query = db.query(Inspection)
 

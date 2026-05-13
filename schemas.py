@@ -1,4 +1,8 @@
-# schemas.py (v1.1)
+# schemas.py (v1.2)
+"""
+Модуль схем Pydantic для валидации данных, сериализации и десериализации.
+Определяет структуру данных для входящих API-запросов и исходящих ответов.
+"""
 from datetime import date, datetime
 from typing import Optional
 
@@ -8,21 +12,25 @@ from pydantic import BaseModel, Field, field_validator
 # ---------- Health ----------
 
 class HealthResponse(BaseModel):
+    """Схема ответа для эндпоинта проверки работоспособности (Health Check)."""
     status: str
 
 
 # ---------- Locations ----------
 
 class LocationBase(BaseModel):
+    """Базовая схема местоположения оборудования."""
     name: str = Field(..., description="Название места (кабинет, этаж)")
     description: Optional[str] = Field(None, description="Описание места")
 
 
 class LocationCreate(LocationBase):
+    """Схема для создания нового местоположения."""
     pass
 
 
 class LocationRead(LocationBase):
+    """Схема для чтения данных о местоположении (возвращается в API)."""
     id: int
     created_at: datetime
 
@@ -33,15 +41,18 @@ class LocationRead(LocationBase):
 # ---------- Statuses ----------
 
 class StatusBase(BaseModel):
+    """Базовая схема технического статуса огнетушителя."""
     name: str = Field(..., description="Название статуса")
     description: str = Field(..., description="Описание статуса")
 
 
 class StatusCreate(StatusBase):
+    """Схема для создания нового статуса."""
     pass
 
 
 class StatusRead(StatusBase):
+    """Схема для чтения данных о статусе (возвращается в API)."""
     id: int
     created_at: datetime
 
@@ -52,6 +63,7 @@ class StatusRead(StatusBase):
 # ---------- FireExtinguishers ----------
 
 class FireExtinguisherBase(BaseModel):
+    """Базовая схема огнетушителя со всеми основными характеристиками."""
     inventory_number: str = Field(..., description="Инвентарный номер")
     type: str = Field(..., description="Тип огнетушителя (ОУ-8 и т.п.)")
     capacity: float = Field(..., gt=0, description="Вместимость (л / кг)")
@@ -66,16 +78,19 @@ class FireExtinguisherBase(BaseModel):
     @field_validator('manufacture_date', 'commissioning_date')
     @classmethod
     def not_in_future(cls, v):
+        """Валидатор: проверяет, что дата изготовления и ввода не больше текущей."""
         if v and v > date.today():
             raise ValueError('Дата не может быть из будущего')
         return v
 
 
 class FireExtinguisherCreate(FireExtinguisherBase):
+    """Схема для создания новой карточки огнетушителя."""
     pass
 
 
 class FireExtinguisherUpdate(BaseModel):
+    """Схема для частичного обновления данных огнетушителя."""
     inventory_number: Optional[str] = None
     type: Optional[str] = None
     capacity: Optional[float] = Field(None, gt=0)
@@ -87,6 +102,7 @@ class FireExtinguisherUpdate(BaseModel):
 
 
 class FireExtinguisherRead(FireExtinguisherBase):
+    """Схема для чтения данных об огнетушителе (возвращается в API)."""
     id: int
     created_at: datetime
     updated_at: datetime
@@ -98,15 +114,18 @@ class FireExtinguisherRead(FireExtinguisherBase):
 # ---------- Employees ----------
 
 class EmployeeBase(BaseModel):
+    """Базовая схема сотрудника компании."""
     full_name: str
     position: str
 
 
 class EmployeeCreate(EmployeeBase):
+    """Схема для создания нового сотрудника."""
     pass
 
 
 class EmployeeRead(EmployeeBase):
+    """Схема для чтения данных о сотруднике (возвращается в API)."""
     id: int
     created_at: datetime
 
@@ -117,6 +136,7 @@ class EmployeeRead(EmployeeBase):
 # ---------- Inspections ----------
 
 class InspectionBase(BaseModel):
+    """Базовая схема записи о проведенной проверке (ТО)."""
     fire_extinguisher_id: int
     inspection_date: date
     employee_id: int
@@ -131,10 +151,12 @@ class InspectionBase(BaseModel):
 
 
 class InspectionCreate(InspectionBase):
+    """Схема для создания новой записи о проверке."""
     pass
 
 
 class InspectionRead(InspectionBase):
+    """Схема для чтения данных о проверке (возвращается в API)."""
     id: int
     created_at: datetime
 
@@ -145,6 +167,7 @@ class InspectionRead(InspectionBase):
 
 
 class UserBase(BaseModel):
+    """Базовая схема данных пользователя системы."""
     username: str
     email: str
     full_name: str
@@ -152,10 +175,12 @@ class UserBase(BaseModel):
 
 
 class UserCreate(UserBase):
+    """Схема для регистрации нового пользователя."""
     password: str
 
 
 class UserRead(UserBase):
+    """Схема для чтения данных пользователя (без пароля, возвращается в API)."""
     id: int
     is_active: bool
     created_at: datetime
@@ -165,9 +190,11 @@ class UserRead(UserBase):
 
 
 class Token(BaseModel):
+    """Схема JWT токена доступа."""
     access_token: str
     token_type: str
 
 
 class TokenData(BaseModel):
+    """Схема полезной нагрузки (payload), извлеченной из JWT токена."""
     username: Optional[str] = None
