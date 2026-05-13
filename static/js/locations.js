@@ -13,38 +13,52 @@ async function loadLocations() {
     const locations = await API.getLocations();
 
     content.innerHTML = `
-      <div class="row mb-3">
-        <div class="col-12 d-flex justify-content-between align-items-center">
-          <h2><i class="bi bi-geo-alt me-2"></i>Места размещения</h2>
-          <button class="btn btn-primary" onclick="showAddLocationModalInList()">
-            <i class="bi bi-plus-circle"></i> Добавить место
-          </button>
-        </div>
+      <!-- Page Header -->
+      <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-3">
+        <h2><i class="bi bi-geo-alt"></i> Места размещения</h2>
+        <button class="btn btn-primary" onclick="showAddLocationModalInList()">
+          <i class="bi bi-plus-circle"></i> Добавить место
+        </button>
+      </div>
+
+      <!-- Stats -->
+      <div class="d-flex gap-3 mb-3">
+        <span class="badge" style="background: rgba(59,130,246,0.1); color: #3B82F6;">
+          <i class="bi bi-geo-alt me-1"></i> Всего: ${locations.length}
+        </span>
       </div>
 
       <div class="card section-card">
         <div class="card-header">
-          <i class="bi bi-list-ul me-1"></i> Список мест
+          <i class="bi bi-list-ul"></i> Список мест
         </div>
-        <div class="card-body">
+        <div class="card-body p-0">
           ${locations.length === 0 ? `
-            <p class="text-muted mb-0">Места пока не добавлены.</p>
+            <div class="empty-state">
+              <i class="bi bi-geo-alt"></i>
+              <p>Места пока не добавлены</p>
+              <button class="btn btn-primary" onclick="showAddLocationModalInList()">
+                <i class="bi bi-plus-circle"></i> Добавить первое место
+              </button>
+            </div>
           ` : `
             <div class="table-responsive">
               <table class="table table-hover mb-0">
                 <thead>
                   <tr>
-                    <th>#</th>
+                    <th style="width: 60px;">#</th>
                     <th>Название</th>
                     <th>Описание</th>
                   </tr>
                 </thead>
                 <tbody>
                   ${locations.map((loc, idx) => `
-                    <tr>
-                      <td>${idx + 1}</td>
-                      <td>${loc.name}</td>
-                      <td>${loc.description || ''}</td>
+                    <tr style="animation: fadeInUp 0.25s ease-out ${Math.min(idx * 0.04, 0.5)}s both;">
+                      <td><span class="text-muted">${idx + 1}</span></td>
+                      <td>
+                        <strong>${loc.name}</strong>
+                      </td>
+                      <td class="text-muted">${loc.description || '<span class="text-muted" style="font-style: italic;">Нет описания</span>'}</td>
                     </tr>
                   `).join('')}
                 </tbody>
@@ -64,12 +78,8 @@ async function loadLocations() {
   }
 }
 
-// отдельная обёртка, чтобы после сохранения обновлять список
 function showAddLocationModalInList() {
-  const oldHandler = showAddLocationModal;
-  showAddLocationModal();        // откроет твой уже существующий модал
-
-  // перехватим submit: после успешного добавления перезагрузим список
+  showAddLocationModal();
   const form = document.getElementById('locationForm');
   if (form) {
     form.addEventListener('submit', () => {

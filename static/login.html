@@ -1,125 +1,519 @@
 <!DOCTYPE html>
 <html lang="ru">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Вход в систему</title>
-    
+    <title>Вход — FireTrack</title>
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
     <style>
+        :root {
+            --accent: #F97316;
+            --accent-hover: #EA580C;
+            --bg-primary: #0B1120;
+            --bg-secondary: #111827;
+            --bg-card: rgba(30, 41, 59, 0.7);
+            --bg-card-border: rgba(255, 255, 255, 0.08);
+            --text-primary: #F8FAFC;
+            --text-secondary: #94A3B8;
+            --text-muted: #64748B;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-primary);
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
+            overflow: hidden;
+            position: relative;
         }
-        
-        .login-card {
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-            padding: 40px;
+
+        /* Animated background particles */
+        .bg-particles {
+            position: fixed;
+            top: 0;
+            left: 0;
             width: 100%;
-            max-width: 400px;
+            height: 100%;
+            z-index: 0;
+            overflow: hidden;
         }
-        
+
+        .particle {
+            position: absolute;
+            border-radius: 50%;
+            opacity: 0;
+            animation: floatUp linear infinite;
+        }
+
+        @keyframes floatUp {
+            0% {
+                transform: translateY(100vh) scale(0);
+                opacity: 0;
+            }
+
+            10% {
+                opacity: 1;
+            }
+
+            90% {
+                opacity: 1;
+            }
+
+            100% {
+                transform: translateY(-100px) scale(1);
+                opacity: 0;
+            }
+        }
+
+        /* Gradient orbs */
+        .orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.3;
+            animation: orbFloat 20s ease-in-out infinite;
+        }
+
+        .orb-1 {
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, #F97316, transparent 70%);
+            top: 10%;
+            left: 10%;
+            animation-delay: 0s;
+        }
+
+        .orb-2 {
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, #EF4444, transparent 70%);
+            bottom: 20%;
+            right: 10%;
+            animation-delay: -5s;
+        }
+
+        .orb-3 {
+            width: 250px;
+            height: 250px;
+            background: radial-gradient(circle, #3B82F6, transparent 70%);
+            top: 50%;
+            left: 60%;
+            animation-delay: -10s;
+        }
+
+        @keyframes orbFloat {
+
+            0%,
+            100% {
+                transform: translate(0, 0) scale(1);
+            }
+
+            25% {
+                transform: translate(30px, -30px) scale(1.1);
+            }
+
+            50% {
+                transform: translate(-20px, 20px) scale(0.9);
+            }
+
+            75% {
+                transform: translate(20px, 10px) scale(1.05);
+            }
+        }
+
+        /* Login card */
+        .login-wrapper {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            max-width: 420px;
+            padding: 0 20px;
+        }
+
+        .login-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--bg-card-border);
+            border-radius: 20px;
+            padding: 48px 36px;
+            box-shadow:
+                0 25px 50px -12px rgba(0, 0, 0, 0.5),
+                0 0 0 1px rgba(255, 255, 255, 0.05);
+            animation: cardAppear 0.6s ease-out;
+        }
+
+        @keyframes cardAppear {
+            from {
+                opacity: 0;
+                transform: translateY(30px) scale(0.95);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        /* Header */
         .login-header {
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 36px;
         }
-        
-        .login-header i {
-            font-size: 4rem;
-            color: #dc3545;
+
+        .brand-icon {
+            width: 72px;
+            height: 72px;
+            background: linear-gradient(135deg, #F97316, #EF4444);
+            border-radius: 18px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 24px rgba(249, 115, 22, 0.35);
+            animation: iconPulse 3s ease-in-out infinite;
         }
-        
+
+        @keyframes iconPulse {
+
+            0%,
+            100% {
+                box-shadow: 0 8px 24px rgba(249, 115, 22, 0.35);
+            }
+
+            50% {
+                box-shadow: 0 8px 32px rgba(249, 115, 22, 0.55), 0 0 60px rgba(249, 115, 22, 0.15);
+            }
+        }
+
+        .brand-icon i {
+            font-size: 2.2rem;
+            color: white;
+        }
+
         .login-header h2 {
-            margin-top: 15px;
-            color: #333;
+            font-weight: 700;
+            font-size: 1.6rem;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+            letter-spacing: -0.02em;
         }
-        
-        .form-control:focus {
-            border-color: #dc3545;
-            box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+
+        .login-header p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin: 0;
         }
-        
-        .btn-login {
-            background: #dc3545;
-            color: white;
+
+        /* Form */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-weight: 500;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .input-wrap {
+            position: relative;
+        }
+
+        .input-wrap i.icon-left {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            font-size: 1rem;
+            z-index: 2;
+        }
+
+        .form-control-custom {
             width: 100%;
-            padding: 12px;
-            font-size: 1.1rem;
-            border: none;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1.5px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 12px 14px 12px 42px;
+            font-size: 0.95rem;
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            transition: all 0.25s ease;
         }
-        
-        .btn-login:hover {
-            background: #c82333;
+
+        .form-control-custom::placeholder {
+            color: var(--text-muted);
+        }
+
+        .form-control-custom:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.15);
+            background: rgba(15, 23, 42, 0.8);
+        }
+
+        /* Button */
+        .btn-login {
+            width: 100%;
+            background: linear-gradient(135deg, #F97316, #EF4444);
             color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 14px;
+            font-size: 1rem;
+            font-weight: 600;
+            font-family: 'Inter', sans-serif;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 8px;
+            position: relative;
+            overflow: hidden;
         }
-        
-        .alert {
+
+        .btn-login::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .btn-login:hover::before {
+            left: 100%;
+        }
+
+        .btn-login:hover {
+            box-shadow: 0 8px 24px rgba(249, 115, 22, 0.4);
+            transform: translateY(-1px);
+        }
+
+        .btn-login:active {
+            transform: scale(0.98);
+        }
+
+        .btn-login:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
+        /* Error alert */
+        .alert-custom {
             margin-top: 20px;
+            padding: 12px 16px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9rem;
+            animation: shakeIn 0.4s ease-out;
+        }
+
+        @keyframes shakeIn {
+            0% {
+                transform: translateX(-10px);
+                opacity: 0;
+            }
+
+            25% {
+                transform: translateX(5px);
+            }
+
+            50% {
+                transform: translateX(-5px);
+            }
+
+            100% {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .alert-danger-custom {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            color: #FCA5A5;
+        }
+
+        .alert-danger-custom i {
+            color: #EF4444;
+            font-size: 1.1rem;
+        }
+
+        /* Loading spinner */
+        .spinner {
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Footer */
+        .login-footer {
+            text-align: center;
+            margin-top: 28px;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+        }
+
+        .login-footer .brand-name {
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .login-card {
+                padding: 36px 24px;
+                border-radius: 16px;
+            }
+
+            .brand-icon {
+                width: 60px;
+                height: 60px;
+            }
+
+            .login-header h2 {
+                font-size: 1.4rem;
+            }
         }
     </style>
 </head>
+
 <body>
-    <div class="login-card">
-        <div class="login-header">
-            <i class="bi bi-fire"></i>
-            <h2>Вход в систему</h2>
-            <p class="text-muted">Учет огнетушителей</p>
-        </div>
-        
-        <form id="loginForm">
-            <div class="mb-3">
-                <label class="form-label">Логин</label>
-                <div class="input-group">
-                    <span class="input-group-text"><i class="bi bi-person"></i></span>
-                    <input type="text" class="form-control" id="username" required 
-                           placeholder="Введите логин">
+    <!-- Background effects -->
+    <div class="bg-particles" id="particles"></div>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+
+    <!-- Login card -->
+    <div class="login-wrapper">
+        <div class="login-card">
+            <div class="login-header">
+                <div class="brand-icon">
+                    <i class="bi bi-fire"></i>
                 </div>
+                <h2>Вход в систему</h2>
+                <p>Учет огнетушителей</p>
             </div>
-            
-            <div class="mb-3">
-                <label class="form-label">Пароль</label>
-                <div class="input-group">
-                    <span class="input-group-text"><i class="bi bi-lock"></i></span>
-                    <input type="password" class="form-control" id="password" required 
-                           placeholder="Введите пароль">
+
+            <form id="loginForm">
+                <div class="form-group">
+                    <label class="form-label">Логин</label>
+                    <div class="input-wrap">
+                        <i class="bi bi-person icon-left"></i>
+                        <input type="text" class="form-control-custom" id="username" required
+                            placeholder="Введите логин" autocomplete="username">
+                    </div>
                 </div>
+
+                <div class="form-group">
+                    <label class="form-label">Пароль</label>
+                    <div class="input-wrap">
+                        <i class="bi bi-lock icon-left"></i>
+                        <input type="password" class="form-control-custom" id="password" required
+                            placeholder="Введите пароль" autocomplete="current-password">
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-login" id="loginBtn">
+                    <i class="bi bi-box-arrow-in-right"></i>
+                    <span>Войти</span>
+                </button>
+            </form>
+
+            <div id="errorAlert" class="alert-custom alert-danger-custom d-none">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+                <span id="errorMessage"></span>
             </div>
-            
-            <button type="submit" class="btn btn-login">
-                <i class="bi bi-box-arrow-in-right"></i> Войти
-            </button>
-        </form>
-        
-        <div id="errorAlert" class="alert alert-danger d-none" role="alert">
-            <i class="bi bi-exclamation-triangle"></i>
-            <span id="errorMessage"></span>
+
+            <div class="login-footer">
+                <span class="brand-name">FireTrack</span> — Система учета огнетушителей
+            </div>
         </div>
-        
     </div>
-    
+
     <script>
+        // Generate floating particles
+        const particlesContainer = document.getElementById('particles');
+        const particleCount = 25;
+
+        for (let i = 0; i < particleCount; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+
+            const size = Math.random() * 4 + 2;
+            const left = Math.random() * 100;
+            const duration = Math.random() * 15 + 10;
+            const delay = Math.random() * 15;
+            const colors = ['#F97316', '#EF4444', '#3B82F6', '#F59E0B', '#10B981'];
+            const color = colors[Math.floor(Math.random() * colors.length)];
+
+            particle.style.cssText = `
+                width: ${size}px;
+                height: ${size}px;
+                left: ${left}%;
+                background: ${color};
+                animation-duration: ${duration}s;
+                animation-delay: ${delay}s;
+            `;
+
+            particlesContainer.appendChild(particle);
+        }
+
+        // Form handling
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            
+
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
-            
-            // Скрыть предыдущие ошибки
-            document.getElementById('errorAlert').classList.add('d-none');
-            
+            const loginBtn = document.getElementById('loginBtn');
+            const errorAlert = document.getElementById('errorAlert');
+
+            // Hide previous errors
+            errorAlert.classList.add('d-none');
+
+            // Show loading state
+            const originalContent = loginBtn.innerHTML;
+            loginBtn.innerHTML = '<div class="spinner"></div><span>Вход...</span>';
+            loginBtn.disabled = true;
+
             try {
-                // Отправить запрос на авторизацию
                 const formData = new URLSearchParams();
                 formData.append('username', username);
                 formData.append('password', password);
-                
+
                 const response = await fetch('/auth/token', {
                     method: 'POST',
                     headers: {
@@ -127,25 +521,24 @@
                     },
                     body: formData
                 });
-                
+
                 if (!response.ok) {
                     throw new Error('Неверный логин или пароль');
                 }
-                
+
                 const data = await response.json();
-                
-                // Сохранить токен
                 localStorage.setItem('access_token', data.access_token);
-                
-                // Перенаправить на главную страницу
                 window.location.href = '/static/index.html';
-                
+
             } catch (error) {
-                // Показать ошибку
                 document.getElementById('errorMessage').textContent = error.message;
-                document.getElementById('errorAlert').classList.remove('d-none');
+                errorAlert.classList.remove('d-none');
+            } finally {
+                loginBtn.innerHTML = originalContent;
+                loginBtn.disabled = false;
             }
         });
     </script>
 </body>
+
 </html>

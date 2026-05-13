@@ -78,19 +78,19 @@ const API = {
     },
 
     downloadJournalJSON() {
-    return authorizedFetch('/reports/journal', {
-        method: 'GET'
-    }).then(async (resp) => {
-        const data = new Blob([JSON.stringify(resp, null, 2)], { type: 'application/json' });
-        const url = window.URL.createObjectURL(data);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `journal_${new Date().toISOString().slice(0,10)}.json`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        window.URL.revokeObjectURL(url);
-    });
+        return authorizedFetch('/reports/journal', {
+            method: 'GET'
+        }).then(async (resp) => {
+            const data = new Blob([JSON.stringify(resp, null, 2)], { type: 'application/json' });
+            const url = window.URL.createObjectURL(data);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `journal_${new Date().toISOString().slice(0, 10)}.json`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+        });
     },
 
     recalculateStatuses() {

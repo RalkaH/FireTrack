@@ -1,173 +1,984 @@
-/* ----- Общие переменные цветов (для всего приложения) ----- */
+/* ═══════════════════════════════════════════
+   FIRETRACK DESIGN SYSTEM v2.0
+   Modern dark-themed admin panel for
+   fire extinguisher management
+   ═══════════════════════════════════════════ */
+
+/* ── CSS Variables ── */
 :root {
-    --danger-red: #dc3545;
-    --warning-yellow: #ffc107;
-    --success-green: #28a745;
-    --info-blue: #17a2b8;
+  /* Background */
+  --bg-primary: #0B1120;
+  --bg-secondary: #111827;
+  --bg-card: #FFFFFF;
+  --bg-card-dark: #1E293B;
+  --bg-glass: rgba(30, 41, 59, 0.6);
+  --bg-glass-border: rgba(255, 255, 255, 0.08);
+  --bg-input: #F8FAFC;
+
+  /* Accent — Fire Orange */
+  --accent: #F97316;
+  --accent-hover: #EA580C;
+  --accent-light: rgba(249, 115, 22, 0.15);
+  --accent-glow: rgba(249, 115, 22, 0.4);
+
+  /* Text */
+  --text-primary: #0F172A;
+  --text-secondary: #475569;
+  --text-muted: #94A3B8;
+  --text-light: #CBD5E1;
+  --text-white: #FFFFFF;
+
+  /* Status Colors */
+  --status-actual: #10B981;
+  --status-actual-bg: rgba(16, 185, 129, 0.12);
+  --status-expired: #EF4444;
+  --status-expired-bg: rgba(239, 68, 68, 0.12);
+  --status-maintenance: #F59E0B;
+  --status-maintenance-bg: rgba(245, 158, 11, 0.12);
+  --status-service: #3B82F6;
+  --status-service-bg: rgba(59, 130, 246, 0.12);
+  --status-decommissioned: #6B7280;
+  --status-decommissioned-bg: rgba(107, 114, 128, 0.12);
+
+  /* Gradients */
+  --gradient-fire: linear-gradient(135deg, #F97316 0%, #EF4444 100%);
+  --gradient-blue: linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%);
+  --gradient-green: linear-gradient(135deg, #10B981 0%, #059669 100%);
+  --gradient-dark: linear-gradient(135deg, #1E293B 0%, #0F172A 100%);
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  --shadow-glow: 0 0 20px rgba(249, 115, 22, 0.3);
+  --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.08);
+
+  /* Spacing */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-full: 9999px;
+
+  /* Transitions */
+  --transition-fast: 150ms ease;
+  --transition-base: 250ms ease;
+  --transition-slow: 350ms ease;
 }
 
-/* ----- Базовые настройки страницы ----- */
+/* ── Base & Reset ── */
+* {
+  box-sizing: border-box;
+}
+
 body {
-    background-color: #f8f9fa;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: var(--bg-primary);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* ----- Бренд в верхнем меню ----- */
-.navbar-brand {
-    font-weight: bold;
-    font-size: 1.3rem;
+/* Inter font import */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+/* ── Animations ── */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
-/* ----- Карточки (dashbord, секции и т.п.) ----- */
-.card {
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    border: none;
-    margin-bottom: 20px;
-    transition: transform 0.2s;
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-/* ----- Заголовки карточек ----- */
-.card-header {
-    background-color: #fff;
-    border-bottom: 2px solid var(--danger-red);
-    font-weight: bold;
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
-/* ----- Плашки статистики на дашборде ----- */
-.stat-card {
-    text-align: center;
-    padding: 20px;
-    color: white;
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
-.stat-card i {
-    font-size: 3rem;
-    margin-bottom: 10px;
-    color: white;
-}
+@keyframes pulse-glow {
 
-.stat-card h3 {
-    font-size: 2.5rem;
-    font-weight: bold;
-    margin: 10px 0;
-    color: white;
-}
+  0%,
+  100% {
+    box-shadow: 0 0 5px var(--accent-glow);
+  }
 
-.stat-card p {
-    color: rgba(255, 255, 255, 0.9);
-    margin: 0;
-}
-
-/* ----- Отдельный универсальный бейдж (если нужен вне таблицы) ----- */
-.badge-status {
-    padding: 6px 12px;
-    font-size: 0.9rem;
-    color: black;
-}
-
-/* ----- Кнопки действий в таблицах ----- */
-.table-actions button {
-    margin-right: 5px;
-}
-
-/* ----- Красная кнопка (удаление и т.п.) ----- */
-.btn-danger {
-    background-color: var(--danger-red);
-    border-color: var(--danger-red);
-}
-
-.btn-danger:hover {
-    background-color: #c82333;
-    border-color: #bd2130;
-}
-
-/* ----- Блок фильтров над таблицами ----- */
-.filter-section {
-    background-color: #fff;
-    padding: 20px;
-    border-radius: 8px;
-    margin-bottom: 20px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-/* ----- Контейнер для поискового инпута ----- */
-.search-box {
-    max-width: 400px;
-}
-
-/* ----- Бейджи статусов огнетушителей в таблице ----- */
-/* Актуально */
-.badge.status-actual {
-    background-color: var(--success-green);
-    color: #000;
-}
-
-/* Просрочено */
-.badge.status-expired {
-    background-color: var(--danger-red);
-    color: #fff;
-}
-
-/* Требует обслуживания */
-.badge.status-maintenance {
-    background-color: var(--warning-yellow);
-    color: #000;
-}
-
-/* На техническом обслуживании */
-.badge.status-service {
-    background-color: var(--info-blue);
-    color: #fff;
-}
-
-/* Списан (и дефолтный серый статус) */
-.badge.status-decommissioned {
-    background-color: #6c757d;
-    color: #fff;
-}
-
-/* ----- Экран загрузки / спиннер ----- */
-.loading {
-    text-align: center;
-    padding: 40px;
-    color: #6c757d;
-}
-
-.loading i {
-    font-size: 2rem;
-    animation: spin 1s linear infinite;
+  50% {
+    box-shadow: 0 0 20px var(--accent-glow), 0 0 40px rgba(249, 115, 22, 0.1);
+  }
 }
 
 @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
-/* ----- Состояние, когда данных нет ----- */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.4s ease-out;
+}
+
+.animate-fadeInUp {
+  animation: fadeInUp 0.5s ease-out forwards;
+}
+
+.animate-scaleIn {
+  animation: scaleIn 0.35s ease-out;
+}
+
+/* Stagger delays for lists */
+.stagger-1 {
+  animation-delay: 0.05s;
+}
+
+.stagger-2 {
+  animation-delay: 0.10s;
+}
+
+.stagger-3 {
+  animation-delay: 0.15s;
+}
+
+.stagger-4 {
+  animation-delay: 0.20s;
+}
+
+.stagger-5 {
+  animation-delay: 0.25s;
+}
+
+.stagger-6 {
+  animation-delay: 0.30s;
+}
+
+/* ── Scrollbar Styling ── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* ── Navbar ── */
+.navbar {
+  background: rgba(11, 17, 32, 0.85) !important;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--bg-glass-border);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  padding: 0.6rem 1.5rem;
+}
+
+.navbar-brand {
+  font-weight: 800;
+  font-size: 1.3rem;
+  color: var(--text-white) !important;
+  letter-spacing: -0.02em;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.navbar-brand i {
+  color: var(--accent);
+  font-size: 1.5rem;
+}
+
+.nav-link {
+  font-weight: 500;
+  font-size: 0.9rem;
+  color: var(--text-muted) !important;
+  padding: 0.5rem 1rem !important;
+  border-radius: var(--radius-full);
+  transition: all var(--transition-base);
+  margin: 0 0.1rem;
+}
+
+.nav-link:hover {
+  color: var(--text-light) !important;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.nav-link.active {
+  color: var(--accent) !important;
+  background: var(--accent-light);
+  font-weight: 600;
+}
+
+.navbar-toggler {
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.navbar-toggler-icon {
+  filter: invert(1);
+}
+
+.btn-logout {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: var(--text-light);
+  padding: 0.4rem 1rem;
+  border-radius: var(--radius-full);
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: all var(--transition-base);
+}
+
+.btn-logout:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #FCA5A5;
+}
+
+/* ── Page Headers ── */
+.page-header {
+  margin-bottom: 1.5rem;
+  animation: fadeInDown 0.4s ease-out;
+}
+
+.page-header h2 {
+  font-weight: 700;
+  font-size: 1.6rem;
+  color: var(--text-white);
+  letter-spacing: -0.01em;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.page-header h2 i {
+  color: var(--accent);
+}
+
+/* ── Cards ── */
+.card {
+  background: var(--bg-card);
+  border: none;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  transition: transform var(--transition-base), box-shadow var(--transition-base);
+}
+
+.card:hover {
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+}
+
+.card-header {
+  background: transparent;
+  border-bottom: 1px solid #F1F5F9;
+  padding: 1rem 1.25rem;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0 !important;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.card-header i {
+  color: var(--accent);
+}
+
+.card-body {
+  padding: 1.25rem;
+}
+
+/* ── Dashboard Cards ── */
+.dashboard-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+  transition: all var(--transition-base);
+  animation: fadeInUp 0.5s ease-out forwards;
+  opacity: 0;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.dashboard-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+.dashboard-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-xl);
+}
+
+.dashboard-card .icon-wrap {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+  font-size: 1.4rem;
+}
+
+.dashboard-card .label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+}
+
+.dashboard-card .value {
+  font-size: 2.4rem;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+
+.dashboard-card .subtitle {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-top: 0.5rem;
+}
+
+/* Dashboard card accent colors */
+.dashboard-card.blue::before {
+  background: var(--gradient-blue);
+}
+
+.dashboard-card.green::before {
+  background: var(--gradient-green);
+}
+
+.dashboard-card.red::before {
+  background: var(--gradient-fire);
+}
+
+.dashboard-card.amber::before {
+  background: linear-gradient(135deg, #F59E0B, #D97706);
+}
+
+.dashboard-card.blue .icon-wrap {
+  background: rgba(59, 130, 246, 0.1);
+  color: #3B82F6;
+}
+
+.dashboard-card.green .icon-wrap {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10B981;
+}
+
+.dashboard-card.red .icon-wrap {
+  background: rgba(239, 68, 68, 0.1);
+  color: #EF4444;
+}
+
+.dashboard-card.amber .icon-wrap {
+  background: rgba(245, 158, 11, 0.1);
+  color: #D97706;
+}
+
+/* ── Section Cards ── */
+.section-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  border: none;
+  box-shadow: var(--shadow-card);
+  margin-top: 1.5rem;
+  overflow: hidden;
+  animation: fadeInUp 0.5s ease-out forwards;
+  opacity: 0;
+}
+
+/* ── Tables ── */
+.table {
+  font-size: 0.9rem;
+  margin-bottom: 0;
+}
+
+.table thead th {
+  background: #F8FAFC;
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+  padding: 0.85rem 1rem;
+  border-bottom: 2px solid #E2E8F0;
+  white-space: nowrap;
+}
+
+.table tbody td {
+  padding: 0.85rem 1rem;
+  vertical-align: middle;
+  color: var(--text-primary);
+  border-bottom: 1px solid #F1F5F9;
+}
+
+.table tbody tr {
+  transition: background var(--transition-fast);
+}
+
+.table tbody tr:hover {
+  background: #F8FAFC;
+}
+
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* ── Status Badges ── */
+.badge {
+  font-weight: 600;
+  font-size: 0.8rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: var(--radius-full);
+  letter-spacing: 0.01em;
+}
+
+.badge.status-actual {
+  background: var(--status-actual-bg);
+  color: #047857;
+}
+
+.badge.status-expired {
+  background: var(--status-expired-bg);
+  color: #B91C1C;
+}
+
+.badge.status-maintenance {
+  background: var(--status-maintenance-bg);
+  color: #B45309;
+}
+
+.badge.status-service {
+  background: var(--status-service-bg);
+  color: #1D4ED8;
+}
+
+.badge.status-decommissioned {
+  background: var(--status-decommissioned-bg);
+  color: #4B5563;
+}
+
+/* Small badges for table rows */
+.badge-sm {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.6rem;
+}
+
+/* ── Buttons ── */
+.btn {
+  font-weight: 500;
+  border-radius: var(--radius-md);
+  padding: 0.55rem 1.1rem;
+  font-size: 0.9rem;
+  transition: all var(--transition-base);
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.btn:active {
+  transform: scale(0.97);
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: var(--accent-hover);
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.35);
+}
+
+.btn-secondary {
+  background: #F1F5F9;
+  color: var(--text-secondary);
+}
+
+.btn-secondary:hover {
+  background: #E2E8F0;
+  color: var(--text-primary);
+}
+
+.btn-success {
+  background: #10B981;
+  color: white;
+}
+
+.btn-success:hover {
+  background: #059669;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
+}
+
+.btn-info {
+  background: #EFF6FF;
+  color: #1D4ED8;
+}
+
+.btn-info:hover {
+  background: #DBEAFE;
+}
+
+.btn-warning {
+  background: #FFFBEB;
+  color: #B45309;
+}
+
+.btn-warning:hover {
+  background: #FEF3C7;
+}
+
+.btn-danger {
+  background: #FEF2F2;
+  color: #DC2626;
+}
+
+.btn-danger:hover {
+  background: #FEE2E2;
+}
+
+.btn-outline-primary {
+  background: transparent;
+  border: 1.5px solid #E2E8F0;
+  color: var(--text-secondary);
+}
+
+.btn-outline-primary:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-light);
+}
+
+.btn-outline-danger {
+  background: transparent;
+  border: 1.5px solid #FECACA;
+  color: #DC2626;
+}
+
+.btn-outline-danger:hover {
+  background: #FEF2F2;
+}
+
+.btn-sm {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8rem;
+  border-radius: var(--radius-sm);
+}
+
+/* ── Quick Actions ── */
+.quick-actions .btn {
+  border-radius: var(--radius-full);
+  padding: 0.6rem 1.1rem;
+  font-weight: 500;
+  box-shadow: var(--shadow-sm);
+}
+
+/* ── Forms ── */
+.form-control,
+.form-select {
+  background: var(--bg-input);
+  border: 1.5px solid #E2E8F0;
+  border-radius: var(--radius-md);
+  padding: 0.6rem 0.9rem;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  transition: all var(--transition-base);
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.15);
+  background: white;
+}
+
+.form-label {
+  font-weight: 500;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.4rem;
+}
+
+.input-group-text {
+  background: var(--bg-input);
+  border: 1.5px solid #E2E8F0;
+  border-right: none;
+  color: var(--text-muted);
+  border-radius: var(--radius-md) 0 0 var(--radius-md);
+}
+
+.input-group .form-control {
+  border-left: none;
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+}
+
+/* ── Filter Section ── */
+.filter-section {
+  background: var(--bg-card);
+  padding: 1.25rem;
+  border-radius: var(--radius-lg);
+  margin-bottom: 1.25rem;
+  box-shadow: var(--shadow-card);
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  animation: fadeInUp 0.4s ease-out;
+}
+
+/* ── Alerts ── */
+.alert {
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 1rem 1.25rem;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.alert i {
+  font-size: 1.1rem;
+}
+
+.alert-danger {
+  background: #FEF2F2;
+  color: #991B1B;
+}
+
+.alert-success {
+  background: #ECFDF5;
+  color: #065F46;
+}
+
+.alert-warning {
+  background: #FFFBEB;
+  color: #92400E;
+}
+
+.alert-info {
+  background: #EFF6FF;
+  color: #1E40AF;
+}
+
+.alert-sm {
+  padding: 0.6rem 0.85rem;
+  font-size: 0.8rem;
+}
+
+/* ── Loading State ── */
+.loading {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-muted);
+  animation: fadeIn 0.3s ease-out;
+}
+
+.loading i {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+  display: inline-block;
+  animation: spin 1s linear infinite;
+  color: var(--accent);
+}
+
+.loading p {
+  font-size: 0.95rem;
+}
+
+/* ── Empty State ── */
 .empty-state {
-    text-align: center;
-    padding: 60px 20px;
-    color: #6c757d;
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--text-muted);
+  animation: fadeIn 0.4s ease-out;
 }
 
 .empty-state i {
-    font-size: 4rem;
-    margin-bottom: 20px;
-    opacity: 0.5;
+  font-size: 3.5rem;
+  margin-bottom: 1.25rem;
+  color: #CBD5E1;
+  display: inline-block;
 }
 
-/* ----- Адаптив под мобильные устройства ----- */
+.empty-state p {
+  font-size: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+/* ── Modal ── */
+.modal-content {
+  border: none;
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-xl);
+  overflow: hidden;
+}
+
+.modal-header {
+  background: #F8FAFC;
+  border-bottom: 1px solid #F1F5F9;
+  padding: 1.1rem 1.5rem;
+}
+
+.modal-title {
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--text-primary);
+}
+
+.modal-body {
+  padding: 1.5rem;
+}
+
+.modal-footer {
+  border-top: 1px solid #F1F5F9;
+  padding: 1rem 1.5rem;
+}
+
+/* ── Page transitions ── */
+#content {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* ── Responsive ── */
 @media (max-width: 768px) {
-    .stat-card h3 {
-        font-size: 2rem;
-    }
-    
-    .table-responsive {
-        font-size: 0.9rem;
-    }
+  .dashboard-card .value {
+    font-size: 2rem;
+  }
+
+  .page-header h2 {
+    font-size: 1.3rem;
+  }
+
+  .table-responsive {
+    font-size: 0.85rem;
+  }
+
+  .filter-section {
+    padding: 1rem;
+  }
+
+  .btn {
+    padding: 0.5rem 0.9rem;
+    font-size: 0.85rem;
+  }
+}
+
+@media (min-width: 1200px) {
+  .row-dashboard>[class^="col-"] {
+    flex: 0 0 25%;
+    max-width: 25%;
+  }
+}
+
+/* ── Import page card headers ── */
+.import-card-locations .card-header {
+  background: linear-gradient(135deg, #3B82F6, #1D4ED8);
+  color: white;
+}
+
+.import-card-locations .card-header i {
+  color: white;
+}
+
+.import-card-employees .card-header {
+  background: linear-gradient(135deg, #10B981, #059669);
+  color: white;
+}
+
+.import-card-employees .card-header i {
+  color: white;
+}
+
+.import-card-extinguishers .card-header {
+  background: var(--gradient-fire);
+  color: white;
+}
+
+.import-card-extinguishers .card-header i {
+  color: white;
+}
+
+.import-card-inspections .card-header {
+  background: linear-gradient(135deg, #F59E0B, #D97706);
+  color: white;
+}
+
+.import-card-inspections .card-header i {
+  color: white;
+}
+
+/* ── Table action buttons ── */
+.table-actions {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.table-actions .btn {
+  padding: 0.3rem 0.5rem;
+  font-size: 0.8rem;
+}
+
+/* ── Glow accent for important elements ── */
+.glow-accent {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* ── Text utilities ── */
+.text-accent {
+  color: var(--accent);
+}
+
+.text-gradient {
+  background: var(--gradient-fire);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Dark body override for the app shell ── */
+body.app-shell {
+  background: var(--bg-primary);
+}
+
+/* ── Navbar dark dropdown ── */
+.dropdown-menu {
+  background: var(--bg-card-dark);
+  border: 1px solid var(--bg-glass-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-xl);
+}
+
+.dropdown-item {
+  color: var(--text-light);
+  font-size: 0.9rem;
+  padding: 0.5rem 1rem;
+}
+
+.dropdown-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-white);
+}
+
+/* ── Tooltip enhancement ── */
+.custom-tooltip {
+  background: var(--bg-card-dark);
+  color: var(--text-white);
+  padding: 0.4rem 0.75rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  box-shadow: var(--shadow-lg);
+}
+
+/* ── Progress bar (if needed) ── */
+.progress {
+  height: 6px;
+  background: #F1F5F9;
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.progress-bar {
+  background: var(--gradient-fire);
+  border-radius: var(--radius-full);
+  transition: width 0.5s ease;
+}
+
+/* ── Stats row on dashboard ── */
+.stat-row-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border-radius: var(--radius-md);
+  transition: background var(--transition-fast);
+}
+
+.stat-row-item:hover {
+  background: #F8FAFC;
+}
+
+.stat-row-item .stat-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
 }
