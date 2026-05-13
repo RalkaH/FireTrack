@@ -1,0 +1,173 @@
+/* ----- Общие переменные цветов (для всего приложения) ----- */
+:root {
+    --danger-red: #dc3545;
+    --warning-yellow: #ffc107;
+    --success-green: #28a745;
+    --info-blue: #17a2b8;
+}
+
+/* ----- Базовые настройки страницы ----- */
+body {
+    background-color: #f8f9fa;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* ----- Бренд в верхнем меню ----- */
+.navbar-brand {
+    font-weight: bold;
+    font-size: 1.3rem;
+}
+
+/* ----- Карточки (dashbord, секции и т.п.) ----- */
+.card {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border: none;
+    margin-bottom: 20px;
+    transition: transform 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+/* ----- Заголовки карточек ----- */
+.card-header {
+    background-color: #fff;
+    border-bottom: 2px solid var(--danger-red);
+    font-weight: bold;
+}
+
+/* ----- Плашки статистики на дашборде ----- */
+.stat-card {
+    text-align: center;
+    padding: 20px;
+    color: white;
+}
+
+.stat-card i {
+    font-size: 3rem;
+    margin-bottom: 10px;
+    color: white;
+}
+
+.stat-card h3 {
+    font-size: 2.5rem;
+    font-weight: bold;
+    margin: 10px 0;
+    color: white;
+}
+
+.stat-card p {
+    color: rgba(255, 255, 255, 0.9);
+    margin: 0;
+}
+
+/* ----- Отдельный универсальный бейдж (если нужен вне таблицы) ----- */
+.badge-status {
+    padding: 6px 12px;
+    font-size: 0.9rem;
+    color: black;
+}
+
+/* ----- Кнопки действий в таблицах ----- */
+.table-actions button {
+    margin-right: 5px;
+}
+
+/* ----- Красная кнопка (удаление и т.п.) ----- */
+.btn-danger {
+    background-color: var(--danger-red);
+    border-color: var(--danger-red);
+}
+
+.btn-danger:hover {
+    background-color: #c82333;
+    border-color: #bd2130;
+}
+
+/* ----- Блок фильтров над таблицами ----- */
+.filter-section {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* ----- Контейнер для поискового инпута ----- */
+.search-box {
+    max-width: 400px;
+}
+
+/* ----- Бейджи статусов огнетушителей в таблице ----- */
+/* Актуально */
+.badge.status-actual {
+    background-color: var(--success-green);
+    color: #000;
+}
+
+/* Просрочено */
+.badge.status-expired {
+    background-color: var(--danger-red);
+    color: #fff;
+}
+
+/* Требует обслуживания */
+.badge.status-maintenance {
+    background-color: var(--warning-yellow);
+    color: #000;
+}
+
+/* На техническом обслуживании */
+.badge.status-service {
+    background-color: var(--info-blue);
+    color: #fff;
+}
+
+/* Списан (и дефолтный серый статус) */
+.badge.status-decommissioned {
+    background-color: #6c757d;
+    color: #fff;
+}
+
+/* ----- Экран загрузки / спиннер ----- */
+.loading {
+    text-align: center;
+    padding: 40px;
+    color: #6c757d;
+}
+
+.loading i {
+    font-size: 2rem;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* ----- Состояние, когда данных нет ----- */
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #6c757d;
+}
+
+.empty-state i {
+    font-size: 4rem;
+    margin-bottom: 20px;
+    opacity: 0.5;
+}
+
+/* ----- Адаптив под мобильные устройства ----- */
+@media (max-width: 768px) {
+    .stat-card h3 {
+        font-size: 2rem;
+    }
+    
+    .table-responsive {
+        font-size: 0.9rem;
+    }
+}

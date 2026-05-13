@@ -1,0 +1,23 @@
+# .gitignore (v1.0)
+
+# Виртуальное окружение
+venv/
+env/
+
+# Кэш Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# База данных SQLite
+*.db
+*.sqlite3
+fire_extinguishers.db
+
+# Конфигурации и секреты
+.env
+.secrets
+
+# Папки IDE (если пользуешься VSCode, PyCharm)
+.vscode/
+.idea/

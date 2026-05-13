@@ -1,0 +1,1 @@
+from . import locations, statuses, extinguishers, employees, inspections, reports
