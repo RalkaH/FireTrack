@@ -1,4 +1,9 @@
-# routers/reports.py (v1.1)
+# routers/reports.py (v1.2)
+"""
+Модуль генерации отчетов и аналитики.
+Обеспечивает формирование статистики для дашборда, списков просроченного оборудования, 
+и выгрузку журналов проверок в форматах JSON и CSV.
+"""
 from datetime import date
 from io import StringIO
 import csv
@@ -27,8 +32,16 @@ def journal_json(
     db: Session = Depends(get_db),
 ):
     """
-    Журнал проверок за период в формате JSON.
-    Если даты не указаны, возвращаются все проверки.
+    Получить электронный журнал проверок за выбранный период в формате JSON.
+    Если даты не указаны, возвращается история всех проверок.
+
+    Args:
+        date_from (Optional[date]): Начальная дата фильтра.
+        date_to (Optional[date]): Конечная дата фильтра.
+        db (Session): Сессия базы данных.
+
+    Returns:
+        List[Inspection]: Список записей журнала.
     """
     query = db.query(Inspection)
 
@@ -48,7 +61,15 @@ def journal_csv(
     db: Session = Depends(get_db),
 ):
     """
-    Журнал проверок за период в формате CSV для Excel.
+    Сгенерировать и скачать журнал проверок за период в формате CSV (совместимо с Excel).
+
+    Args:
+        date_from (Optional[date]): Начальная дата фильтра.
+        date_to (Optional[date]): Конечная дата фильтра.
+        db (Session): Сессия базы данных.
+
+    Returns:
+        StreamingResponse: Файл CSV, готовый для скачивания браузером.
     """
     query = (
         db.query(Inspection, FireExtinguisher, Location, Status, Employee)
@@ -123,7 +144,16 @@ def journal_csv(
 @router.get("/expired")
 def expired_list(db: Session = Depends(get_db)):
     """
-    Список просроченных огнетушителей (по текущему статусу).
+    Получить сводный список просроченных огнетушителей (находящихся в статусе 'Просрочено').
+
+    Args:
+        db (Session): Сессия базы данных.
+
+    Returns:
+        list: Список словарей с краткой информацией о просроченном оборудовании.
+
+    Raises:
+        HTTPException: Если системный статус "Просрочено" не заведен в базу.
     """
     expired_status = db.query(Status).filter(
         Status.name == "Просрочено").first()
@@ -154,11 +184,19 @@ def expired_list(db: Session = Depends(get_db)):
 @router.get("/dashboard")
 def dashboard_statistics(db: Session = Depends(get_db)):
     """
-    Получить статистику для дашборда:
-    - Общее количество огнетушителей
-    - Количество по статусам
-    - Количество просроченных
+    Сформировать агрегированную статистику для вывода на главной панели (Dashboard).
+
+    Аналитика включает:
+    - Общее количество инвентаря
+    - Разбивка по текущим статусам
     - Количество требующих проверки в ближайшие 30 дней
+    - Общее количество просроченного оборудования
+
+    Args:
+        db (Session): Сессия базы данных.
+
+    Returns:
+        dict: Набор метрик для дашборда.
     """
     from datetime import timedelta
 
@@ -214,7 +252,15 @@ def upcoming_inspections_report(
     db: Session = Depends(get_db),
 ):
     """
-    Список огнетушителей, которые требуют проверки в ближайшие N дней.
+    Детальный список огнетушителей, для которых плановое обслуживание (ТО)
+    наступает в ближайшие N дней. Возвращает только актуальную последнюю проверку.
+
+    Args:
+        days (int): Горизонт прогнозирования в днях.
+        db (Session): Сессия базы данных.
+
+    Returns:
+        list: Список оборудования, ожидающего проверку.
     """
     from datetime import timedelta
 
@@ -271,6 +317,16 @@ def upcoming_inspections_report(
 
 @router.get("/upcoming")
 def upcoming_inspections(days: int = 30, db: Session = Depends(get_db)):
+    """
+    Упрощенный список предстоящих проверок (legacy-метод).
+
+    Args:
+        days (int): Количество дней.
+        db (Session): Сессия базы данных.
+
+    Returns:
+        list: Краткая информация о предстоящих проверках.
+    """
     from datetime import date, timedelta
 
     today = date.today()
@@ -306,6 +362,17 @@ def export_journal_json(
     date_to: date | None = None,
     db: Session = Depends(get_db),
 ):
+    """
+    Альтернативный эндпоинт для экспорта журнала проверок в формате JSON.
+
+    Args:
+        date_from (date | None): Дата с.
+        date_to (date | None): Дата по.
+        db (Session): Сессия базы данных.
+
+    Returns:
+        list[Inspection]: Отфильтрованный журнал.
+    """
     q = db.query(Inspection)
     if date_from:
         q = q.filter(Inspection.inspection_date >= date_from)

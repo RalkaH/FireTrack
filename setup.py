@@ -1,4 +1,9 @@
-# setup.py (v1.0)
+# setup.py (v1.1)
+"""
+Конфигурационный файл системы сборки (Setuptools).
+Позволяет упаковать проект FireTrack как стандартный Python-пакет,
+устанавливать зависимости и регистрировать консольные команды (entry_points).
+"""
 from setuptools import setup, find_packages
 
 setup(

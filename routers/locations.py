@@ -1,4 +1,8 @@
-# routers/locations.py
+# routers/locations.py (v1.1)
+"""
+Модуль управления местами расположения (локациями).
+Предоставляет возможности добавления новых кабинетов/этажей и получения их списка.
+"""
 from datetime import datetime
 from typing import List
 
@@ -17,6 +21,15 @@ router = APIRouter(
 
 @router.get("/", response_model=List[LocationRead])
 def list_locations(db: Session = Depends(get_db)):
+    """
+    Получить список всех зарегистрированных локаций.
+
+    Args:
+        db (Session): Сессия базы данных.
+
+    Returns:
+        List[Location]: Список всех мест.
+    """
     return db.query(Location).all()
 
 
@@ -26,6 +39,19 @@ def list_locations(db: Session = Depends(get_db)):
     status_code=status.HTTP_201_CREATED,
 )
 def create_location(data: LocationCreate, db: Session = Depends(get_db)):
+    """
+    Зарегистрировать новое место установки огнетушителей.
+
+    Args:
+        data (LocationCreate): Данные о месте (название, описание).
+        db (Session): Сессия базы данных.
+
+    Returns:
+        Location: Созданный объект места.
+
+    Raises:
+        HTTPException: Если локация с таким именем уже существует (400).
+    """
     existing = (
         db.query(Location)
         .filter(Location.name == data.name)

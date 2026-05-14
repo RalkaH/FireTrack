@@ -1,3 +1,8 @@
+# routers/statuses.py (v1.1)
+"""
+Модуль для управления техническими статусами оборудования.
+Включает инициализацию дефолтных системных статусов и фоновый пересчет актуальности.
+"""
 from datetime import date, datetime, timezone
 from typing import List
 
@@ -17,6 +22,15 @@ router = APIRouter(
 
 @router.get("/", response_model=List[StatusRead])
 def list_statuses(db: Session = Depends(get_db)):
+    """
+    Получить справочник всех возможных статусов оборудования.
+
+    Args:
+        db (Session): Сессия БД.
+
+    Returns:
+        List[Status]: Список статусов.
+    """
     return db.query(Status).all()
 
 
@@ -26,6 +40,19 @@ def list_statuses(db: Session = Depends(get_db)):
     status_code=status.HTTP_201_CREATED,
 )
 def create_status(data: StatusCreate, db: Session = Depends(get_db)):
+    """
+    Зарегистрировать новый кастомный статус.
+
+    Args:
+        data (StatusCreate): Наименование и описание статуса.
+        db (Session): Сессия БД.
+
+    Returns:
+        Status: Созданный объект.
+
+    Raises:
+        HTTPException: Если статус с таким именем уже существует.
+    """
     existing = db.query(Status).filter(Status.name == data.name).first()
     if existing is not None:
         raise HTTPException(
@@ -49,13 +76,22 @@ def create_status(data: StatusCreate, db: Session = Depends(get_db)):
 @router.post("/init-defaults", status_code=status.HTTP_201_CREATED)
 def init_default_statuses(db: Session = Depends(get_db)):
     """
-    Создать стандартные статусы для системы, если их еще нет.
+    Инициализировать стандартные статусы для системы (по ГОСТ/умолчанию).
+    Создает записи только если они отсутствуют в базе.
+
+    Args:
+        db (Session): Сессия БД.
+
+    Returns:
+        dict: Статистика инициализации.
     """
     default_statuses = [
         {"name": "Актуально", "description": "Огнетушитель прошел проверку, срок не истек"},
         {"name": "Просрочено", "description": "Необходима проверка, срок истек"},
-        {"name": "Требует обслуживания", "description": "Обнаружены дефекты при проверке"},
-        {"name": "На техническом обслуживании", "description": "Огнетушитель на ТО"},
+        {"name": "Требует обслуживания",
+            "description": "Обнаружены дефекты при проверке"},
+        {"name": "На техническом обслуживании",
+            "description": "Огнетушитель на ТО"},
         {"name": "Списан", "description": "Огнетушитель выведен из эксплуатации"},
     ]
 
@@ -86,12 +122,22 @@ def init_default_statuses(db: Session = Depends(get_db)):
 @router.post("/recalculate")
 def recalculate_statuses(db: Session = Depends(get_db)):
     """
-    Пересчитать статусы огнетушителей по дате следующей проверки.
-    Если next_inspection_date < сегодня -> статус 'Просрочено',
-    иначе -> 'Актуально'.
+    Массовый пересчет статусов всего парка огнетушителей на основе дат проверок.
+    Если next_inspection_date < сегодня -> устанавливается статус 'Просрочено',
+    иначе возвращается статус 'Актуально' (если не был списан или на ТО).
+
+    Args:
+        db (Session): Сессия БД.
+
+    Returns:
+        dict: Сообщение об успешном выполнении.
+
+    Raises:
+        HTTPException: Если отсутствуют базовые статусы 'Актуально' и 'Просрочено'.
     """
     status_actual = db.query(Status).filter(Status.name == "Актуально").first()
-    status_expired = db.query(Status).filter(Status.name == "Просрочено").first()
+    status_expired = db.query(Status).filter(
+        Status.name == "Просрочено").first()
 
     if status_actual is None or status_expired is None:
         raise HTTPException(
@@ -117,7 +163,8 @@ def recalculate_statuses(db: Session = Depends(get_db)):
             continue
 
         # Явно берём дату следующей проверки (для Pylance)
-        next_date: date = last_insp.next_inspection_date  # type: ignore[assignment]
+        # type: ignore[assignment]
+        next_date: date = last_insp.next_inspection_date
 
         if next_date < today:
             fe.status_id = status_expired.id
