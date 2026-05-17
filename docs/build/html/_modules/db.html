@@ -1,0 +1,147 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="ru" data-content_root="../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>db &mdash; документация FireTrack 1</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=47a0e12c"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../_static/translations.js?v=cd1d70c9"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Алфавитный указатель" href="../genindex.html" />
+    <link rel="search" title="Поиск" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            FireTrack
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Поиск в документации" aria-label="Поиск в документации" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Меню навигации">
+              <p class="caption" role="heading"><span class="caption-text">Содержание:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">FireExtinguishers</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Меню навигации для мобильных устройств" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">FireTrack</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Навигация по страницам">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Код модуля</a></li>
+      <li class="breadcrumb-item active">db</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Исходный код db</h1><div class="highlight"><pre>
+<span></span><span class="c1"># db.py (v1.1)</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Модуль для настройки подключения к базе данных SQLAlchemy.</span>
+<span class="sd">Обеспечивает создание движка, сессий и базового класса для моделей.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sqlalchemy</span><span class="w"> </span><span class="kn">import</span> <span class="n">create_engine</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sqlalchemy.orm</span><span class="w"> </span><span class="kn">import</span> <span class="n">sessionmaker</span><span class="p">,</span> <span class="n">DeclarativeBase</span>
+
+<span class="c1"># Получаем URL базы данных из переменных окружения или используем SQLite по умолчанию</span>
+<span class="n">DATABASE_URL</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;DATABASE_URL&quot;</span><span class="p">,</span> <span class="s2">&quot;sqlite:///./fire_extinguishers.db&quot;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="Base">
+<a class="viewcode-back" href="../db.html#db.Base">[документация]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Base</span><span class="p">(</span><span class="n">DeclarativeBase</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Базовый класс для всех моделей базы данных.&quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+
+
+<span class="c1"># Настройка движка (для SQLite отключаем проверку потоков)</span>
+<span class="n">engine</span> <span class="o">=</span> <span class="n">create_engine</span><span class="p">(</span>
+    <span class="n">DATABASE_URL</span><span class="p">,</span>
+    <span class="n">connect_args</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;check_same_thread&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">}</span> <span class="k">if</span> <span class="n">DATABASE_URL</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span>
+        <span class="s2">&quot;sqlite&quot;</span><span class="p">)</span> <span class="k">else</span> <span class="p">{},</span>
+<span class="p">)</span>
+
+<span class="c1"># Фабрика сессий для взаимодействия с БД</span>
+<span class="n">SessionLocal</span> <span class="o">=</span> <span class="n">sessionmaker</span><span class="p">(</span><span class="n">autocommit</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">autoflush</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">bind</span><span class="o">=</span><span class="n">engine</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="get_db">
+<a class="viewcode-back" href="../db.html#db.get_db">[документация]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_db</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Генератор для получения сессии базы данных.</span>
+<span class="sd">    Используется как зависимость в эндпоинтах FastAPI.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">db</span> <span class="o">=</span> <span class="n">SessionLocal</span><span class="p">()</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">yield</span> <span class="n">db</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="n">db</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Авторские права 2026, Ralka. </p>
+  </div>
+
+  Собрано при помощи <a href="https://www.sphinx-doc.org/">Sphinx</a> с использованием
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">темы,</a>
+    предоставленной <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

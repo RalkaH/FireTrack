@@ -1,0 +1,912 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="ru" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>schemas module &mdash; документация FireTrack 1</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=47a0e12c"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="_static/translations.js?v=cd1d70c9"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Алфавитный указатель" href="genindex.html" />
+    <link rel="search" title="Поиск" href="search.html" />
+    <link rel="next" title="setup module" href="setup.html" />
+    <link rel="prev" title="models module" href="models.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            FireTrack
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Поиск в документации" aria-label="Поиск в документации" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Меню навигации">
+              <p class="caption" role="heading"><span class="caption-text">Содержание:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">FireExtinguishers</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="auth.html">auth module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="db.html">db module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="main.html">main module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="models.html">models module</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">schemas module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#schemas.EmployeeBase"><code class="docutils literal notranslate"><span class="pre">EmployeeBase</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.EmployeeBase.full_name"><code class="docutils literal notranslate"><span class="pre">EmployeeBase.full_name</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.EmployeeBase.model_config"><code class="docutils literal notranslate"><span class="pre">EmployeeBase.model_config</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.EmployeeBase.position"><code class="docutils literal notranslate"><span class="pre">EmployeeBase.position</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#schemas.EmployeeCreate"><code class="docutils literal notranslate"><span class="pre">EmployeeCreate</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.EmployeeCreate.model_config"><code class="docutils literal notranslate"><span class="pre">EmployeeCreate.model_config</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#schemas.EmployeeRead"><code class="docutils literal notranslate"><span class="pre">EmployeeRead</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.EmployeeRead.Config"><code class="docutils literal notranslate"><span class="pre">EmployeeRead.Config</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.EmployeeRead.created_at"><code class="docutils literal notranslate"><span class="pre">EmployeeRead.created_at</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.EmployeeRead.id"><code class="docutils literal notranslate"><span class="pre">EmployeeRead.id</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.EmployeeRead.model_config"><code class="docutils literal notranslate"><span class="pre">EmployeeRead.model_config</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#schemas.FireExtinguisherBase"><code class="docutils literal notranslate"><span class="pre">FireExtinguisherBase</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.FireExtinguisherBase.capacity"><code class="docutils literal notranslate"><span class="pre">FireExtinguisherBase.capacity</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.FireExtinguisherBase.commissioning_date"><code class="docutils literal notranslate"><span class="pre">FireExtinguisherBase.commissioning_date</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.FireExtinguisherBase.inventory_number"><code class="docutils literal notranslate"><span class="pre">FireExtinguisherBase.inventory_number</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.FireExtinguisherBase.location_id"><code class="docutils literal notranslate"><span class="pre">FireExtinguisherBase.location_id</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.FireExtinguisherBase.manufacture_date"><code class="docutils literal notranslate"><span class="pre">FireExtinguisherBase.manufacture_date</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.FireExtinguisherBase.manufacturer"><code class="docutils literal notranslate"><span class="pre">FireExtinguisherBase.manufacturer</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.FireExtinguisherBase.model_config"><code class="docutils literal notranslate"><span class="pre">FireExtinguisherBase.model_config</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.FireExtinguisherBase.not_in_future"><code class="docutils literal notranslate"><span class="pre">FireExtinguisherBase.not_in_future()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.FireExtinguisherBase.status_id"><code class="docutils literal notranslate"><span class="pre">FireExtinguisherBase.status_id</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.FireExtinguisherBase.type"><code class="docutils literal notranslate"><span class="pre">FireExtinguisherBase.type</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#schemas.FireExtinguisherCreate"><code class="docutils literal notranslate"><span class="pre">FireExtinguisherCreate</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.FireExtinguisherCreate.model_config"><code class="docutils literal notranslate"><span class="pre">FireExtinguisherCreate.model_config</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#schemas.FireExtinguisherRead"><code class="docutils literal notranslate"><span class="pre">FireExtinguisherRead</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.FireExtinguisherRead.Config"><code class="docutils literal notranslate"><span class="pre">FireExtinguisherRead.Config</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.FireExtinguisherRead.created_at"><code class="docutils literal notranslate"><span class="pre">FireExtinguisherRead.created_at</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.FireExtinguisherRead.id"><code class="docutils literal notranslate"><span class="pre">FireExtinguisherRead.id</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.FireExtinguisherRead.model_config"><code class="docutils literal notranslate"><span class="pre">FireExtinguisherRead.model_config</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.FireExtinguisherRead.updated_at"><code class="docutils literal notranslate"><span class="pre">FireExtinguisherRead.updated_at</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#schemas.FireExtinguisherUpdate"><code class="docutils literal notranslate"><span class="pre">FireExtinguisherUpdate</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.FireExtinguisherUpdate.capacity"><code class="docutils literal notranslate"><span class="pre">FireExtinguisherUpdate.capacity</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.FireExtinguisherUpdate.commissioning_date"><code class="docutils literal notranslate"><span class="pre">FireExtinguisherUpdate.commissioning_date</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.FireExtinguisherUpdate.inventory_number"><code class="docutils literal notranslate"><span class="pre">FireExtinguisherUpdate.inventory_number</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.FireExtinguisherUpdate.location_id"><code class="docutils literal notranslate"><span class="pre">FireExtinguisherUpdate.location_id</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.FireExtinguisherUpdate.manufacture_date"><code class="docutils literal notranslate"><span class="pre">FireExtinguisherUpdate.manufacture_date</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.FireExtinguisherUpdate.manufacturer"><code class="docutils literal notranslate"><span class="pre">FireExtinguisherUpdate.manufacturer</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.FireExtinguisherUpdate.model_config"><code class="docutils literal notranslate"><span class="pre">FireExtinguisherUpdate.model_config</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.FireExtinguisherUpdate.status_id"><code class="docutils literal notranslate"><span class="pre">FireExtinguisherUpdate.status_id</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.FireExtinguisherUpdate.type"><code class="docutils literal notranslate"><span class="pre">FireExtinguisherUpdate.type</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#schemas.HealthResponse"><code class="docutils literal notranslate"><span class="pre">HealthResponse</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.HealthResponse.model_config"><code class="docutils literal notranslate"><span class="pre">HealthResponse.model_config</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.HealthResponse.status"><code class="docutils literal notranslate"><span class="pre">HealthResponse.status</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#schemas.InspectionBase"><code class="docutils literal notranslate"><span class="pre">InspectionBase</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.InspectionBase.comments"><code class="docutils literal notranslate"><span class="pre">InspectionBase.comments</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.InspectionBase.employee_id"><code class="docutils literal notranslate"><span class="pre">InspectionBase.employee_id</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.InspectionBase.fire_extinguisher_id"><code class="docutils literal notranslate"><span class="pre">InspectionBase.fire_extinguisher_id</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.InspectionBase.hose_condition"><code class="docutils literal notranslate"><span class="pre">InspectionBase.hose_condition</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.InspectionBase.inspection_date"><code class="docutils literal notranslate"><span class="pre">InspectionBase.inspection_date</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.InspectionBase.model_config"><code class="docutils literal notranslate"><span class="pre">InspectionBase.model_config</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.InspectionBase.next_inspection_date"><code class="docutils literal notranslate"><span class="pre">InspectionBase.next_inspection_date</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.InspectionBase.pressure"><code class="docutils literal notranslate"><span class="pre">InspectionBase.pressure</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.InspectionBase.safety_pin_condition"><code class="docutils literal notranslate"><span class="pre">InspectionBase.safety_pin_condition</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.InspectionBase.seal_condition"><code class="docutils literal notranslate"><span class="pre">InspectionBase.seal_condition</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.InspectionBase.visual_inspection"><code class="docutils literal notranslate"><span class="pre">InspectionBase.visual_inspection</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.InspectionBase.weight"><code class="docutils literal notranslate"><span class="pre">InspectionBase.weight</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#schemas.InspectionCreate"><code class="docutils literal notranslate"><span class="pre">InspectionCreate</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.InspectionCreate.model_config"><code class="docutils literal notranslate"><span class="pre">InspectionCreate.model_config</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#schemas.InspectionRead"><code class="docutils literal notranslate"><span class="pre">InspectionRead</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.InspectionRead.Config"><code class="docutils literal notranslate"><span class="pre">InspectionRead.Config</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.InspectionRead.created_at"><code class="docutils literal notranslate"><span class="pre">InspectionRead.created_at</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.InspectionRead.id"><code class="docutils literal notranslate"><span class="pre">InspectionRead.id</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.InspectionRead.model_config"><code class="docutils literal notranslate"><span class="pre">InspectionRead.model_config</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#schemas.LocationBase"><code class="docutils literal notranslate"><span class="pre">LocationBase</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.LocationBase.description"><code class="docutils literal notranslate"><span class="pre">LocationBase.description</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.LocationBase.model_config"><code class="docutils literal notranslate"><span class="pre">LocationBase.model_config</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.LocationBase.name"><code class="docutils literal notranslate"><span class="pre">LocationBase.name</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#schemas.LocationCreate"><code class="docutils literal notranslate"><span class="pre">LocationCreate</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.LocationCreate.model_config"><code class="docutils literal notranslate"><span class="pre">LocationCreate.model_config</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#schemas.LocationRead"><code class="docutils literal notranslate"><span class="pre">LocationRead</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.LocationRead.Config"><code class="docutils literal notranslate"><span class="pre">LocationRead.Config</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.LocationRead.created_at"><code class="docutils literal notranslate"><span class="pre">LocationRead.created_at</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.LocationRead.id"><code class="docutils literal notranslate"><span class="pre">LocationRead.id</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.LocationRead.model_config"><code class="docutils literal notranslate"><span class="pre">LocationRead.model_config</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#schemas.StatusBase"><code class="docutils literal notranslate"><span class="pre">StatusBase</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.StatusBase.description"><code class="docutils literal notranslate"><span class="pre">StatusBase.description</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.StatusBase.model_config"><code class="docutils literal notranslate"><span class="pre">StatusBase.model_config</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.StatusBase.name"><code class="docutils literal notranslate"><span class="pre">StatusBase.name</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#schemas.StatusCreate"><code class="docutils literal notranslate"><span class="pre">StatusCreate</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.StatusCreate.model_config"><code class="docutils literal notranslate"><span class="pre">StatusCreate.model_config</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#schemas.StatusRead"><code class="docutils literal notranslate"><span class="pre">StatusRead</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.StatusRead.Config"><code class="docutils literal notranslate"><span class="pre">StatusRead.Config</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.StatusRead.created_at"><code class="docutils literal notranslate"><span class="pre">StatusRead.created_at</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.StatusRead.id"><code class="docutils literal notranslate"><span class="pre">StatusRead.id</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.StatusRead.model_config"><code class="docutils literal notranslate"><span class="pre">StatusRead.model_config</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#schemas.Token"><code class="docutils literal notranslate"><span class="pre">Token</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.Token.access_token"><code class="docutils literal notranslate"><span class="pre">Token.access_token</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.Token.model_config"><code class="docutils literal notranslate"><span class="pre">Token.model_config</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.Token.token_type"><code class="docutils literal notranslate"><span class="pre">Token.token_type</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#schemas.TokenData"><code class="docutils literal notranslate"><span class="pre">TokenData</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.TokenData.model_config"><code class="docutils literal notranslate"><span class="pre">TokenData.model_config</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.TokenData.username"><code class="docutils literal notranslate"><span class="pre">TokenData.username</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#schemas.UserBase"><code class="docutils literal notranslate"><span class="pre">UserBase</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.UserBase.email"><code class="docutils literal notranslate"><span class="pre">UserBase.email</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.UserBase.full_name"><code class="docutils literal notranslate"><span class="pre">UserBase.full_name</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.UserBase.model_config"><code class="docutils literal notranslate"><span class="pre">UserBase.model_config</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.UserBase.role"><code class="docutils literal notranslate"><span class="pre">UserBase.role</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.UserBase.username"><code class="docutils literal notranslate"><span class="pre">UserBase.username</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#schemas.UserCreate"><code class="docutils literal notranslate"><span class="pre">UserCreate</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.UserCreate.model_config"><code class="docutils literal notranslate"><span class="pre">UserCreate.model_config</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.UserCreate.password"><code class="docutils literal notranslate"><span class="pre">UserCreate.password</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#schemas.UserRead"><code class="docutils literal notranslate"><span class="pre">UserRead</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.UserRead.Config"><code class="docutils literal notranslate"><span class="pre">UserRead.Config</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.UserRead.created_at"><code class="docutils literal notranslate"><span class="pre">UserRead.created_at</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.UserRead.id"><code class="docutils literal notranslate"><span class="pre">UserRead.id</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.UserRead.is_active"><code class="docutils literal notranslate"><span class="pre">UserRead.is_active</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#schemas.UserRead.model_config"><code class="docutils literal notranslate"><span class="pre">UserRead.model_config</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="setup.html">setup module</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Меню навигации для мобильных устройств" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">FireTrack</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Навигация по страницам">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">FireExtinguishers</a></li>
+      <li class="breadcrumb-item active">schemas module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/schemas.rst.txt" rel="nofollow"> Просмотреть исходный код страницы</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-schemas">
+<span id="schemas-module"></span><h1>schemas module<a class="headerlink" href="#module-schemas" title="Ссылка на этот заголовок"></a></h1>
+<p>Модуль схем Pydantic для валидации данных, сериализации и десериализации.
+Определяет структуру данных для входящих API-запросов и исходящих ответов.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="schemas.EmployeeBase">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">schemas.</span></span><span class="sig-name descname"><span class="pre">EmployeeBase</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">full_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">position</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/schemas.html#EmployeeBase"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#schemas.EmployeeBase" title="Ссылка на это определение"></a></dt>
+<dd><p>Базовые классы: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code></p>
+<p>Базовая схема сотрудника компании.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.EmployeeBase.full_name">
+<span class="sig-name descname"><span class="pre">full_name</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><a class="headerlink" href="#schemas.EmployeeBase.full_name" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.EmployeeBase.model_config">
+<span class="sig-name descname"><span class="pre">model_config</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{}</span></span><a class="headerlink" href="#schemas.EmployeeBase.model_config" title="Ссылка на это определение"></a></dt>
+<dd><p>Configuration for the model, should be a dictionary conforming to [<cite>ConfigDict</cite>][pydantic.config.ConfigDict].</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.EmployeeBase.position">
+<span class="sig-name descname"><span class="pre">position</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><a class="headerlink" href="#schemas.EmployeeBase.position" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="schemas.EmployeeCreate">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">schemas.</span></span><span class="sig-name descname"><span class="pre">EmployeeCreate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">full_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">position</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/schemas.html#EmployeeCreate"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#schemas.EmployeeCreate" title="Ссылка на это определение"></a></dt>
+<dd><p>Базовые классы: <a class="reference internal" href="#schemas.EmployeeBase" title="schemas.EmployeeBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">EmployeeBase</span></code></a></p>
+<p>Схема для создания нового сотрудника.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.EmployeeCreate.model_config">
+<span class="sig-name descname"><span class="pre">model_config</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{}</span></span><a class="headerlink" href="#schemas.EmployeeCreate.model_config" title="Ссылка на это определение"></a></dt>
+<dd><p>Configuration for the model, should be a dictionary conforming to [<cite>ConfigDict</cite>][pydantic.config.ConfigDict].</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="schemas.EmployeeRead">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">schemas.</span></span><span class="sig-name descname"><span class="pre">EmployeeRead</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">full_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">position</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">created_at</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">datetime</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/schemas.html#EmployeeRead"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#schemas.EmployeeRead" title="Ссылка на это определение"></a></dt>
+<dd><p>Базовые классы: <a class="reference internal" href="#schemas.EmployeeBase" title="schemas.EmployeeBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">EmployeeBase</span></code></a></p>
+<p>Схема для чтения данных о сотруднике (возвращается в API).</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="schemas.EmployeeRead.Config">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">Config</span></span><a class="reference internal" href="_modules/schemas.html#EmployeeRead.Config"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#schemas.EmployeeRead.Config" title="Ссылка на это определение"></a></dt>
+<dd><p>Базовые классы: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.EmployeeRead.Config.from_attributes">
+<span class="sig-name descname"><span class="pre">from_attributes</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">True</span></span><a class="headerlink" href="#schemas.EmployeeRead.Config.from_attributes" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.EmployeeRead.created_at">
+<span class="sig-name descname"><span class="pre">created_at</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">datetime</span></span><a class="headerlink" href="#schemas.EmployeeRead.created_at" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.EmployeeRead.id">
+<span class="sig-name descname"><span class="pre">id</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><a class="headerlink" href="#schemas.EmployeeRead.id" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.EmployeeRead.model_config">
+<span class="sig-name descname"><span class="pre">model_config</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'from_attributes':</span> <span class="pre">True}</span></span><a class="headerlink" href="#schemas.EmployeeRead.model_config" title="Ссылка на это определение"></a></dt>
+<dd><p>Configuration for the model, should be a dictionary conforming to [<cite>ConfigDict</cite>][pydantic.config.ConfigDict].</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="schemas.FireExtinguisherBase">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">schemas.</span></span><span class="sig-name descname"><span class="pre">FireExtinguisherBase</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">inventory_number</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">capacity</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Annotated</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Gt</span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">gt</span></span><span class="o"><span class="pre">=</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">manufacturer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">manufacture_date</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">date</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">commissioning_date</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">date</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">location_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">status_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/schemas.html#FireExtinguisherBase"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#schemas.FireExtinguisherBase" title="Ссылка на это определение"></a></dt>
+<dd><p>Базовые классы: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code></p>
+<p>Базовая схема огнетушителя со всеми основными характеристиками.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.FireExtinguisherBase.capacity">
+<span class="sig-name descname"><span class="pre">capacity</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#schemas.FireExtinguisherBase.capacity" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.FireExtinguisherBase.commissioning_date">
+<span class="sig-name descname"><span class="pre">commissioning_date</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">date</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#schemas.FireExtinguisherBase.commissioning_date" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.FireExtinguisherBase.inventory_number">
+<span class="sig-name descname"><span class="pre">inventory_number</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><a class="headerlink" href="#schemas.FireExtinguisherBase.inventory_number" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.FireExtinguisherBase.location_id">
+<span class="sig-name descname"><span class="pre">location_id</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><a class="headerlink" href="#schemas.FireExtinguisherBase.location_id" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.FireExtinguisherBase.manufacture_date">
+<span class="sig-name descname"><span class="pre">manufacture_date</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">date</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#schemas.FireExtinguisherBase.manufacture_date" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.FireExtinguisherBase.manufacturer">
+<span class="sig-name descname"><span class="pre">manufacturer</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#schemas.FireExtinguisherBase.manufacturer" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.FireExtinguisherBase.model_config">
+<span class="sig-name descname"><span class="pre">model_config</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{}</span></span><a class="headerlink" href="#schemas.FireExtinguisherBase.model_config" title="Ссылка на это определение"></a></dt>
+<dd><p>Configuration for the model, should be a dictionary conforming to [<cite>ConfigDict</cite>][pydantic.config.ConfigDict].</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="schemas.FireExtinguisherBase.not_in_future">
+<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">not_in_future</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">v</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/schemas.html#FireExtinguisherBase.not_in_future"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#schemas.FireExtinguisherBase.not_in_future" title="Ссылка на это определение"></a></dt>
+<dd><p>Валидатор: проверяет, что дата изготовления и ввода не больше текущей.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.FireExtinguisherBase.status_id">
+<span class="sig-name descname"><span class="pre">status_id</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><a class="headerlink" href="#schemas.FireExtinguisherBase.status_id" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.FireExtinguisherBase.type">
+<span class="sig-name descname"><span class="pre">type</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><a class="headerlink" href="#schemas.FireExtinguisherBase.type" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="schemas.FireExtinguisherCreate">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">schemas.</span></span><span class="sig-name descname"><span class="pre">FireExtinguisherCreate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">inventory_number</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">capacity</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Annotated</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Gt</span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">gt</span></span><span class="o"><span class="pre">=</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">manufacturer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">manufacture_date</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">date</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">commissioning_date</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">date</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">location_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">status_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/schemas.html#FireExtinguisherCreate"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#schemas.FireExtinguisherCreate" title="Ссылка на это определение"></a></dt>
+<dd><p>Базовые классы: <a class="reference internal" href="#schemas.FireExtinguisherBase" title="schemas.FireExtinguisherBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">FireExtinguisherBase</span></code></a></p>
+<p>Схема для создания новой карточки огнетушителя.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.FireExtinguisherCreate.model_config">
+<span class="sig-name descname"><span class="pre">model_config</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{}</span></span><a class="headerlink" href="#schemas.FireExtinguisherCreate.model_config" title="Ссылка на это определение"></a></dt>
+<dd><p>Configuration for the model, should be a dictionary conforming to [<cite>ConfigDict</cite>][pydantic.config.ConfigDict].</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="schemas.FireExtinguisherRead">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">schemas.</span></span><span class="sig-name descname"><span class="pre">FireExtinguisherRead</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">inventory_number</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">capacity</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Annotated</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Gt</span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">gt</span></span><span class="o"><span class="pre">=</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">manufacturer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">manufacture_date</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">date</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">commissioning_date</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">date</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">location_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">status_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">created_at</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">datetime</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">updated_at</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">datetime</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/schemas.html#FireExtinguisherRead"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#schemas.FireExtinguisherRead" title="Ссылка на это определение"></a></dt>
+<dd><p>Базовые классы: <a class="reference internal" href="#schemas.FireExtinguisherBase" title="schemas.FireExtinguisherBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">FireExtinguisherBase</span></code></a></p>
+<p>Схема для чтения данных об огнетушителе (возвращается в API).</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="schemas.FireExtinguisherRead.Config">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">Config</span></span><a class="reference internal" href="_modules/schemas.html#FireExtinguisherRead.Config"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#schemas.FireExtinguisherRead.Config" title="Ссылка на это определение"></a></dt>
+<dd><p>Базовые классы: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.FireExtinguisherRead.Config.from_attributes">
+<span class="sig-name descname"><span class="pre">from_attributes</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">True</span></span><a class="headerlink" href="#schemas.FireExtinguisherRead.Config.from_attributes" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.FireExtinguisherRead.created_at">
+<span class="sig-name descname"><span class="pre">created_at</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">datetime</span></span><a class="headerlink" href="#schemas.FireExtinguisherRead.created_at" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.FireExtinguisherRead.id">
+<span class="sig-name descname"><span class="pre">id</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><a class="headerlink" href="#schemas.FireExtinguisherRead.id" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.FireExtinguisherRead.model_config">
+<span class="sig-name descname"><span class="pre">model_config</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'from_attributes':</span> <span class="pre">True}</span></span><a class="headerlink" href="#schemas.FireExtinguisherRead.model_config" title="Ссылка на это определение"></a></dt>
+<dd><p>Configuration for the model, should be a dictionary conforming to [<cite>ConfigDict</cite>][pydantic.config.ConfigDict].</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.FireExtinguisherRead.updated_at">
+<span class="sig-name descname"><span class="pre">updated_at</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">datetime</span></span><a class="headerlink" href="#schemas.FireExtinguisherRead.updated_at" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="schemas.FireExtinguisherUpdate">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">schemas.</span></span><span class="sig-name descname"><span class="pre">FireExtinguisherUpdate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">inventory_number</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">capacity</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Annotated</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Gt</span><span class="p"><span class="pre">(</span></span><span class="n"><span class="pre">gt</span></span><span class="o"><span class="pre">=</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">manufacturer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">manufacture_date</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">date</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">commissioning_date</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">date</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">location_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">status_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/schemas.html#FireExtinguisherUpdate"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#schemas.FireExtinguisherUpdate" title="Ссылка на это определение"></a></dt>
+<dd><p>Базовые классы: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code></p>
+<p>Схема для частичного обновления данных огнетушителя.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.FireExtinguisherUpdate.capacity">
+<span class="sig-name descname"><span class="pre">capacity</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#schemas.FireExtinguisherUpdate.capacity" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.FireExtinguisherUpdate.commissioning_date">
+<span class="sig-name descname"><span class="pre">commissioning_date</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">date</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#schemas.FireExtinguisherUpdate.commissioning_date" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.FireExtinguisherUpdate.inventory_number">
+<span class="sig-name descname"><span class="pre">inventory_number</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#schemas.FireExtinguisherUpdate.inventory_number" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.FireExtinguisherUpdate.location_id">
+<span class="sig-name descname"><span class="pre">location_id</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#schemas.FireExtinguisherUpdate.location_id" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.FireExtinguisherUpdate.manufacture_date">
+<span class="sig-name descname"><span class="pre">manufacture_date</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">date</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#schemas.FireExtinguisherUpdate.manufacture_date" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.FireExtinguisherUpdate.manufacturer">
+<span class="sig-name descname"><span class="pre">manufacturer</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#schemas.FireExtinguisherUpdate.manufacturer" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.FireExtinguisherUpdate.model_config">
+<span class="sig-name descname"><span class="pre">model_config</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{}</span></span><a class="headerlink" href="#schemas.FireExtinguisherUpdate.model_config" title="Ссылка на это определение"></a></dt>
+<dd><p>Configuration for the model, should be a dictionary conforming to [<cite>ConfigDict</cite>][pydantic.config.ConfigDict].</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.FireExtinguisherUpdate.status_id">
+<span class="sig-name descname"><span class="pre">status_id</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#schemas.FireExtinguisherUpdate.status_id" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.FireExtinguisherUpdate.type">
+<span class="sig-name descname"><span class="pre">type</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#schemas.FireExtinguisherUpdate.type" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="schemas.HealthResponse">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">schemas.</span></span><span class="sig-name descname"><span class="pre">HealthResponse</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">status</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/schemas.html#HealthResponse"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#schemas.HealthResponse" title="Ссылка на это определение"></a></dt>
+<dd><p>Базовые классы: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code></p>
+<p>Схема ответа для эндпоинта проверки работоспособности (Health Check).</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.HealthResponse.model_config">
+<span class="sig-name descname"><span class="pre">model_config</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{}</span></span><a class="headerlink" href="#schemas.HealthResponse.model_config" title="Ссылка на это определение"></a></dt>
+<dd><p>Configuration for the model, should be a dictionary conforming to [<cite>ConfigDict</cite>][pydantic.config.ConfigDict].</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.HealthResponse.status">
+<span class="sig-name descname"><span class="pre">status</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><a class="headerlink" href="#schemas.HealthResponse.status" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="schemas.InspectionBase">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">schemas.</span></span><span class="sig-name descname"><span class="pre">InspectionBase</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">fire_extinguisher_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inspection_date</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">date</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">employee_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pressure</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">visual_inspection</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seal_condition</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">safety_pin_condition</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hose_condition</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">comments</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">next_inspection_date</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">date</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/schemas.html#InspectionBase"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#schemas.InspectionBase" title="Ссылка на это определение"></a></dt>
+<dd><p>Базовые классы: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code></p>
+<p>Базовая схема записи о проведенной проверке (ТО).</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.InspectionBase.comments">
+<span class="sig-name descname"><span class="pre">comments</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#schemas.InspectionBase.comments" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.InspectionBase.employee_id">
+<span class="sig-name descname"><span class="pre">employee_id</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><a class="headerlink" href="#schemas.InspectionBase.employee_id" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.InspectionBase.fire_extinguisher_id">
+<span class="sig-name descname"><span class="pre">fire_extinguisher_id</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><a class="headerlink" href="#schemas.InspectionBase.fire_extinguisher_id" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.InspectionBase.hose_condition">
+<span class="sig-name descname"><span class="pre">hose_condition</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#schemas.InspectionBase.hose_condition" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.InspectionBase.inspection_date">
+<span class="sig-name descname"><span class="pre">inspection_date</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">date</span></span><a class="headerlink" href="#schemas.InspectionBase.inspection_date" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.InspectionBase.model_config">
+<span class="sig-name descname"><span class="pre">model_config</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{}</span></span><a class="headerlink" href="#schemas.InspectionBase.model_config" title="Ссылка на это определение"></a></dt>
+<dd><p>Configuration for the model, should be a dictionary conforming to [<cite>ConfigDict</cite>][pydantic.config.ConfigDict].</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.InspectionBase.next_inspection_date">
+<span class="sig-name descname"><span class="pre">next_inspection_date</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">date</span></span><a class="headerlink" href="#schemas.InspectionBase.next_inspection_date" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.InspectionBase.pressure">
+<span class="sig-name descname"><span class="pre">pressure</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#schemas.InspectionBase.pressure" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.InspectionBase.safety_pin_condition">
+<span class="sig-name descname"><span class="pre">safety_pin_condition</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#schemas.InspectionBase.safety_pin_condition" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.InspectionBase.seal_condition">
+<span class="sig-name descname"><span class="pre">seal_condition</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#schemas.InspectionBase.seal_condition" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.InspectionBase.visual_inspection">
+<span class="sig-name descname"><span class="pre">visual_inspection</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#schemas.InspectionBase.visual_inspection" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.InspectionBase.weight">
+<span class="sig-name descname"><span class="pre">weight</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#schemas.InspectionBase.weight" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="schemas.InspectionCreate">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">schemas.</span></span><span class="sig-name descname"><span class="pre">InspectionCreate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">fire_extinguisher_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inspection_date</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">date</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">employee_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pressure</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">visual_inspection</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seal_condition</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">safety_pin_condition</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hose_condition</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">comments</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">next_inspection_date</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">date</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/schemas.html#InspectionCreate"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#schemas.InspectionCreate" title="Ссылка на это определение"></a></dt>
+<dd><p>Базовые классы: <a class="reference internal" href="#schemas.InspectionBase" title="schemas.InspectionBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">InspectionBase</span></code></a></p>
+<p>Схема для создания новой записи о проверке.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.InspectionCreate.model_config">
+<span class="sig-name descname"><span class="pre">model_config</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{}</span></span><a class="headerlink" href="#schemas.InspectionCreate.model_config" title="Ссылка на это определение"></a></dt>
+<dd><p>Configuration for the model, should be a dictionary conforming to [<cite>ConfigDict</cite>][pydantic.config.ConfigDict].</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="schemas.InspectionRead">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">schemas.</span></span><span class="sig-name descname"><span class="pre">InspectionRead</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">fire_extinguisher_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inspection_date</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">date</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">employee_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pressure</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">visual_inspection</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seal_condition</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">safety_pin_condition</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">hose_condition</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">comments</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">next_inspection_date</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">date</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">created_at</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">datetime</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/schemas.html#InspectionRead"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#schemas.InspectionRead" title="Ссылка на это определение"></a></dt>
+<dd><p>Базовые классы: <a class="reference internal" href="#schemas.InspectionBase" title="schemas.InspectionBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">InspectionBase</span></code></a></p>
+<p>Схема для чтения данных о проверке (возвращается в API).</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="schemas.InspectionRead.Config">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">Config</span></span><a class="reference internal" href="_modules/schemas.html#InspectionRead.Config"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#schemas.InspectionRead.Config" title="Ссылка на это определение"></a></dt>
+<dd><p>Базовые классы: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.InspectionRead.Config.from_attributes">
+<span class="sig-name descname"><span class="pre">from_attributes</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">True</span></span><a class="headerlink" href="#schemas.InspectionRead.Config.from_attributes" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.InspectionRead.created_at">
+<span class="sig-name descname"><span class="pre">created_at</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">datetime</span></span><a class="headerlink" href="#schemas.InspectionRead.created_at" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.InspectionRead.id">
+<span class="sig-name descname"><span class="pre">id</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><a class="headerlink" href="#schemas.InspectionRead.id" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.InspectionRead.model_config">
+<span class="sig-name descname"><span class="pre">model_config</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'from_attributes':</span> <span class="pre">True}</span></span><a class="headerlink" href="#schemas.InspectionRead.model_config" title="Ссылка на это определение"></a></dt>
+<dd><p>Configuration for the model, should be a dictionary conforming to [<cite>ConfigDict</cite>][pydantic.config.ConfigDict].</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="schemas.LocationBase">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">schemas.</span></span><span class="sig-name descname"><span class="pre">LocationBase</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">description</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/schemas.html#LocationBase"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#schemas.LocationBase" title="Ссылка на это определение"></a></dt>
+<dd><p>Базовые классы: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code></p>
+<p>Базовая схема местоположения оборудования.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.LocationBase.description">
+<span class="sig-name descname"><span class="pre">description</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#schemas.LocationBase.description" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.LocationBase.model_config">
+<span class="sig-name descname"><span class="pre">model_config</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{}</span></span><a class="headerlink" href="#schemas.LocationBase.model_config" title="Ссылка на это определение"></a></dt>
+<dd><p>Configuration for the model, should be a dictionary conforming to [<cite>ConfigDict</cite>][pydantic.config.ConfigDict].</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.LocationBase.name">
+<span class="sig-name descname"><span class="pre">name</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><a class="headerlink" href="#schemas.LocationBase.name" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="schemas.LocationCreate">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">schemas.</span></span><span class="sig-name descname"><span class="pre">LocationCreate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">description</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/schemas.html#LocationCreate"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#schemas.LocationCreate" title="Ссылка на это определение"></a></dt>
+<dd><p>Базовые классы: <a class="reference internal" href="#schemas.LocationBase" title="schemas.LocationBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">LocationBase</span></code></a></p>
+<p>Схема для создания нового местоположения.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.LocationCreate.model_config">
+<span class="sig-name descname"><span class="pre">model_config</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{}</span></span><a class="headerlink" href="#schemas.LocationCreate.model_config" title="Ссылка на это определение"></a></dt>
+<dd><p>Configuration for the model, should be a dictionary conforming to [<cite>ConfigDict</cite>][pydantic.config.ConfigDict].</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="schemas.LocationRead">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">schemas.</span></span><span class="sig-name descname"><span class="pre">LocationRead</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">description</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">created_at</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">datetime</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/schemas.html#LocationRead"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#schemas.LocationRead" title="Ссылка на это определение"></a></dt>
+<dd><p>Базовые классы: <a class="reference internal" href="#schemas.LocationBase" title="schemas.LocationBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">LocationBase</span></code></a></p>
+<p>Схема для чтения данных о местоположении (возвращается в API).</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="schemas.LocationRead.Config">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">Config</span></span><a class="reference internal" href="_modules/schemas.html#LocationRead.Config"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#schemas.LocationRead.Config" title="Ссылка на это определение"></a></dt>
+<dd><p>Базовые классы: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.LocationRead.Config.from_attributes">
+<span class="sig-name descname"><span class="pre">from_attributes</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">True</span></span><a class="headerlink" href="#schemas.LocationRead.Config.from_attributes" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.LocationRead.created_at">
+<span class="sig-name descname"><span class="pre">created_at</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">datetime</span></span><a class="headerlink" href="#schemas.LocationRead.created_at" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.LocationRead.id">
+<span class="sig-name descname"><span class="pre">id</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><a class="headerlink" href="#schemas.LocationRead.id" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.LocationRead.model_config">
+<span class="sig-name descname"><span class="pre">model_config</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'from_attributes':</span> <span class="pre">True}</span></span><a class="headerlink" href="#schemas.LocationRead.model_config" title="Ссылка на это определение"></a></dt>
+<dd><p>Configuration for the model, should be a dictionary conforming to [<cite>ConfigDict</cite>][pydantic.config.ConfigDict].</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="schemas.StatusBase">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">schemas.</span></span><span class="sig-name descname"><span class="pre">StatusBase</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">description</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/schemas.html#StatusBase"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#schemas.StatusBase" title="Ссылка на это определение"></a></dt>
+<dd><p>Базовые классы: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code></p>
+<p>Базовая схема технического статуса огнетушителя.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.StatusBase.description">
+<span class="sig-name descname"><span class="pre">description</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><a class="headerlink" href="#schemas.StatusBase.description" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.StatusBase.model_config">
+<span class="sig-name descname"><span class="pre">model_config</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{}</span></span><a class="headerlink" href="#schemas.StatusBase.model_config" title="Ссылка на это определение"></a></dt>
+<dd><p>Configuration for the model, should be a dictionary conforming to [<cite>ConfigDict</cite>][pydantic.config.ConfigDict].</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.StatusBase.name">
+<span class="sig-name descname"><span class="pre">name</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><a class="headerlink" href="#schemas.StatusBase.name" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="schemas.StatusCreate">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">schemas.</span></span><span class="sig-name descname"><span class="pre">StatusCreate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">description</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/schemas.html#StatusCreate"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#schemas.StatusCreate" title="Ссылка на это определение"></a></dt>
+<dd><p>Базовые классы: <a class="reference internal" href="#schemas.StatusBase" title="schemas.StatusBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">StatusBase</span></code></a></p>
+<p>Схема для создания нового статуса.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.StatusCreate.model_config">
+<span class="sig-name descname"><span class="pre">model_config</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{}</span></span><a class="headerlink" href="#schemas.StatusCreate.model_config" title="Ссылка на это определение"></a></dt>
+<dd><p>Configuration for the model, should be a dictionary conforming to [<cite>ConfigDict</cite>][pydantic.config.ConfigDict].</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="schemas.StatusRead">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">schemas.</span></span><span class="sig-name descname"><span class="pre">StatusRead</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">description</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">created_at</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">datetime</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/schemas.html#StatusRead"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#schemas.StatusRead" title="Ссылка на это определение"></a></dt>
+<dd><p>Базовые классы: <a class="reference internal" href="#schemas.StatusBase" title="schemas.StatusBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">StatusBase</span></code></a></p>
+<p>Схема для чтения данных о статусе (возвращается в API).</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="schemas.StatusRead.Config">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">Config</span></span><a class="reference internal" href="_modules/schemas.html#StatusRead.Config"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#schemas.StatusRead.Config" title="Ссылка на это определение"></a></dt>
+<dd><p>Базовые классы: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.StatusRead.Config.from_attributes">
+<span class="sig-name descname"><span class="pre">from_attributes</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">True</span></span><a class="headerlink" href="#schemas.StatusRead.Config.from_attributes" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.StatusRead.created_at">
+<span class="sig-name descname"><span class="pre">created_at</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">datetime</span></span><a class="headerlink" href="#schemas.StatusRead.created_at" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.StatusRead.id">
+<span class="sig-name descname"><span class="pre">id</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><a class="headerlink" href="#schemas.StatusRead.id" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.StatusRead.model_config">
+<span class="sig-name descname"><span class="pre">model_config</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'from_attributes':</span> <span class="pre">True}</span></span><a class="headerlink" href="#schemas.StatusRead.model_config" title="Ссылка на это определение"></a></dt>
+<dd><p>Configuration for the model, should be a dictionary conforming to [<cite>ConfigDict</cite>][pydantic.config.ConfigDict].</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="schemas.Token">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">schemas.</span></span><span class="sig-name descname"><span class="pre">Token</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">access_token</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">token_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/schemas.html#Token"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#schemas.Token" title="Ссылка на это определение"></a></dt>
+<dd><p>Базовые классы: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code></p>
+<p>Схема JWT токена доступа.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.Token.access_token">
+<span class="sig-name descname"><span class="pre">access_token</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><a class="headerlink" href="#schemas.Token.access_token" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.Token.model_config">
+<span class="sig-name descname"><span class="pre">model_config</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{}</span></span><a class="headerlink" href="#schemas.Token.model_config" title="Ссылка на это определение"></a></dt>
+<dd><p>Configuration for the model, should be a dictionary conforming to [<cite>ConfigDict</cite>][pydantic.config.ConfigDict].</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.Token.token_type">
+<span class="sig-name descname"><span class="pre">token_type</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><a class="headerlink" href="#schemas.Token.token_type" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="schemas.TokenData">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">schemas.</span></span><span class="sig-name descname"><span class="pre">TokenData</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">username</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/schemas.html#TokenData"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#schemas.TokenData" title="Ссылка на это определение"></a></dt>
+<dd><p>Базовые классы: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code></p>
+<p>Схема полезной нагрузки (payload), извлеченной из JWT токена.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.TokenData.model_config">
+<span class="sig-name descname"><span class="pre">model_config</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{}</span></span><a class="headerlink" href="#schemas.TokenData.model_config" title="Ссылка на это определение"></a></dt>
+<dd><p>Configuration for the model, should be a dictionary conforming to [<cite>ConfigDict</cite>][pydantic.config.ConfigDict].</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.TokenData.username">
+<span class="sig-name descname"><span class="pre">username</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#schemas.TokenData.username" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="schemas.UserBase">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">schemas.</span></span><span class="sig-name descname"><span class="pre">UserBase</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">username</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">email</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">full_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">role</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/schemas.html#UserBase"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#schemas.UserBase" title="Ссылка на это определение"></a></dt>
+<dd><p>Базовые классы: <code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code></p>
+<p>Базовая схема данных пользователя системы.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.UserBase.email">
+<span class="sig-name descname"><span class="pre">email</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><a class="headerlink" href="#schemas.UserBase.email" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.UserBase.full_name">
+<span class="sig-name descname"><span class="pre">full_name</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><a class="headerlink" href="#schemas.UserBase.full_name" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.UserBase.model_config">
+<span class="sig-name descname"><span class="pre">model_config</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{}</span></span><a class="headerlink" href="#schemas.UserBase.model_config" title="Ссылка на это определение"></a></dt>
+<dd><p>Configuration for the model, should be a dictionary conforming to [<cite>ConfigDict</cite>][pydantic.config.ConfigDict].</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.UserBase.role">
+<span class="sig-name descname"><span class="pre">role</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><a class="headerlink" href="#schemas.UserBase.role" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.UserBase.username">
+<span class="sig-name descname"><span class="pre">username</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><a class="headerlink" href="#schemas.UserBase.username" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="schemas.UserCreate">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">schemas.</span></span><span class="sig-name descname"><span class="pre">UserCreate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">username</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">email</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">full_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">role</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">password</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/schemas.html#UserCreate"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#schemas.UserCreate" title="Ссылка на это определение"></a></dt>
+<dd><p>Базовые классы: <a class="reference internal" href="#schemas.UserBase" title="schemas.UserBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">UserBase</span></code></a></p>
+<p>Схема для регистрации нового пользователя.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.UserCreate.model_config">
+<span class="sig-name descname"><span class="pre">model_config</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{}</span></span><a class="headerlink" href="#schemas.UserCreate.model_config" title="Ссылка на это определение"></a></dt>
+<dd><p>Configuration for the model, should be a dictionary conforming to [<cite>ConfigDict</cite>][pydantic.config.ConfigDict].</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.UserCreate.password">
+<span class="sig-name descname"><span class="pre">password</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><a class="headerlink" href="#schemas.UserCreate.password" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="schemas.UserRead">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">schemas.</span></span><span class="sig-name descname"><span class="pre">UserRead</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">username</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">email</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">full_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">role</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_active</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">created_at</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">datetime</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/schemas.html#UserRead"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#schemas.UserRead" title="Ссылка на это определение"></a></dt>
+<dd><p>Базовые классы: <a class="reference internal" href="#schemas.UserBase" title="schemas.UserBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">UserBase</span></code></a></p>
+<p>Схема для чтения данных пользователя (без пароля, возвращается в API).</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="schemas.UserRead.Config">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">Config</span></span><a class="reference internal" href="_modules/schemas.html#UserRead.Config"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#schemas.UserRead.Config" title="Ссылка на это определение"></a></dt>
+<dd><p>Базовые классы: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.UserRead.Config.from_attributes">
+<span class="sig-name descname"><span class="pre">from_attributes</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">True</span></span><a class="headerlink" href="#schemas.UserRead.Config.from_attributes" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.UserRead.created_at">
+<span class="sig-name descname"><span class="pre">created_at</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">datetime</span></span><a class="headerlink" href="#schemas.UserRead.created_at" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.UserRead.id">
+<span class="sig-name descname"><span class="pre">id</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><a class="headerlink" href="#schemas.UserRead.id" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.UserRead.is_active">
+<span class="sig-name descname"><span class="pre">is_active</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><a class="headerlink" href="#schemas.UserRead.is_active" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="schemas.UserRead.model_config">
+<span class="sig-name descname"><span class="pre">model_config</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'from_attributes':</span> <span class="pre">True}</span></span><a class="headerlink" href="#schemas.UserRead.model_config" title="Ссылка на это определение"></a></dt>
+<dd><p>Configuration for the model, should be a dictionary conforming to [<cite>ConfigDict</cite>][pydantic.config.ConfigDict].</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Нижняя область">
+        <a href="models.html" class="btn btn-neutral float-left" title="models module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Предыдущая</a>
+        <a href="setup.html" class="btn btn-neutral float-right" title="setup module" accesskey="n" rel="next">Следующая <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Авторские права 2026, Ralka. </p>
+  </div>
+
+  Собрано при помощи <a href="https://www.sphinx-doc.org/">Sphinx</a> с использованием
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">темы,</a>
+    предоставленной <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

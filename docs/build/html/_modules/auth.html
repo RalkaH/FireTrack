@@ -1,0 +1,348 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="ru" data-content_root="../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>auth &mdash; документация FireTrack 1</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=47a0e12c"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../_static/translations.js?v=cd1d70c9"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Алфавитный указатель" href="../genindex.html" />
+    <link rel="search" title="Поиск" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            FireTrack
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Поиск в документации" aria-label="Поиск в документации" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Меню навигации">
+              <p class="caption" role="heading"><span class="caption-text">Содержание:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">FireExtinguishers</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Меню навигации для мобильных устройств" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">FireTrack</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Навигация по страницам">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Код модуля</a></li>
+      <li class="breadcrumb-item active">auth</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Исходный код auth</h1><div class="highlight"><pre>
+<span></span><span class="c1"># auth.py (v1.2)</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Модуль аутентификации и авторизации пользователей.</span>
+<span class="sd">Обеспечивает хеширование паролей, генерацию и проверку токенов JWT,</span>
+<span class="sd">а также содержит зависимости FastAPI для защиты маршрутов по ролям (RBAC).</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timedelta</span><span class="p">,</span> <span class="n">timezone</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">fastapi</span><span class="w"> </span><span class="kn">import</span> <span class="n">APIRouter</span><span class="p">,</span> <span class="n">Depends</span><span class="p">,</span> <span class="n">HTTPException</span><span class="p">,</span> <span class="n">status</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fastapi.security</span><span class="w"> </span><span class="kn">import</span> <span class="n">OAuth2PasswordBearer</span><span class="p">,</span> <span class="n">OAuth2PasswordRequestForm</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">jose</span><span class="w"> </span><span class="kn">import</span> <span class="n">JWTError</span><span class="p">,</span> <span class="n">jwt</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">passlib.context</span><span class="w"> </span><span class="kn">import</span> <span class="n">CryptContext</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sqlalchemy.orm</span><span class="w"> </span><span class="kn">import</span> <span class="n">Session</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">db</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_db</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">models</span><span class="w"> </span><span class="kn">import</span> <span class="n">User</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">schemas</span><span class="w"> </span><span class="kn">import</span> <span class="n">TokenData</span>
+
+<span class="n">router</span> <span class="o">=</span> <span class="n">APIRouter</span><span class="p">(</span>
+    <span class="n">prefix</span><span class="o">=</span><span class="s2">&quot;/auth&quot;</span><span class="p">,</span>
+    <span class="n">tags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Auth&quot;</span><span class="p">],</span>
+<span class="p">)</span>
+
+<span class="c1"># Настройки</span>
+<span class="n">SECRET_KEY</span> <span class="o">=</span> <span class="s2">&quot;your-secret-key-change-this-in-production&quot;</span>  <span class="c1"># замени в production</span>
+<span class="n">ALGORITHM</span> <span class="o">=</span> <span class="s2">&quot;HS256&quot;</span>
+<span class="n">ACCESS_TOKEN_EXPIRE_MINUTES</span> <span class="o">=</span> <span class="mi">30</span>
+
+<span class="c1"># Используем pbkdf2_sha256</span>
+<span class="n">pwd_context</span> <span class="o">=</span> <span class="n">CryptContext</span><span class="p">(</span>
+    <span class="n">schemes</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;pbkdf2_sha256&quot;</span><span class="p">],</span>
+    <span class="n">deprecated</span><span class="o">=</span><span class="s2">&quot;auto&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">oauth2_scheme</span> <span class="o">=</span> <span class="n">OAuth2PasswordBearer</span><span class="p">(</span><span class="n">tokenUrl</span><span class="o">=</span><span class="s2">&quot;/auth/token&quot;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="verify_password">
+<a class="viewcode-back" href="../auth.html#auth.verify_password">[документация]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">verify_password</span><span class="p">(</span><span class="n">plain_password</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">hashed_password</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Проверяет соответствие введенного пароля его хешу.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        plain_password (str): Введенный пользователем пароль.</span>
+<span class="sd">        hashed_password (str): Хеш пароля из базы данных.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        bool: True, если пароль верен, иначе False.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">pwd_context</span><span class="o">.</span><span class="n">verify</span><span class="p">(</span><span class="n">plain_password</span><span class="p">,</span> <span class="n">hashed_password</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="get_password_hash">
+<a class="viewcode-back" href="../auth.html#auth.get_password_hash">[документация]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_password_hash</span><span class="p">(</span><span class="n">password</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Генерирует криптографический хеш для заданного пароля.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        password (str): Исходный пароль в открытом виде.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        str: Захешированная строка.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">pwd_context</span><span class="o">.</span><span class="n">hash</span><span class="p">(</span><span class="n">password</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="create_access_token">
+<a class="viewcode-back" href="../auth.html#auth.create_access_token">[документация]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">create_access_token</span><span class="p">(</span>
+    <span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
+    <span class="n">expires_delta</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">timedelta</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Создает JWT токен доступа для пользователя.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        data (dict): Полезная нагрузка (payload) токена.</span>
+<span class="sd">        expires_delta (Optional[timedelta]): Время жизни токена.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        str: Закодированный JWT токен.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">to_encode</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">expires_delta</span><span class="p">:</span>
+        <span class="n">expire</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span> <span class="o">+</span> <span class="n">expires_delta</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">expire</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span> <span class="o">+</span> <span class="n">timedelta</span><span class="p">(</span>
+            <span class="n">minutes</span><span class="o">=</span><span class="n">ACCESS_TOKEN_EXPIRE_MINUTES</span>
+        <span class="p">)</span>
+    <span class="n">to_encode</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;exp&quot;</span><span class="p">:</span> <span class="n">expire</span><span class="p">})</span>
+    <span class="n">encoded_jwt</span> <span class="o">=</span> <span class="n">jwt</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">to_encode</span><span class="p">,</span> <span class="n">SECRET_KEY</span><span class="p">,</span> <span class="n">algorithm</span><span class="o">=</span><span class="n">ALGORITHM</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">encoded_jwt</span></div>
+
+
+
+<div class="viewcode-block" id="authenticate_user">
+<a class="viewcode-back" href="../auth.html#auth.authenticate_user">[документация]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">authenticate_user</span><span class="p">(</span><span class="n">db</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span> <span class="n">username</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">password</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">User</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Аутентифицирует пользователя по логину и паролю.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        db (Session): Сессия базы данных.</span>
+<span class="sd">        username (str): Имя пользователя.</span>
+<span class="sd">        password (str): Пароль.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Optional[User]: Объект пользователя при успешной проверке, иначе None.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">user</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">User</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">User</span><span class="o">.</span><span class="n">username</span> <span class="o">==</span> <span class="n">username</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">user</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+
+    <span class="n">stored_hash</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">user</span><span class="o">.</span><span class="n">hashed_password</span>  <span class="c1"># type: ignore[assignment]</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">verify_password</span><span class="p">(</span><span class="n">password</span><span class="p">,</span> <span class="n">stored_hash</span><span class="p">):</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="k">return</span> <span class="n">user</span></div>
+
+
+
+<div class="viewcode-block" id="get_current_user">
+<a class="viewcode-back" href="../auth.html#auth.get_current_user">[документация]</a>
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">get_current_user</span><span class="p">(</span>
+    <span class="n">token</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">oauth2_scheme</span><span class="p">),</span>
+    <span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">),</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">User</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Извлекает текущего пользователя из переданного JWT токена.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        token (str): JWT токен из заголовка Authorization.</span>
+<span class="sd">        db (Session): Сессия базы данных.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        User: Объект пользователя.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        HTTPException: Если токен невалиден или пользователь не найден (401).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">credentials_exception</span> <span class="o">=</span> <span class="n">HTTPException</span><span class="p">(</span>
+        <span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_401_UNAUTHORIZED</span><span class="p">,</span>
+        <span class="n">detail</span><span class="o">=</span><span class="s2">&quot;Could not validate credentials&quot;</span><span class="p">,</span>
+        <span class="n">headers</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;WWW-Authenticate&quot;</span><span class="p">:</span> <span class="s2">&quot;Bearer&quot;</span><span class="p">},</span>
+    <span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">payload</span> <span class="o">=</span> <span class="n">jwt</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">token</span><span class="p">,</span> <span class="n">SECRET_KEY</span><span class="p">,</span> <span class="n">algorithms</span><span class="o">=</span><span class="p">[</span><span class="n">ALGORITHM</span><span class="p">])</span>
+        <span class="n">username_value</span> <span class="o">=</span> <span class="n">payload</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;sub&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">username_value</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="n">credentials_exception</span>
+        <span class="n">token_data</span> <span class="o">=</span> <span class="n">TokenData</span><span class="p">(</span><span class="n">username</span><span class="o">=</span><span class="n">username_value</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">JWTError</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">credentials_exception</span>
+
+    <span class="n">user</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">User</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">User</span><span class="o">.</span><span class="n">username</span> <span class="o">==</span> <span class="n">token_data</span><span class="o">.</span><span class="n">username</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">user</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">credentials_exception</span>
+    <span class="k">return</span> <span class="n">user</span></div>
+
+
+
+<div class="viewcode-block" id="get_current_active_user">
+<a class="viewcode-back" href="../auth.html#auth.get_current_active_user">[документация]</a>
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">get_current_active_user</span><span class="p">(</span>
+    <span class="n">current_user</span><span class="p">:</span> <span class="n">User</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_current_user</span><span class="p">),</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">User</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Проверяет, что текущий пользователь активен (не заблокирован).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        current_user (User): Пользователь, полученный из токена.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        User: Активный пользователь.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        HTTPException: Если учетная запись деактивирована (400).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">is_active</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">current_user</span><span class="o">.</span><span class="n">is_active</span><span class="p">)</span>  <span class="c1"># type: ignore[arg-type]</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">is_active</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="mi">400</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="s2">&quot;Inactive user&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">current_user</span></div>
+
+
+
+<div class="viewcode-block" id="require_role">
+<a class="viewcode-back" href="../auth.html#auth.require_role">[документация]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">require_role</span><span class="p">(</span><span class="n">allowed_roles</span><span class="p">:</span> <span class="nb">list</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Создает зависимость FastAPI для проверки роли пользователя (RBAC).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        allowed_roles (list): Список допустимых ролей (например, [&quot;admin&quot;, &quot;engineer&quot;]).</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Callable: Функция-проверщик для использования в Depends().</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">role_checker</span><span class="p">(</span><span class="n">current_user</span><span class="p">:</span> <span class="n">User</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_current_active_user</span><span class="p">))</span> <span class="o">-&gt;</span> <span class="n">User</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Внутренняя логика проверки роли.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">current_user</span><span class="o">.</span><span class="n">role</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">allowed_roles</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
+                <span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_403_FORBIDDEN</span><span class="p">,</span>
+                <span class="n">detail</span><span class="o">=</span><span class="s2">&quot;Not enough permissions&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">return</span> <span class="n">current_user</span>
+
+    <span class="k">return</span> <span class="n">role_checker</span></div>
+
+
+
+<div class="viewcode-block" id="login_for_access_token">
+<a class="viewcode-back" href="../auth.html#auth.login_for_access_token">[документация]</a>
+<span class="nd">@router</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s2">&quot;/token&quot;</span><span class="p">)</span>
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">login_for_access_token</span><span class="p">(</span>
+    <span class="n">form_data</span><span class="p">:</span> <span class="n">OAuth2PasswordRequestForm</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(),</span>
+    <span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">),</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Эндпоинт для входа в систему и генерации токена доступа.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        form_data (OAuth2PasswordRequestForm): Данные формы авторизации (логин/пароль).</span>
+<span class="sd">        db (Session): Сессия базы данных.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        dict: Токен доступа и его тип.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">user</span> <span class="o">=</span> <span class="n">authenticate_user</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">form_data</span><span class="o">.</span><span class="n">username</span><span class="p">,</span> <span class="n">form_data</span><span class="o">.</span><span class="n">password</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">user</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
+            <span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_401_UNAUTHORIZED</span><span class="p">,</span>
+            <span class="n">detail</span><span class="o">=</span><span class="s2">&quot;Incorrect username or password&quot;</span><span class="p">,</span>
+            <span class="n">headers</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;WWW-Authenticate&quot;</span><span class="p">:</span> <span class="s2">&quot;Bearer&quot;</span><span class="p">},</span>
+        <span class="p">)</span>
+    <span class="n">access_token_expires</span> <span class="o">=</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">minutes</span><span class="o">=</span><span class="n">ACCESS_TOKEN_EXPIRE_MINUTES</span><span class="p">)</span>
+    <span class="n">access_token</span> <span class="o">=</span> <span class="n">create_access_token</span><span class="p">(</span>
+        <span class="n">data</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;sub&quot;</span><span class="p">:</span> <span class="n">user</span><span class="o">.</span><span class="n">username</span><span class="p">},</span>
+        <span class="n">expires_delta</span><span class="o">=</span><span class="n">access_token_expires</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;access_token&quot;</span><span class="p">:</span> <span class="n">access_token</span><span class="p">,</span> <span class="s2">&quot;token_type&quot;</span><span class="p">:</span> <span class="s2">&quot;bearer&quot;</span><span class="p">}</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Авторские права 2026, Ralka. </p>
+  </div>
+
+  Собрано при помощи <a href="https://www.sphinx-doc.org/">Sphinx</a> с использованием
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">темы,</a>
+    предоставленной <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

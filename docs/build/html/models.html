@@ -1,0 +1,495 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="ru" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>models module &mdash; документация FireTrack 1</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=47a0e12c"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="_static/translations.js?v=cd1d70c9"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Алфавитный указатель" href="genindex.html" />
+    <link rel="search" title="Поиск" href="search.html" />
+    <link rel="next" title="schemas module" href="schemas.html" />
+    <link rel="prev" title="main module" href="main.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            FireTrack
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Поиск в документации" aria-label="Поиск в документации" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Меню навигации">
+              <p class="caption" role="heading"><span class="caption-text">Содержание:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">FireExtinguishers</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="auth.html">auth module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="db.html">db module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="main.html">main module</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">models module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#models.Employee"><code class="docutils literal notranslate"><span class="pre">Employee</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#models.Employee.created_at"><code class="docutils literal notranslate"><span class="pre">Employee.created_at</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.Employee.full_name"><code class="docutils literal notranslate"><span class="pre">Employee.full_name</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.Employee.id"><code class="docutils literal notranslate"><span class="pre">Employee.id</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.Employee.inspections"><code class="docutils literal notranslate"><span class="pre">Employee.inspections</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.Employee.position"><code class="docutils literal notranslate"><span class="pre">Employee.position</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#models.FireExtinguisher"><code class="docutils literal notranslate"><span class="pre">FireExtinguisher</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#models.FireExtinguisher.capacity"><code class="docutils literal notranslate"><span class="pre">FireExtinguisher.capacity</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.FireExtinguisher.commissioning_date"><code class="docutils literal notranslate"><span class="pre">FireExtinguisher.commissioning_date</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.FireExtinguisher.created_at"><code class="docutils literal notranslate"><span class="pre">FireExtinguisher.created_at</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.FireExtinguisher.id"><code class="docutils literal notranslate"><span class="pre">FireExtinguisher.id</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.FireExtinguisher.inspections"><code class="docutils literal notranslate"><span class="pre">FireExtinguisher.inspections</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.FireExtinguisher.inventory_number"><code class="docutils literal notranslate"><span class="pre">FireExtinguisher.inventory_number</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.FireExtinguisher.location"><code class="docutils literal notranslate"><span class="pre">FireExtinguisher.location</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.FireExtinguisher.location_id"><code class="docutils literal notranslate"><span class="pre">FireExtinguisher.location_id</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.FireExtinguisher.manufacture_date"><code class="docutils literal notranslate"><span class="pre">FireExtinguisher.manufacture_date</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.FireExtinguisher.manufacturer"><code class="docutils literal notranslate"><span class="pre">FireExtinguisher.manufacturer</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.FireExtinguisher.status"><code class="docutils literal notranslate"><span class="pre">FireExtinguisher.status</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.FireExtinguisher.status_id"><code class="docutils literal notranslate"><span class="pre">FireExtinguisher.status_id</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.FireExtinguisher.type"><code class="docutils literal notranslate"><span class="pre">FireExtinguisher.type</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.FireExtinguisher.updated_at"><code class="docutils literal notranslate"><span class="pre">FireExtinguisher.updated_at</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#models.Inspection"><code class="docutils literal notranslate"><span class="pre">Inspection</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#models.Inspection.comments"><code class="docutils literal notranslate"><span class="pre">Inspection.comments</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.Inspection.created_at"><code class="docutils literal notranslate"><span class="pre">Inspection.created_at</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.Inspection.employee"><code class="docutils literal notranslate"><span class="pre">Inspection.employee</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.Inspection.employee_id"><code class="docutils literal notranslate"><span class="pre">Inspection.employee_id</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.Inspection.fire_extinguisher"><code class="docutils literal notranslate"><span class="pre">Inspection.fire_extinguisher</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.Inspection.fire_extinguisher_id"><code class="docutils literal notranslate"><span class="pre">Inspection.fire_extinguisher_id</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.Inspection.hose_condition"><code class="docutils literal notranslate"><span class="pre">Inspection.hose_condition</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.Inspection.id"><code class="docutils literal notranslate"><span class="pre">Inspection.id</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.Inspection.inspection_date"><code class="docutils literal notranslate"><span class="pre">Inspection.inspection_date</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.Inspection.next_inspection_date"><code class="docutils literal notranslate"><span class="pre">Inspection.next_inspection_date</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.Inspection.pressure"><code class="docutils literal notranslate"><span class="pre">Inspection.pressure</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.Inspection.safety_pin_condition"><code class="docutils literal notranslate"><span class="pre">Inspection.safety_pin_condition</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.Inspection.seal_condition"><code class="docutils literal notranslate"><span class="pre">Inspection.seal_condition</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.Inspection.visual_inspection"><code class="docutils literal notranslate"><span class="pre">Inspection.visual_inspection</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.Inspection.weight"><code class="docutils literal notranslate"><span class="pre">Inspection.weight</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#models.Location"><code class="docutils literal notranslate"><span class="pre">Location</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#models.Location.created_at"><code class="docutils literal notranslate"><span class="pre">Location.created_at</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.Location.description"><code class="docutils literal notranslate"><span class="pre">Location.description</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.Location.fire_extinguishers"><code class="docutils literal notranslate"><span class="pre">Location.fire_extinguishers</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.Location.id"><code class="docutils literal notranslate"><span class="pre">Location.id</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.Location.name"><code class="docutils literal notranslate"><span class="pre">Location.name</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#models.Status"><code class="docutils literal notranslate"><span class="pre">Status</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#models.Status.created_at"><code class="docutils literal notranslate"><span class="pre">Status.created_at</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.Status.description"><code class="docutils literal notranslate"><span class="pre">Status.description</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.Status.fire_extinguishers"><code class="docutils literal notranslate"><span class="pre">Status.fire_extinguishers</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.Status.id"><code class="docutils literal notranslate"><span class="pre">Status.id</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.Status.name"><code class="docutils literal notranslate"><span class="pre">Status.name</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#models.User"><code class="docutils literal notranslate"><span class="pre">User</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#models.User.created_at"><code class="docutils literal notranslate"><span class="pre">User.created_at</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.User.email"><code class="docutils literal notranslate"><span class="pre">User.email</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.User.full_name"><code class="docutils literal notranslate"><span class="pre">User.full_name</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.User.hashed_password"><code class="docutils literal notranslate"><span class="pre">User.hashed_password</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.User.id"><code class="docutils literal notranslate"><span class="pre">User.id</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.User.is_active"><code class="docutils literal notranslate"><span class="pre">User.is_active</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.User.role"><code class="docutils literal notranslate"><span class="pre">User.role</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.User.username"><code class="docutils literal notranslate"><span class="pre">User.username</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="schemas.html">schemas module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="setup.html">setup module</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Меню навигации для мобильных устройств" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">FireTrack</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Навигация по страницам">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">FireExtinguishers</a></li>
+      <li class="breadcrumb-item active">models module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/models.rst.txt" rel="nofollow"> Просмотреть исходный код страницы</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-models">
+<span id="models-module"></span><h1>models module<a class="headerlink" href="#module-models" title="Ссылка на этот заголовок"></a></h1>
+<p>Модуль описания ORM-моделей системы FireTrack.
+Определяет таблицы для локаций, статусов, огнетушителей, сотрудников, проверок и пользователей.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="models.Employee">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">models.</span></span><span class="sig-name descname"><span class="pre">Employee</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/models.html#Employee"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#models.Employee" title="Ссылка на это определение"></a></dt>
+<dd><p>Базовые классы: <a class="reference internal" href="db.html#db.Base" title="db.Base"><code class="xref py py-class docutils literal notranslate"><span class="pre">Base</span></code></a></p>
+<p>Модель сотрудника, ответственного за проведение проверок.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.Employee.created_at">
+<span class="sig-name descname"><span class="pre">created_at</span></span><a class="headerlink" href="#models.Employee.created_at" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.Employee.full_name">
+<span class="sig-name descname"><span class="pre">full_name</span></span><a class="headerlink" href="#models.Employee.full_name" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.Employee.id">
+<span class="sig-name descname"><span class="pre">id</span></span><a class="headerlink" href="#models.Employee.id" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.Employee.inspections">
+<span class="sig-name descname"><span class="pre">inspections</span></span><a class="headerlink" href="#models.Employee.inspections" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.Employee.position">
+<span class="sig-name descname"><span class="pre">position</span></span><a class="headerlink" href="#models.Employee.position" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="models.FireExtinguisher">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">models.</span></span><span class="sig-name descname"><span class="pre">FireExtinguisher</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/models.html#FireExtinguisher"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#models.FireExtinguisher" title="Ссылка на это определение"></a></dt>
+<dd><p>Базовые классы: <a class="reference internal" href="db.html#db.Base" title="db.Base"><code class="xref py py-class docutils literal notranslate"><span class="pre">Base</span></code></a></p>
+<p>Модель единицы противопожарного оборудования (огнетушителя).</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.FireExtinguisher.capacity">
+<span class="sig-name descname"><span class="pre">capacity</span></span><a class="headerlink" href="#models.FireExtinguisher.capacity" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.FireExtinguisher.commissioning_date">
+<span class="sig-name descname"><span class="pre">commissioning_date</span></span><a class="headerlink" href="#models.FireExtinguisher.commissioning_date" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.FireExtinguisher.created_at">
+<span class="sig-name descname"><span class="pre">created_at</span></span><a class="headerlink" href="#models.FireExtinguisher.created_at" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.FireExtinguisher.id">
+<span class="sig-name descname"><span class="pre">id</span></span><a class="headerlink" href="#models.FireExtinguisher.id" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.FireExtinguisher.inspections">
+<span class="sig-name descname"><span class="pre">inspections</span></span><a class="headerlink" href="#models.FireExtinguisher.inspections" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.FireExtinguisher.inventory_number">
+<span class="sig-name descname"><span class="pre">inventory_number</span></span><a class="headerlink" href="#models.FireExtinguisher.inventory_number" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.FireExtinguisher.location">
+<span class="sig-name descname"><span class="pre">location</span></span><a class="headerlink" href="#models.FireExtinguisher.location" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.FireExtinguisher.location_id">
+<span class="sig-name descname"><span class="pre">location_id</span></span><a class="headerlink" href="#models.FireExtinguisher.location_id" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.FireExtinguisher.manufacture_date">
+<span class="sig-name descname"><span class="pre">manufacture_date</span></span><a class="headerlink" href="#models.FireExtinguisher.manufacture_date" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.FireExtinguisher.manufacturer">
+<span class="sig-name descname"><span class="pre">manufacturer</span></span><a class="headerlink" href="#models.FireExtinguisher.manufacturer" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.FireExtinguisher.status">
+<span class="sig-name descname"><span class="pre">status</span></span><a class="headerlink" href="#models.FireExtinguisher.status" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.FireExtinguisher.status_id">
+<span class="sig-name descname"><span class="pre">status_id</span></span><a class="headerlink" href="#models.FireExtinguisher.status_id" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.FireExtinguisher.type">
+<span class="sig-name descname"><span class="pre">type</span></span><a class="headerlink" href="#models.FireExtinguisher.type" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.FireExtinguisher.updated_at">
+<span class="sig-name descname"><span class="pre">updated_at</span></span><a class="headerlink" href="#models.FireExtinguisher.updated_at" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="models.Inspection">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">models.</span></span><span class="sig-name descname"><span class="pre">Inspection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/models.html#Inspection"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#models.Inspection" title="Ссылка на это определение"></a></dt>
+<dd><p>Базовые классы: <a class="reference internal" href="db.html#db.Base" title="db.Base"><code class="xref py py-class docutils literal notranslate"><span class="pre">Base</span></code></a></p>
+<p>Модель записи о проведенной проверке оборудования.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.Inspection.comments">
+<span class="sig-name descname"><span class="pre">comments</span></span><a class="headerlink" href="#models.Inspection.comments" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.Inspection.created_at">
+<span class="sig-name descname"><span class="pre">created_at</span></span><a class="headerlink" href="#models.Inspection.created_at" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.Inspection.employee">
+<span class="sig-name descname"><span class="pre">employee</span></span><a class="headerlink" href="#models.Inspection.employee" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.Inspection.employee_id">
+<span class="sig-name descname"><span class="pre">employee_id</span></span><a class="headerlink" href="#models.Inspection.employee_id" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.Inspection.fire_extinguisher">
+<span class="sig-name descname"><span class="pre">fire_extinguisher</span></span><a class="headerlink" href="#models.Inspection.fire_extinguisher" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.Inspection.fire_extinguisher_id">
+<span class="sig-name descname"><span class="pre">fire_extinguisher_id</span></span><a class="headerlink" href="#models.Inspection.fire_extinguisher_id" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.Inspection.hose_condition">
+<span class="sig-name descname"><span class="pre">hose_condition</span></span><a class="headerlink" href="#models.Inspection.hose_condition" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.Inspection.id">
+<span class="sig-name descname"><span class="pre">id</span></span><a class="headerlink" href="#models.Inspection.id" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.Inspection.inspection_date">
+<span class="sig-name descname"><span class="pre">inspection_date</span></span><a class="headerlink" href="#models.Inspection.inspection_date" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.Inspection.next_inspection_date">
+<span class="sig-name descname"><span class="pre">next_inspection_date</span></span><a class="headerlink" href="#models.Inspection.next_inspection_date" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.Inspection.pressure">
+<span class="sig-name descname"><span class="pre">pressure</span></span><a class="headerlink" href="#models.Inspection.pressure" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.Inspection.safety_pin_condition">
+<span class="sig-name descname"><span class="pre">safety_pin_condition</span></span><a class="headerlink" href="#models.Inspection.safety_pin_condition" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.Inspection.seal_condition">
+<span class="sig-name descname"><span class="pre">seal_condition</span></span><a class="headerlink" href="#models.Inspection.seal_condition" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.Inspection.visual_inspection">
+<span class="sig-name descname"><span class="pre">visual_inspection</span></span><a class="headerlink" href="#models.Inspection.visual_inspection" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.Inspection.weight">
+<span class="sig-name descname"><span class="pre">weight</span></span><a class="headerlink" href="#models.Inspection.weight" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="models.Location">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">models.</span></span><span class="sig-name descname"><span class="pre">Location</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/models.html#Location"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#models.Location" title="Ссылка на это определение"></a></dt>
+<dd><p>Базовые классы: <a class="reference internal" href="db.html#db.Base" title="db.Base"><code class="xref py py-class docutils literal notranslate"><span class="pre">Base</span></code></a></p>
+<p>Модель местоположения (помещения, этажи) оборудования.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.Location.created_at">
+<span class="sig-name descname"><span class="pre">created_at</span></span><a class="headerlink" href="#models.Location.created_at" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.Location.description">
+<span class="sig-name descname"><span class="pre">description</span></span><a class="headerlink" href="#models.Location.description" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.Location.fire_extinguishers">
+<span class="sig-name descname"><span class="pre">fire_extinguishers</span></span><a class="headerlink" href="#models.Location.fire_extinguishers" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.Location.id">
+<span class="sig-name descname"><span class="pre">id</span></span><a class="headerlink" href="#models.Location.id" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.Location.name">
+<span class="sig-name descname"><span class="pre">name</span></span><a class="headerlink" href="#models.Location.name" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="models.Status">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">models.</span></span><span class="sig-name descname"><span class="pre">Status</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/models.html#Status"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#models.Status" title="Ссылка на это определение"></a></dt>
+<dd><p>Базовые классы: <a class="reference internal" href="db.html#db.Base" title="db.Base"><code class="xref py py-class docutils literal notranslate"><span class="pre">Base</span></code></a></p>
+<p>Модель технических статусов огнетушителей (Актуально, Списан и т.д.).</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.Status.created_at">
+<span class="sig-name descname"><span class="pre">created_at</span></span><a class="headerlink" href="#models.Status.created_at" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.Status.description">
+<span class="sig-name descname"><span class="pre">description</span></span><a class="headerlink" href="#models.Status.description" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.Status.fire_extinguishers">
+<span class="sig-name descname"><span class="pre">fire_extinguishers</span></span><a class="headerlink" href="#models.Status.fire_extinguishers" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.Status.id">
+<span class="sig-name descname"><span class="pre">id</span></span><a class="headerlink" href="#models.Status.id" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.Status.name">
+<span class="sig-name descname"><span class="pre">name</span></span><a class="headerlink" href="#models.Status.name" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="models.User">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">models.</span></span><span class="sig-name descname"><span class="pre">User</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/models.html#User"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#models.User" title="Ссылка на это определение"></a></dt>
+<dd><p>Базовые классы: <a class="reference internal" href="db.html#db.Base" title="db.Base"><code class="xref py py-class docutils literal notranslate"><span class="pre">Base</span></code></a></p>
+<p>Модель пользователя системы для авторизации и управления правами доступа.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.User.created_at">
+<span class="sig-name descname"><span class="pre">created_at</span></span><a class="headerlink" href="#models.User.created_at" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.User.email">
+<span class="sig-name descname"><span class="pre">email</span></span><a class="headerlink" href="#models.User.email" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.User.full_name">
+<span class="sig-name descname"><span class="pre">full_name</span></span><a class="headerlink" href="#models.User.full_name" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.User.hashed_password">
+<span class="sig-name descname"><span class="pre">hashed_password</span></span><a class="headerlink" href="#models.User.hashed_password" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.User.id">
+<span class="sig-name descname"><span class="pre">id</span></span><a class="headerlink" href="#models.User.id" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.User.is_active">
+<span class="sig-name descname"><span class="pre">is_active</span></span><a class="headerlink" href="#models.User.is_active" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.User.role">
+<span class="sig-name descname"><span class="pre">role</span></span><a class="headerlink" href="#models.User.role" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.User.username">
+<span class="sig-name descname"><span class="pre">username</span></span><a class="headerlink" href="#models.User.username" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Нижняя область">
+        <a href="main.html" class="btn btn-neutral float-left" title="main module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Предыдущая</a>
+        <a href="schemas.html" class="btn btn-neutral float-right" title="schemas module" accesskey="n" rel="next">Следующая <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Авторские права 2026, Ralka. </p>
+  </div>
+
+  Собрано при помощи <a href="https://www.sphinx-doc.org/">Sphinx</a> с использованием
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">темы,</a>
+    предоставленной <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

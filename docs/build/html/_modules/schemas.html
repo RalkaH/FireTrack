@@ -1,0 +1,389 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="ru" data-content_root="../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>schemas &mdash; документация FireTrack 1</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=47a0e12c"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../_static/translations.js?v=cd1d70c9"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Алфавитный указатель" href="../genindex.html" />
+    <link rel="search" title="Поиск" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            FireTrack
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Поиск в документации" aria-label="Поиск в документации" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Меню навигации">
+              <p class="caption" role="heading"><span class="caption-text">Содержание:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">FireExtinguishers</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Меню навигации для мобильных устройств" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">FireTrack</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Навигация по страницам">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Код модуля</a></li>
+      <li class="breadcrumb-item active">schemas</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Исходный код schemas</h1><div class="highlight"><pre>
+<span></span><span class="c1"># schemas.py (v1.2)</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Модуль схем Pydantic для валидации данных, сериализации и десериализации.</span>
+<span class="sd">Определяет структуру данных для входящих API-запросов и исходящих ответов.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">date</span><span class="p">,</span> <span class="n">datetime</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">Field</span><span class="p">,</span> <span class="n">field_validator</span>
+
+
+<span class="c1"># ---------- Health ----------</span>
+
+<div class="viewcode-block" id="HealthResponse">
+<a class="viewcode-back" href="../schemas.html#schemas.HealthResponse">[документация]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">HealthResponse</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Схема ответа для эндпоинта проверки работоспособности (Health Check).&quot;&quot;&quot;</span>
+    <span class="n">status</span><span class="p">:</span> <span class="nb">str</span></div>
+
+
+
+<span class="c1"># ---------- Locations ----------</span>
+
+<div class="viewcode-block" id="LocationBase">
+<a class="viewcode-back" href="../schemas.html#schemas.LocationBase">[документация]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">LocationBase</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Базовая схема местоположения оборудования.&quot;&quot;&quot;</span>
+    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Название места (кабинет, этаж)&quot;</span><span class="p">)</span>
+    <span class="n">description</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Описание места&quot;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="LocationCreate">
+<a class="viewcode-back" href="../schemas.html#schemas.LocationCreate">[документация]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">LocationCreate</span><span class="p">(</span><span class="n">LocationBase</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Схема для создания нового местоположения.&quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+
+
+<div class="viewcode-block" id="LocationRead">
+<a class="viewcode-back" href="../schemas.html#schemas.LocationRead">[документация]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">LocationRead</span><span class="p">(</span><span class="n">LocationBase</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Схема для чтения данных о местоположении (возвращается в API).&quot;&quot;&quot;</span>
+    <span class="nb">id</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">created_at</span><span class="p">:</span> <span class="n">datetime</span>
+
+<div class="viewcode-block" id="LocationRead.Config">
+<a class="viewcode-back" href="../schemas.html#schemas.LocationRead.Config">[документация]</a>
+    <span class="k">class</span><span class="w"> </span><span class="nc">Config</span><span class="p">:</span>
+        <span class="n">from_attributes</span> <span class="o">=</span> <span class="kc">True</span></div>
+</div>
+
+
+
+<span class="c1"># ---------- Statuses ----------</span>
+
+<div class="viewcode-block" id="StatusBase">
+<a class="viewcode-back" href="../schemas.html#schemas.StatusBase">[документация]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">StatusBase</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Базовая схема технического статуса огнетушителя.&quot;&quot;&quot;</span>
+    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Название статуса&quot;</span><span class="p">)</span>
+    <span class="n">description</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Описание статуса&quot;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="StatusCreate">
+<a class="viewcode-back" href="../schemas.html#schemas.StatusCreate">[документация]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">StatusCreate</span><span class="p">(</span><span class="n">StatusBase</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Схема для создания нового статуса.&quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+
+
+<div class="viewcode-block" id="StatusRead">
+<a class="viewcode-back" href="../schemas.html#schemas.StatusRead">[документация]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">StatusRead</span><span class="p">(</span><span class="n">StatusBase</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Схема для чтения данных о статусе (возвращается в API).&quot;&quot;&quot;</span>
+    <span class="nb">id</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">created_at</span><span class="p">:</span> <span class="n">datetime</span>
+
+<div class="viewcode-block" id="StatusRead.Config">
+<a class="viewcode-back" href="../schemas.html#schemas.StatusRead.Config">[документация]</a>
+    <span class="k">class</span><span class="w"> </span><span class="nc">Config</span><span class="p">:</span>
+        <span class="n">from_attributes</span> <span class="o">=</span> <span class="kc">True</span></div>
+</div>
+
+
+
+<span class="c1"># ---------- FireExtinguishers ----------</span>
+
+<div class="viewcode-block" id="FireExtinguisherBase">
+<a class="viewcode-back" href="../schemas.html#schemas.FireExtinguisherBase">[документация]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">FireExtinguisherBase</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Базовая схема огнетушителя со всеми основными характеристиками.&quot;&quot;&quot;</span>
+    <span class="n">inventory_number</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Инвентарный номер&quot;</span><span class="p">)</span>
+    <span class="nb">type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Тип огнетушителя (ОУ-8 и т.п.)&quot;</span><span class="p">)</span>
+    <span class="n">capacity</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">gt</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Вместимость (л / кг)&quot;</span><span class="p">)</span>
+    <span class="n">manufacturer</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Производитель&quot;</span><span class="p">)</span>
+    <span class="n">manufacture_date</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">date</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="kc">None</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Дата изготовления&quot;</span><span class="p">)</span>
+    <span class="n">commissioning_date</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">date</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="kc">None</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Дата ввода в эксплуатацию&quot;</span><span class="p">)</span>
+    <span class="n">location_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;ID места (Locations.id)&quot;</span><span class="p">)</span>
+    <span class="n">status_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;ID статуса (Statuses.id)&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="FireExtinguisherBase.not_in_future">
+<a class="viewcode-back" href="../schemas.html#schemas.FireExtinguisherBase.not_in_future">[документация]</a>
+    <span class="nd">@field_validator</span><span class="p">(</span><span class="s1">&#39;manufacture_date&#39;</span><span class="p">,</span> <span class="s1">&#39;commissioning_date&#39;</span><span class="p">)</span>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">not_in_future</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Валидатор: проверяет, что дата изготовления и ввода не больше текущей.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">v</span> <span class="ow">and</span> <span class="n">v</span> <span class="o">&gt;</span> <span class="n">date</span><span class="o">.</span><span class="n">today</span><span class="p">():</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Дата не может быть из будущего&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">v</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="FireExtinguisherCreate">
+<a class="viewcode-back" href="../schemas.html#schemas.FireExtinguisherCreate">[документация]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">FireExtinguisherCreate</span><span class="p">(</span><span class="n">FireExtinguisherBase</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Схема для создания новой карточки огнетушителя.&quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+
+
+<div class="viewcode-block" id="FireExtinguisherUpdate">
+<a class="viewcode-back" href="../schemas.html#schemas.FireExtinguisherUpdate">[документация]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">FireExtinguisherUpdate</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Схема для частичного обновления данных огнетушителя.&quot;&quot;&quot;</span>
+    <span class="n">inventory_number</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="nb">type</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">capacity</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">gt</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">manufacturer</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">manufacture_date</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">date</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">commissioning_date</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">date</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">location_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">status_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+
+
+<div class="viewcode-block" id="FireExtinguisherRead">
+<a class="viewcode-back" href="../schemas.html#schemas.FireExtinguisherRead">[документация]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">FireExtinguisherRead</span><span class="p">(</span><span class="n">FireExtinguisherBase</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Схема для чтения данных об огнетушителе (возвращается в API).&quot;&quot;&quot;</span>
+    <span class="nb">id</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">created_at</span><span class="p">:</span> <span class="n">datetime</span>
+    <span class="n">updated_at</span><span class="p">:</span> <span class="n">datetime</span>
+
+<div class="viewcode-block" id="FireExtinguisherRead.Config">
+<a class="viewcode-back" href="../schemas.html#schemas.FireExtinguisherRead.Config">[документация]</a>
+    <span class="k">class</span><span class="w"> </span><span class="nc">Config</span><span class="p">:</span>
+        <span class="n">from_attributes</span> <span class="o">=</span> <span class="kc">True</span></div>
+</div>
+
+
+
+<span class="c1"># ---------- Employees ----------</span>
+
+<div class="viewcode-block" id="EmployeeBase">
+<a class="viewcode-back" href="../schemas.html#schemas.EmployeeBase">[документация]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">EmployeeBase</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Базовая схема сотрудника компании.&quot;&quot;&quot;</span>
+    <span class="n">full_name</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">position</span><span class="p">:</span> <span class="nb">str</span></div>
+
+
+
+<div class="viewcode-block" id="EmployeeCreate">
+<a class="viewcode-back" href="../schemas.html#schemas.EmployeeCreate">[документация]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">EmployeeCreate</span><span class="p">(</span><span class="n">EmployeeBase</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Схема для создания нового сотрудника.&quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+
+
+<div class="viewcode-block" id="EmployeeRead">
+<a class="viewcode-back" href="../schemas.html#schemas.EmployeeRead">[документация]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">EmployeeRead</span><span class="p">(</span><span class="n">EmployeeBase</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Схема для чтения данных о сотруднике (возвращается в API).&quot;&quot;&quot;</span>
+    <span class="nb">id</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">created_at</span><span class="p">:</span> <span class="n">datetime</span>
+
+<div class="viewcode-block" id="EmployeeRead.Config">
+<a class="viewcode-back" href="../schemas.html#schemas.EmployeeRead.Config">[документация]</a>
+    <span class="k">class</span><span class="w"> </span><span class="nc">Config</span><span class="p">:</span>
+        <span class="n">from_attributes</span> <span class="o">=</span> <span class="kc">True</span></div>
+</div>
+
+
+
+<span class="c1"># ---------- Inspections ----------</span>
+
+<div class="viewcode-block" id="InspectionBase">
+<a class="viewcode-back" href="../schemas.html#schemas.InspectionBase">[документация]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">InspectionBase</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Базовая схема записи о проведенной проверке (ТО).&quot;&quot;&quot;</span>
+    <span class="n">fire_extinguisher_id</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">inspection_date</span><span class="p">:</span> <span class="n">date</span>
+    <span class="n">employee_id</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">pressure</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">weight</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">visual_inspection</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">seal_condition</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">safety_pin_condition</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">hose_condition</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">comments</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">next_inspection_date</span><span class="p">:</span> <span class="n">date</span></div>
+
+
+
+<div class="viewcode-block" id="InspectionCreate">
+<a class="viewcode-back" href="../schemas.html#schemas.InspectionCreate">[документация]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">InspectionCreate</span><span class="p">(</span><span class="n">InspectionBase</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Схема для создания новой записи о проверке.&quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+
+
+<div class="viewcode-block" id="InspectionRead">
+<a class="viewcode-back" href="../schemas.html#schemas.InspectionRead">[документация]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">InspectionRead</span><span class="p">(</span><span class="n">InspectionBase</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Схема для чтения данных о проверке (возвращается в API).&quot;&quot;&quot;</span>
+    <span class="nb">id</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">created_at</span><span class="p">:</span> <span class="n">datetime</span>
+
+<div class="viewcode-block" id="InspectionRead.Config">
+<a class="viewcode-back" href="../schemas.html#schemas.InspectionRead.Config">[документация]</a>
+    <span class="k">class</span><span class="w"> </span><span class="nc">Config</span><span class="p">:</span>
+        <span class="n">from_attributes</span> <span class="o">=</span> <span class="kc">True</span></div>
+</div>
+
+
+<span class="c1"># ---------- Users &amp; Auth ----------</span>
+
+
+<div class="viewcode-block" id="UserBase">
+<a class="viewcode-back" href="../schemas.html#schemas.UserBase">[документация]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">UserBase</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Базовая схема данных пользователя системы.&quot;&quot;&quot;</span>
+    <span class="n">username</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">email</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">full_name</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">role</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Роль: admin, engineer, viewer&quot;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="UserCreate">
+<a class="viewcode-back" href="../schemas.html#schemas.UserCreate">[документация]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">UserCreate</span><span class="p">(</span><span class="n">UserBase</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Схема для регистрации нового пользователя.&quot;&quot;&quot;</span>
+    <span class="n">password</span><span class="p">:</span> <span class="nb">str</span></div>
+
+
+
+<div class="viewcode-block" id="UserRead">
+<a class="viewcode-back" href="../schemas.html#schemas.UserRead">[документация]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">UserRead</span><span class="p">(</span><span class="n">UserBase</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Схема для чтения данных пользователя (без пароля, возвращается в API).&quot;&quot;&quot;</span>
+    <span class="nb">id</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">is_active</span><span class="p">:</span> <span class="nb">bool</span>
+    <span class="n">created_at</span><span class="p">:</span> <span class="n">datetime</span>
+
+<div class="viewcode-block" id="UserRead.Config">
+<a class="viewcode-back" href="../schemas.html#schemas.UserRead.Config">[документация]</a>
+    <span class="k">class</span><span class="w"> </span><span class="nc">Config</span><span class="p">:</span>
+        <span class="n">from_attributes</span> <span class="o">=</span> <span class="kc">True</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="Token">
+<a class="viewcode-back" href="../schemas.html#schemas.Token">[документация]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">Token</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Схема JWT токена доступа.&quot;&quot;&quot;</span>
+    <span class="n">access_token</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">token_type</span><span class="p">:</span> <span class="nb">str</span></div>
+
+
+
+<div class="viewcode-block" id="TokenData">
+<a class="viewcode-back" href="../schemas.html#schemas.TokenData">[документация]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">TokenData</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Схема полезной нагрузки (payload), извлеченной из JWT токена.&quot;&quot;&quot;</span>
+    <span class="n">username</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Авторские права 2026, Ralka. </p>
+  </div>
+
+  Собрано при помощи <a href="https://www.sphinx-doc.org/">Sphinx</a> с использованием
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">темы,</a>
+    предоставленной <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
