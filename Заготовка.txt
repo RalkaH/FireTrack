@@ -1,3 +1,18 @@
+#uvicorn main:app --reload
+
+# docker-compose up -d --build
+# docker-compose down
+
+#http://127.0.0.1:8000
+#http://127.0.0.1:8000/docs
+#http://127.0.0.1:8000/redoc
+
+#Sphinx
+#cd docs
+#sphinx-apidoc -o source ..\
+#.\make.bat html
+#start build\html\index.html
+
 name;description
 Кабинет 101;Административный корпус, 1 этаж
 Кабинет 204;Офисный блок, 2 этаж

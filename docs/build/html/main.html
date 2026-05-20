@@ -48,7 +48,13 @@
 <li class="toctree-l1 current"><a class="reference internal" href="modules.html">FireExtinguishers</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="auth.html">auth module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="db.html">db module</a></li>
-<li class="toctree-l2 current"><a class="current reference internal" href="#">main module</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">main module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#main.health_check"><code class="docutils literal notranslate"><span class="pre">health_check()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#main.init_admin"><code class="docutils literal notranslate"><span class="pre">init_admin()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#main.init_statuses"><code class="docutils literal notranslate"><span class="pre">init_statuses()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#main.read_root"><code class="docutils literal notranslate"><span class="pre">read_root()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="models.html">models module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="schemas.html">schemas module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="setup.html">setup module</a></li>
@@ -81,8 +87,55 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="main-module">
-<h1>main module<a class="headerlink" href="#main-module" title="Ссылка на этот заголовок"></a></h1>
+  <section id="module-main">
+<span id="main-module"></span><h1>main module<a class="headerlink" href="#module-main" title="Ссылка на этот заголовок"></a></h1>
+<p>Главный модуль приложения FireTrack.
+Инициализирует FastAPI, подключает маршрутизаторы (роутеры),
+настраивает статические файлы и создает базовые данные (администратора и статусы) при старте.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="main.health_check">
+<span class="sig-prename descclassname"><span class="pre">main.</span></span><span class="sig-name descname"><span class="pre">health_check</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/main.html#health_check"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#main.health_check" title="Ссылка на это определение"></a></dt>
+<dd><p>Эндпоинт для проверки работоспособности (Health Check) API.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Результат<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Словарь со статусом „ok“, если сервер работает.</p>
+</dd>
+<dt class="field-even">Тип результата<span class="colon">:</span></dt>
+<dd class="field-even"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="main.init_admin">
+<span class="sig-prename descclassname"><span class="pre">main.</span></span><span class="sig-name descname"><span class="pre">init_admin</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/main.html#init_admin"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#main.init_admin" title="Ссылка на это определение"></a></dt>
+<dd><p>Создает пользователя администратора по умолчанию (admin/admin123),
+если в базе данных еще нет пользователя с логином „admin“.
+Выполняется при запуске приложения.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="main.init_statuses">
+<span class="sig-prename descclassname"><span class="pre">main.</span></span><span class="sig-name descname"><span class="pre">init_statuses</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/main.html#init_statuses"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#main.init_statuses" title="Ссылка на это определение"></a></dt>
+<dd><p>Инициализирует стандартные статусы огнетушителей в базе данных,
+если они отсутствуют. Включает статусы: Актуально, Просрочено,
+Требует обслуживания, На техническом обслуживании, Списан.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="main.read_root">
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">main.</span></span><span class="sig-name descname"><span class="pre">read_root</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/main.html#read_root"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#main.read_root" title="Ссылка на это определение"></a></dt>
+<dd><p>Отдает главную страницу Frontend-приложения (index.html).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Результат<span class="colon">:</span></dt>
+<dd class="field-odd"><p>HTML-файл интерфейса системы.</p>
+</dd>
+<dt class="field-even">Тип результата<span class="colon">:</span></dt>
+<dd class="field-even"><p>FileResponse</p>
+</dd>
+</dl>
+</dd></dl>
+
 </section>
 
 

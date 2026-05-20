@@ -1,0 +1,272 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="ru" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>routers.inspections &mdash; документация FireTrack 1</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=47a0e12c"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../_static/translations.js?v=cd1d70c9"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Алфавитный указатель" href="../../genindex.html" />
+    <link rel="search" title="Поиск" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            FireTrack
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Поиск в документации" aria-label="Поиск в документации" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Меню навигации">
+              <p class="caption" role="heading"><span class="caption-text">Содержание:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">FireExtinguishers</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Меню навигации для мобильных устройств" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">FireTrack</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Навигация по страницам">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Код модуля</a></li>
+      <li class="breadcrumb-item active">routers.inspections</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Исходный код routers.inspections</h1><div class="highlight"><pre>
+<span></span><span class="c1"># inspections.py (v1.1)</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Модуль для управления процессом проверок огнетушителей.</span>
+<span class="sd">Содержит маршруты для создания новых записей о проверках,</span>
+<span class="sd">а также получения истории обслуживания оборудования.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timezone</span><span class="p">,</span> <span class="n">date</span><span class="p">,</span> <span class="n">timedelta</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fastapi</span><span class="w"> </span><span class="kn">import</span> <span class="n">APIRouter</span><span class="p">,</span> <span class="n">Depends</span><span class="p">,</span> <span class="n">HTTPException</span><span class="p">,</span> <span class="n">status</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sqlalchemy.orm</span><span class="w"> </span><span class="kn">import</span> <span class="n">Session</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">db</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_db</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Inspection</span><span class="p">,</span> <span class="n">FireExtinguisher</span><span class="p">,</span> <span class="n">Employee</span><span class="p">,</span> <span class="n">Status</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">schemas</span><span class="w"> </span><span class="kn">import</span> <span class="n">InspectionCreate</span><span class="p">,</span> <span class="n">InspectionRead</span>
+
+<span class="n">router</span> <span class="o">=</span> <span class="n">APIRouter</span><span class="p">(</span>
+    <span class="n">prefix</span><span class="o">=</span><span class="s2">&quot;/inspections&quot;</span><span class="p">,</span>
+    <span class="n">tags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Inspections&quot;</span><span class="p">],</span>
+<span class="p">)</span>
+
+
+<div class="viewcode-block" id="create_inspection">
+<a class="viewcode-back" href="../../routers.html#routers.inspections.create_inspection">[документация]</a>
+<span class="nd">@router</span><span class="o">.</span><span class="n">post</span><span class="p">(</span>
+    <span class="s2">&quot;/&quot;</span><span class="p">,</span>
+    <span class="n">response_model</span><span class="o">=</span><span class="n">InspectionRead</span><span class="p">,</span>
+    <span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_201_CREATED</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">create_inspection</span><span class="p">(</span>
+    <span class="n">data</span><span class="p">:</span> <span class="n">InspectionCreate</span><span class="p">,</span>
+    <span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">),</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Зарегистрировать новую проверку огнетушителя.</span>
+<span class="sd">    Проверяет существование огнетушителя и сотрудника,</span>
+<span class="sd">    сохраняет результаты проверки и обновляет время изменения огнетушителя.</span>
+<span class="sd">    Автоматически рассчитывает дату следующей проверки (через 180 дней), если она не указана.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        data (InspectionCreate): Данные для создания проверки.</span>
+<span class="sd">        db (Session): Сессия базы данных.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Inspection: Объект созданной проверки.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        HTTPException: Если дата из будущего, либо не найден огнетушитель/сотрудник.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Валидация даты проверки (не из будущего)</span>
+    <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">inspection_date</span> <span class="o">&gt;</span> <span class="n">date</span><span class="o">.</span><span class="n">today</span><span class="p">():</span>
+        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
+            <span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_400_BAD_REQUEST</span><span class="p">,</span>
+            <span class="n">detail</span><span class="o">=</span><span class="s2">&quot;Дата проверки не может быть из будущего&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="c1"># Проверяем, что огнетушитель существует</span>
+    <span class="n">extinguisher</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">FireExtinguisher</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">fire_extinguisher_id</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">extinguisher</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
+            <span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_400_BAD_REQUEST</span><span class="p">,</span>
+            <span class="n">detail</span><span class="o">=</span><span class="s2">&quot;Огнетушитель не найден&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="c1"># Проверяем, что сотрудник существует</span>
+    <span class="n">employee</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Employee</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">employee_id</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">employee</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
+            <span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_400_BAD_REQUEST</span><span class="p">,</span>
+            <span class="n">detail</span><span class="o">=</span><span class="s2">&quot;Сотрудник не найден&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="c1"># Если не указана дата следующей проверки, рассчитываем автоматически</span>
+    <span class="c1"># По ГОСТ проверка каждые 6 месяцев</span>
+    <span class="n">next_inspection</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">next_inspection_date</span>
+    <span class="k">if</span> <span class="n">next_inspection</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">next_inspection</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">inspection_date</span> <span class="o">+</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">180</span><span class="p">)</span>
+
+    <span class="c1"># Создаём запись о проверке</span>
+    <span class="n">insp</span> <span class="o">=</span> <span class="n">Inspection</span><span class="p">(</span>
+        <span class="n">fire_extinguisher_id</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">fire_extinguisher_id</span><span class="p">,</span>
+        <span class="n">inspection_date</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">inspection_date</span><span class="p">,</span>
+        <span class="n">employee_id</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">employee_id</span><span class="p">,</span>
+        <span class="n">pressure</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">pressure</span><span class="p">,</span>
+        <span class="n">weight</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">weight</span><span class="p">,</span>
+        <span class="n">visual_inspection</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">visual_inspection</span><span class="p">,</span>
+        <span class="n">seal_condition</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">seal_condition</span><span class="p">,</span>
+        <span class="n">safety_pin_condition</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">safety_pin_condition</span><span class="p">,</span>
+        <span class="n">hose_condition</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">hose_condition</span><span class="p">,</span>
+        <span class="n">comments</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">comments</span><span class="p">,</span>
+        <span class="n">next_inspection_date</span><span class="o">=</span><span class="n">next_inspection</span><span class="p">,</span>
+        <span class="n">created_at</span><span class="o">=</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">),</span>
+    <span class="p">)</span>
+
+    <span class="n">db</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">insp</span><span class="p">)</span>
+
+    <span class="c1"># Обновляем у огнетушителя дату последнего изменения</span>
+    <span class="n">extinguisher</span><span class="o">.</span><span class="n">updated_at</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span>
+
+    <span class="c1"># Автоматически пересчитываем статус</span>
+    <span class="n">status_actual</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Status</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">Status</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;Актуально&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">status_actual</span><span class="p">:</span>
+        <span class="n">extinguisher</span><span class="o">.</span><span class="n">status_id</span> <span class="o">=</span> <span class="n">status_actual</span><span class="o">.</span><span class="n">id</span>
+
+    <span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">refresh</span><span class="p">(</span><span class="n">insp</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">insp</span></div>
+
+
+
+<div class="viewcode-block" id="inspections_by_extinguisher">
+<a class="viewcode-back" href="../../routers.html#routers.inspections.inspections_by_extinguisher">[документация]</a>
+<span class="nd">@router</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+    <span class="s2">&quot;/by-extinguisher/</span><span class="si">{extinguisher_id}</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="n">response_model</span><span class="o">=</span><span class="n">List</span><span class="p">[</span><span class="n">InspectionRead</span><span class="p">],</span>
+<span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">inspections_by_extinguisher</span><span class="p">(</span>
+    <span class="n">extinguisher_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">),</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Получить историю всех проверок для заданного огнетушителя.</span>
+<span class="sd">    Сортировка по убыванию даты проверки (новые сверху).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        extinguisher_id (int): ID огнетушителя.</span>
+<span class="sd">        db (Session): Сессия базы данных.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        List[Inspection]: Список записей о проверках.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Inspection</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">Inspection</span><span class="o">.</span><span class="n">fire_extinguisher_id</span> <span class="o">==</span> <span class="n">extinguisher_id</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="n">Inspection</span><span class="o">.</span><span class="n">inspection_date</span><span class="o">.</span><span class="n">desc</span><span class="p">())</span>
+        <span class="o">.</span><span class="n">all</span><span class="p">()</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="list_inspections">
+<a class="viewcode-back" href="../../routers.html#routers.inspections.list_inspections">[документация]</a>
+<span class="nd">@router</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">,</span> <span class="n">response_model</span><span class="o">=</span><span class="n">List</span><span class="p">[</span><span class="n">InspectionRead</span><span class="p">])</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">list_inspections</span><span class="p">(</span>
+    <span class="n">date_from</span><span class="p">:</span> <span class="n">date</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">date_to</span><span class="p">:</span> <span class="n">date</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">),</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Получить общий журнал проверок всех огнетушителей.</span>
+<span class="sd">    Позволяет фильтровать результаты по периоду дат.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        date_from (date | None): Фильтр &quot;с даты&quot; (включительно).</span>
+<span class="sd">        date_to (date | None): Фильтр &quot;по дату&quot; (включительно).</span>
+<span class="sd">        db (Session): Сессия базы данных.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        List[Inspection]: Отфильтрованный список проверок.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">query</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Inspection</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">date_from</span><span class="p">:</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">Inspection</span><span class="o">.</span><span class="n">inspection_date</span> <span class="o">&gt;=</span> <span class="n">date_from</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">date_to</span><span class="p">:</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">Inspection</span><span class="o">.</span><span class="n">inspection_date</span> <span class="o">&lt;=</span> <span class="n">date_to</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">query</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="n">Inspection</span><span class="o">.</span><span class="n">inspection_date</span><span class="o">.</span><span class="n">desc</span><span class="p">())</span><span class="o">.</span><span class="n">all</span><span class="p">()</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Авторские права 2026, Ralka. </p>
+  </div>
+
+  Собрано при помощи <a href="https://www.sphinx-doc.org/">Sphinx</a> с использованием
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">темы,</a>
+    предоставленной <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

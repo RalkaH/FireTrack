@@ -81,6 +81,7 @@
  | <a href="#G"><strong>G</strong></a>
  | <a href="#H"><strong>H</strong></a>
  | <a href="#I"><strong>I</strong></a>
+ | <a href="#J"><strong>J</strong></a>
  | <a href="#L"><strong>L</strong></a>
  | <a href="#M"><strong>M</strong></a>
  | <a href="#N"><strong>N</strong></a>
@@ -108,7 +109,11 @@
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="auth.html#auth.authenticate_user">authenticate_user() (в модуле auth)</a>
+
+      <ul>
+        <li><a href="routers.html#routers.auth.authenticate_user">(в модуле routers.auth)</a>
 </li>
+      </ul></li>
   </ul></td>
 </tr></table>
 
@@ -146,6 +151,22 @@
 </li>
       </ul></li>
       <li><a href="auth.html#auth.create_access_token">create_access_token() (в модуле auth)</a>
+
+      <ul>
+        <li><a href="routers.html#routers.auth.create_access_token">(в модуле routers.auth)</a>
+</li>
+      </ul></li>
+      <li><a href="routers.html#routers.employees.create_employee">create_employee() (в модуле routers.employees)</a>
+</li>
+      <li><a href="routers.html#routers.extinguishers.create_extinguisher">create_extinguisher() (в модуле routers.extinguishers)</a>
+</li>
+      <li><a href="routers.html#routers.inspections.create_inspection">create_inspection() (в модуле routers.inspections)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="routers.html#routers.locations.create_location">create_location() (в модуле routers.locations)</a>
+</li>
+      <li><a href="routers.html#routers.statuses.create_status">create_status() (в модуле routers.statuses)</a>
 </li>
       <li><a href="models.html#models.Employee.created_at">created_at (атрибут models.Employee)</a>
 
@@ -179,6 +200,8 @@
 <h2 id="D">D</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="routers.html#routers.reports.dashboard_statistics">dashboard_statistics() (в модуле routers.reports)</a>
+</li>
       <li>
     db
 
@@ -186,6 +209,8 @@
         <li><a href="db.html#module-db">module</a>
 </li>
       </ul></li>
+      <li><a href="routers.html#routers.extinguishers.delete_extinguisher">delete_extinguisher() (в модуле routers.extinguishers)</a>
+</li>
       <li><a href="models.html#models.Location.description">description (атрибут models.Location)</a>
 
       <ul>
@@ -196,6 +221,16 @@
         <li><a href="schemas.html#schemas.StatusBase.description">(атрибут schemas.StatusBase)</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="routers.html#routers.import_data.download_employees_template">download_employees_template() (в модуле routers.import_data)</a>
+</li>
+      <li><a href="routers.html#routers.import_data.download_extinguishers_template">download_extinguishers_template() (в модуле routers.import_data)</a>
+</li>
+      <li><a href="routers.html#routers.import_data.download_inspections_template">download_inspections_template() (в модуле routers.import_data)</a>
+</li>
+      <li><a href="routers.html#routers.import_data.download_locations_template">download_locations_template() (в модуле routers.import_data)</a>
+</li>
   </ul></td>
 </tr></table>
 
@@ -227,6 +262,10 @@
       <li><a href="schemas.html#schemas.EmployeeRead">EmployeeRead (класс в schemas)</a>
 </li>
       <li><a href="schemas.html#schemas.EmployeeRead.Config">EmployeeRead.Config (класс в schemas)</a>
+</li>
+      <li><a href="routers.html#routers.reports.expired_list">expired_list() (в модуле routers.reports)</a>
+</li>
+      <li><a href="routers.html#routers.reports.export_journal_json">export_journal_json() (в модуле routers.reports)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -293,15 +332,29 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="auth.html#auth.get_current_active_user">get_current_active_user() (в модуле auth)</a>
+
+      <ul>
+        <li><a href="routers.html#routers.auth.get_current_active_user">(в модуле routers.auth)</a>
 </li>
+      </ul></li>
       <li><a href="auth.html#auth.get_current_user">get_current_user() (в модуле auth)</a>
+
+      <ul>
+        <li><a href="routers.html#routers.auth.get_current_user">(в модуле routers.auth)</a>
 </li>
+      </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="db.html#db.get_db">get_db() (в модуле db)</a>
 </li>
-      <li><a href="auth.html#auth.get_password_hash">get_password_hash() (в модуле auth)</a>
+      <li><a href="routers.html#routers.extinguishers.get_extinguisher">get_extinguisher() (в модуле routers.extinguishers)</a>
 </li>
+      <li><a href="auth.html#auth.get_password_hash">get_password_hash() (в модуле auth)</a>
+
+      <ul>
+        <li><a href="routers.html#routers.auth.get_password_hash">(в модуле routers.auth)</a>
+</li>
+      </ul></li>
   </ul></td>
 </tr></table>
 
@@ -310,10 +363,12 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="models.html#models.User.hashed_password">hashed_password (атрибут models.User)</a>
 </li>
-      <li><a href="schemas.html#schemas.HealthResponse">HealthResponse (класс в schemas)</a>
+      <li><a href="main.html#main.health_check">health_check() (в модуле main)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="schemas.html#schemas.HealthResponse">HealthResponse (класс в schemas)</a>
+</li>
       <li><a href="models.html#models.Inspection.hose_condition">hose_condition (атрибут models.Inspection)</a>
 
       <ul>
@@ -352,10 +407,24 @@
         <li><a href="schemas.html#schemas.UserRead.id">(атрибут schemas.UserRead)</a>
 </li>
       </ul></li>
-      <li><a href="models.html#models.Inspection">Inspection (класс в models)</a>
+      <li><a href="routers.html#routers.import_data.import_employees">import_employees() (в модуле routers.import_data)</a>
+</li>
+      <li><a href="routers.html#routers.import_data.import_extinguishers">import_extinguishers() (в модуле routers.import_data)</a>
+</li>
+      <li><a href="routers.html#routers.import_data.import_inspections">import_inspections() (в модуле routers.import_data)</a>
+</li>
+      <li><a href="routers.html#routers.import_data.import_locations">import_locations() (в модуле routers.import_data)</a>
+</li>
+      <li><a href="main.html#main.init_admin">init_admin() (в модуле main)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="routers.html#routers.statuses.init_default_statuses">init_default_statuses() (в модуле routers.statuses)</a>
+</li>
+      <li><a href="main.html#main.init_statuses">init_statuses() (в модуле main)</a>
+</li>
+      <li><a href="models.html#models.Inspection">Inspection (класс в models)</a>
+</li>
       <li><a href="models.html#models.Inspection.inspection_date">inspection_date (атрибут models.Inspection)</a>
 
       <ul>
@@ -376,6 +445,8 @@
         <li><a href="models.html#models.FireExtinguisher.inspections">(атрибут models.FireExtinguisher)</a>
 </li>
       </ul></li>
+      <li><a href="routers.html#routers.inspections.inspections_by_extinguisher">inspections_by_extinguisher() (в модуле routers.inspections)</a>
+</li>
       <li><a href="models.html#models.FireExtinguisher.inventory_number">inventory_number (атрибут models.FireExtinguisher)</a>
 
       <ul>
@@ -393,9 +464,31 @@
   </ul></td>
 </tr></table>
 
+<h2 id="J">J</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="routers.html#routers.reports.journal_csv">journal_csv() (в модуле routers.reports)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="routers.html#routers.reports.journal_json">journal_json() (в модуле routers.reports)</a>
+</li>
+  </ul></td>
+</tr></table>
+
 <h2 id="L">L</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="routers.html#routers.employees.list_employees">list_employees() (в модуле routers.employees)</a>
+</li>
+      <li><a href="routers.html#routers.extinguishers.list_extinguishers">list_extinguishers() (в модуле routers.extinguishers)</a>
+</li>
+      <li><a href="routers.html#routers.inspections.list_inspections">list_inspections() (в модуле routers.inspections)</a>
+</li>
+      <li><a href="routers.html#routers.locations.list_locations">list_locations() (в модуле routers.locations)</a>
+</li>
+      <li><a href="routers.html#routers.statuses.list_statuses">list_statuses() (в модуле routers.statuses)</a>
+</li>
       <li><a href="models.html#models.FireExtinguisher.location">location (атрибут models.FireExtinguisher)</a>
 </li>
       <li><a href="models.html#models.Location">Location (класс в models)</a>
@@ -419,13 +512,24 @@
       <li><a href="schemas.html#schemas.LocationRead.Config">LocationRead.Config (класс в schemas)</a>
 </li>
       <li><a href="auth.html#auth.login_for_access_token">login_for_access_token() (в модуле auth)</a>
+
+      <ul>
+        <li><a href="routers.html#routers.auth.login_for_access_token">(в модуле routers.auth)</a>
 </li>
+      </ul></li>
   </ul></td>
 </tr></table>
 
 <h2 id="M">M</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li>
+    main
+
+      <ul>
+        <li><a href="main.html#module-main">module</a>
+</li>
+      </ul></li>
       <li><a href="models.html#models.FireExtinguisher.manufacture_date">manufacture_date (атрибут models.FireExtinguisher)</a>
 
       <ul>
@@ -507,7 +611,27 @@
 </li>
         <li><a href="db.html#module-db">db</a>
 </li>
+        <li><a href="main.html#module-main">main</a>
+</li>
         <li><a href="models.html#module-models">models</a>
+</li>
+        <li><a href="routers.html#module-routers">routers</a>
+</li>
+        <li><a href="routers.html#module-routers.auth">routers.auth</a>
+</li>
+        <li><a href="routers.html#module-routers.employees">routers.employees</a>
+</li>
+        <li><a href="routers.html#module-routers.extinguishers">routers.extinguishers</a>
+</li>
+        <li><a href="routers.html#module-routers.import_data">routers.import_data</a>
+</li>
+        <li><a href="routers.html#module-routers.inspections">routers.inspections</a>
+</li>
+        <li><a href="routers.html#module-routers.locations">routers.locations</a>
+</li>
+        <li><a href="routers.html#module-routers.reports">routers.reports</a>
+</li>
+        <li><a href="routers.html#module-routers.statuses">routers.statuses</a>
 </li>
         <li><a href="schemas.html#module-schemas">schemas</a>
 </li>
@@ -566,16 +690,87 @@
 <h2 id="R">R</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="main.html#main.read_root">read_root() (в модуле main)</a>
+</li>
+      <li><a href="routers.html#routers.statuses.recalculate_statuses">recalculate_statuses() (в модуле routers.statuses)</a>
+</li>
       <li><a href="db.html#db.Base.registry">registry (атрибут db.Base)</a>
 </li>
       <li><a href="auth.html#auth.require_role">require_role() (в модуле auth)</a>
+
+      <ul>
+        <li><a href="routers.html#routers.auth.require_role">(в модуле routers.auth)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
+      </ul></li>
       <li><a href="models.html#models.User.role">role (атрибут models.User)</a>
 
       <ul>
         <li><a href="schemas.html#schemas.UserBase.role">(атрибут schemas.UserBase)</a>
+</li>
+      </ul></li>
+      <li>
+    routers
+
+      <ul>
+        <li><a href="routers.html#module-routers">module</a>
+</li>
+      </ul></li>
+      <li>
+    routers.auth
+
+      <ul>
+        <li><a href="routers.html#module-routers.auth">module</a>
+</li>
+      </ul></li>
+      <li>
+    routers.employees
+
+      <ul>
+        <li><a href="routers.html#module-routers.employees">module</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li>
+    routers.extinguishers
+
+      <ul>
+        <li><a href="routers.html#module-routers.extinguishers">module</a>
+</li>
+      </ul></li>
+      <li>
+    routers.import_data
+
+      <ul>
+        <li><a href="routers.html#module-routers.import_data">module</a>
+</li>
+      </ul></li>
+      <li>
+    routers.inspections
+
+      <ul>
+        <li><a href="routers.html#module-routers.inspections">module</a>
+</li>
+      </ul></li>
+      <li>
+    routers.locations
+
+      <ul>
+        <li><a href="routers.html#module-routers.locations">module</a>
+</li>
+      </ul></li>
+      <li>
+    routers.reports
+
+      <ul>
+        <li><a href="routers.html#module-routers.reports">module</a>
+</li>
+      </ul></li>
+      <li>
+    routers.statuses
+
+      <ul>
+        <li><a href="routers.html#module-routers.statuses">module</a>
 </li>
       </ul></li>
   </ul></td>
@@ -603,6 +798,8 @@
         <li><a href="schemas.html#schemas.InspectionBase.seal_condition">(атрибут schemas.InspectionBase)</a>
 </li>
       </ul></li>
+      <li><a href="routers.html#routers.extinguishers.search_by_inventory">search_by_inventory() (в модуле routers.extinguishers)</a>
+</li>
       <li><a href="models.html#models.FireExtinguisher.status">status (атрибут models.FireExtinguisher)</a>
 
       <ul>
@@ -657,6 +854,12 @@
 <h2 id="U">U</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="routers.html#routers.reports.upcoming_inspections">upcoming_inspections() (в модуле routers.reports)</a>
+</li>
+      <li><a href="routers.html#routers.reports.upcoming_inspections_report">upcoming_inspections_report() (в модуле routers.reports)</a>
+</li>
+      <li><a href="routers.html#routers.extinguishers.update_extinguisher">update_extinguisher() (в модуле routers.extinguishers)</a>
+</li>
       <li><a href="models.html#models.FireExtinguisher.updated_at">updated_at (атрибут models.FireExtinguisher)</a>
 
       <ul>
@@ -665,12 +868,12 @@
       </ul></li>
       <li><a href="models.html#models.User">User (класс в models)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="schemas.html#schemas.UserBase">UserBase (класс в schemas)</a>
 </li>
       <li><a href="schemas.html#schemas.UserCreate">UserCreate (класс в schemas)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="models.html#models.User.username">username (атрибут models.User)</a>
 
       <ul>
@@ -690,7 +893,11 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="auth.html#auth.verify_password">verify_password() (в модуле auth)</a>
+
+      <ul>
+        <li><a href="routers.html#routers.auth.verify_password">(в модуле routers.auth)</a>
 </li>
+      </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="models.html#models.Inspection.visual_inspection">visual_inspection (атрибут models.Inspection)</a>

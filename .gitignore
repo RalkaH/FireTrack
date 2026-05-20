@@ -1,8 +1,9 @@
-# .gitignore (v1.0)
+# .gitignore (v1.1)
 
 # Виртуальное окружение
 venv/
 env/
+.venv/
 
 # Кэш Python
 __pycache__/
@@ -18,6 +19,6 @@ fire_extinguishers.db
 .env
 .secrets
 
-# Папки IDE (если пользуешься VSCode, PyCharm)
+# Папки IDE
 .vscode/
 .idea/

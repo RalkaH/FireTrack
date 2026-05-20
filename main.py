@@ -40,8 +40,8 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# Подключаем статические файлы
-app.mount("/static", StaticFiles(directory="static"), name="static")
+BASE_DIR = Path(__file__).resolve().parent
+app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 
 
 def init_admin() -> None:
@@ -137,4 +137,4 @@ async def read_root():
     Returns:
         FileResponse: HTML-файл интерфейса системы.
     """
-    return FileResponse(Path("static") / "index.html")
+    return FileResponse(BASE_DIR / "static" / "index.html")

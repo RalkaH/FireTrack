@@ -1,0 +1,452 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="ru" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>routers.extinguishers &mdash; документация FireTrack 1</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=47a0e12c"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../_static/translations.js?v=cd1d70c9"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Алфавитный указатель" href="../../genindex.html" />
+    <link rel="search" title="Поиск" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            FireTrack
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Поиск в документации" aria-label="Поиск в документации" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Меню навигации">
+              <p class="caption" role="heading"><span class="caption-text">Содержание:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">FireExtinguishers</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Меню навигации для мобильных устройств" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">FireTrack</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Навигация по страницам">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Код модуля</a></li>
+      <li class="breadcrumb-item active">routers.extinguishers</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Исходный код routers.extinguishers</h1><div class="highlight"><pre>
+<span></span><span class="c1"># routers/extinguishers.py (v1.1)</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Модуль для управления огнетушителями (CRUD операции).</span>
+<span class="sd">Включает фильтрацию, поиск по инвентарному номеру, создание, обновление и удаление оборудования.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timezone</span><span class="p">,</span> <span class="n">date</span> <span class="k">as</span> <span class="n">date_type</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fastapi</span><span class="w"> </span><span class="kn">import</span> <span class="n">APIRouter</span><span class="p">,</span> <span class="n">Depends</span><span class="p">,</span> <span class="n">HTTPException</span><span class="p">,</span> <span class="n">status</span><span class="p">,</span> <span class="n">Query</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sqlalchemy.orm</span><span class="w"> </span><span class="kn">import</span> <span class="n">Session</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">auth</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_current_active_user</span><span class="p">,</span> <span class="n">require_role</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">db</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_db</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">models</span><span class="w"> </span><span class="kn">import</span> <span class="n">User</span><span class="p">,</span> <span class="n">FireExtinguisher</span><span class="p">,</span> <span class="n">Location</span><span class="p">,</span> <span class="n">Status</span><span class="p">,</span> <span class="n">Inspection</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">schemas</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">FireExtinguisherCreate</span><span class="p">,</span>
+    <span class="n">FireExtinguisherRead</span><span class="p">,</span>
+    <span class="n">FireExtinguisherUpdate</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="c1"># ВАЖНО: router В САМОМ НАЧАЛЕ</span>
+<span class="n">router</span> <span class="o">=</span> <span class="n">APIRouter</span><span class="p">(</span>
+    <span class="n">prefix</span><span class="o">=</span><span class="s2">&quot;/extinguishers&quot;</span><span class="p">,</span>
+    <span class="n">tags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Fire Extinguishers&quot;</span><span class="p">],</span>
+<span class="p">)</span>
+
+
+<div class="viewcode-block" id="list_extinguishers">
+<a class="viewcode-back" href="../../routers.html#routers.extinguishers.list_extinguishers">[документация]</a>
+<span class="nd">@router</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">,</span> <span class="n">response_model</span><span class="o">=</span><span class="n">List</span><span class="p">[</span><span class="n">FireExtinguisherRead</span><span class="p">])</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">list_extinguishers</span><span class="p">(</span>
+    <span class="n">location_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="n">Query</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Фильтр по ID места&quot;</span><span class="p">),</span>
+    <span class="n">status_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="n">Query</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Фильтр по ID статуса&quot;</span><span class="p">),</span>
+    <span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">),</span>
+    <span class="n">current_user</span><span class="p">:</span> <span class="n">User</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_current_active_user</span><span class="p">)</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Получить список всех огнетушителей с возможностью фильтрации.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        location_id (Optional[int]): ID местоположения для фильтрации.</span>
+<span class="sd">        status_id (Optional[int]): ID статуса для фильтрации.</span>
+<span class="sd">        db (Session): Сессия базы данных.</span>
+<span class="sd">        current_user (User): Авторизованный пользователь.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        List[FireExtinguisher]: Отфильтрованный список оборудования.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">query</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">FireExtinguisher</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">location_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">FireExtinguisher</span><span class="o">.</span><span class="n">location_id</span> <span class="o">==</span> <span class="n">location_id</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">status_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">FireExtinguisher</span><span class="o">.</span><span class="n">status_id</span> <span class="o">==</span> <span class="n">status_id</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">query</span><span class="o">.</span><span class="n">all</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="search_by_inventory">
+<a class="viewcode-back" href="../../routers.html#routers.extinguishers.search_by_inventory">[документация]</a>
+<span class="nd">@router</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;/search/inventory&quot;</span><span class="p">,</span> <span class="n">response_model</span><span class="o">=</span><span class="n">List</span><span class="p">[</span><span class="n">FireExtinguisherRead</span><span class="p">])</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">search_by_inventory</span><span class="p">(</span>
+    <span class="n">query</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Query</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">min_length</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+                       <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Поисковый запрос по инвентарному номеру&quot;</span><span class="p">),</span>
+    <span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">),</span>
+    <span class="n">current_user</span><span class="p">:</span> <span class="n">User</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_current_active_user</span><span class="p">)</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Поиск огнетушителей по инвентарному номеру (частичное совпадение).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        query (str): Подстрока инвентарного номера для поиска.</span>
+<span class="sd">        db (Session): Сессия базы данных.</span>
+<span class="sd">        current_user (User): Авторизованный пользователь.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        List[FireExtinguisher]: Список найденного оборудования.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">FireExtinguisher</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">FireExtinguisher</span><span class="o">.</span><span class="n">inventory_number</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="n">query</span><span class="p">))</span>
+        <span class="o">.</span><span class="n">all</span><span class="p">()</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">results</span></div>
+
+
+
+<div class="viewcode-block" id="get_extinguisher">
+<a class="viewcode-back" href="../../routers.html#routers.extinguishers.get_extinguisher">[документация]</a>
+<span class="nd">@router</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;/</span><span class="si">{extinguisher_id}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">response_model</span><span class="o">=</span><span class="n">FireExtinguisherRead</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_extinguisher</span><span class="p">(</span>
+    <span class="n">extinguisher_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">),</span>
+    <span class="n">current_user</span><span class="p">:</span> <span class="n">User</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_current_active_user</span><span class="p">)</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Получить детальную информацию об огнетушителе по его ID.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        extinguisher_id (int): Уникальный идентификатор огнетушителя.</span>
+<span class="sd">        db (Session): Сессия базы данных.</span>
+<span class="sd">        current_user (User): Авторизованный пользователь.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        FireExtinguisher: Объект огнетушителя.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        HTTPException: Если огнетушитель с указанным ID не найден (404).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">extinguisher</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">FireExtinguisher</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">extinguisher_id</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">extinguisher</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
+            <span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_404_NOT_FOUND</span><span class="p">,</span>
+            <span class="n">detail</span><span class="o">=</span><span class="s2">&quot;Огнетушитель не найден&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">extinguisher</span></div>
+
+
+
+<div class="viewcode-block" id="create_extinguisher">
+<a class="viewcode-back" href="../../routers.html#routers.extinguishers.create_extinguisher">[документация]</a>
+<span class="nd">@router</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">,</span> <span class="n">response_model</span><span class="o">=</span><span class="n">FireExtinguisherRead</span><span class="p">,</span> <span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_201_CREATED</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">create_extinguisher</span><span class="p">(</span>
+    <span class="n">data</span><span class="p">:</span> <span class="n">FireExtinguisherCreate</span><span class="p">,</span>
+    <span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">),</span>
+    <span class="n">current_user</span><span class="p">:</span> <span class="n">User</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">require_role</span><span class="p">([</span><span class="s2">&quot;admin&quot;</span><span class="p">,</span> <span class="s2">&quot;engineer&quot;</span><span class="p">]))</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Добавить новый огнетушитель в систему. Доступно только администраторам и инженерам.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        data (FireExtinguisherCreate): Данные для создания.</span>
+<span class="sd">        db (Session): Сессия базы данных.</span>
+<span class="sd">        current_user (User): Авторизованный пользователь с соответствующей ролью.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        FireExtinguisher: Созданный объект огнетушителя.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        HTTPException: В случае дубликата инвентарного номера, некорректных дат или отсутствия связанных объектов (локации/статуса).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Проверка уникальности инвентарного номера</span>
+    <span class="n">existing</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">FireExtinguisher</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">FireExtinguisher</span><span class="o">.</span><span class="n">inventory_number</span> <span class="o">==</span> <span class="n">data</span><span class="o">.</span><span class="n">inventory_number</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">first</span><span class="p">()</span>
+    <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">existing</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
+            <span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_400_BAD_REQUEST</span><span class="p">,</span>
+            <span class="n">detail</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Огнетушитель с инвентарным номером &#39;</span><span class="si">{</span><span class="n">data</span><span class="o">.</span><span class="n">inventory_number</span><span class="si">}</span><span class="s2">&#39; уже существует&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="c1"># Валидация дат (не из будущего)</span>
+    <span class="n">today</span> <span class="o">=</span> <span class="n">date_type</span><span class="o">.</span><span class="n">today</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">manufacture_date</span> <span class="ow">and</span> <span class="n">data</span><span class="o">.</span><span class="n">manufacture_date</span> <span class="o">&gt;</span> <span class="n">today</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
+            <span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_400_BAD_REQUEST</span><span class="p">,</span>
+            <span class="n">detail</span><span class="o">=</span><span class="s2">&quot;Дата изготовления не может быть из будущего&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">commissioning_date</span> <span class="ow">and</span> <span class="n">data</span><span class="o">.</span><span class="n">commissioning_date</span> <span class="o">&gt;</span> <span class="n">today</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
+            <span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_400_BAD_REQUEST</span><span class="p">,</span>
+            <span class="n">detail</span><span class="o">=</span><span class="s2">&quot;Дата ввода в эксплуатацию не может быть из будущего&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="c1"># Проверка существования связанных объектов</span>
+    <span class="n">location</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Location</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">location_id</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">location</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
+            <span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_400_BAD_REQUEST</span><span class="p">,</span>
+            <span class="n">detail</span><span class="o">=</span><span class="s2">&quot;Место расположения не найдено&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="n">status_obj</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Status</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">status_id</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">status_obj</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
+            <span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_400_BAD_REQUEST</span><span class="p">,</span>
+            <span class="n">detail</span><span class="o">=</span><span class="s2">&quot;Статус не найден&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="c1"># Создание огнетушителя</span>
+    <span class="n">now</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span>
+
+    <span class="n">extinguisher</span> <span class="o">=</span> <span class="n">FireExtinguisher</span><span class="p">(</span>
+        <span class="n">inventory_number</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">inventory_number</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">type</span><span class="p">,</span>
+        <span class="n">capacity</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">capacity</span><span class="p">,</span>
+        <span class="n">manufacturer</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">manufacturer</span><span class="p">,</span>
+        <span class="n">manufacture_date</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">manufacture_date</span><span class="p">,</span>
+        <span class="n">commissioning_date</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">commissioning_date</span><span class="p">,</span>
+        <span class="n">location_id</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">location_id</span><span class="p">,</span>
+        <span class="n">status_id</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">status_id</span><span class="p">,</span>
+        <span class="n">created_at</span><span class="o">=</span><span class="n">now</span><span class="p">,</span>
+        <span class="n">updated_at</span><span class="o">=</span><span class="n">now</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">db</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">extinguisher</span><span class="p">)</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">refresh</span><span class="p">(</span><span class="n">extinguisher</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">extinguisher</span></div>
+
+
+
+<div class="viewcode-block" id="update_extinguisher">
+<a class="viewcode-back" href="../../routers.html#routers.extinguishers.update_extinguisher">[документация]</a>
+<span class="nd">@router</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="s2">&quot;/</span><span class="si">{extinguisher_id}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">response_model</span><span class="o">=</span><span class="n">FireExtinguisherRead</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">update_extinguisher</span><span class="p">(</span>
+    <span class="n">extinguisher_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">data</span><span class="p">:</span> <span class="n">FireExtinguisherUpdate</span><span class="p">,</span>
+    <span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">),</span>
+    <span class="n">current_user</span><span class="p">:</span> <span class="n">User</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">require_role</span><span class="p">([</span><span class="s2">&quot;admin&quot;</span><span class="p">,</span> <span class="s2">&quot;engineer&quot;</span><span class="p">]))</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Обновить данные существующего огнетушителя. Доступно только администраторам и инженерам.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        extinguisher_id (int): Идентификатор обновляемого огнетушителя.</span>
+<span class="sd">        data (FireExtinguisherUpdate): Новые данные.</span>
+<span class="sd">        db (Session): Сессия базы данных.</span>
+<span class="sd">        current_user (User): Авторизованный пользователь.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        FireExtinguisher: Обновленный объект.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        HTTPException: Если объект не найден, дублируется номер или указаны неверные связанные ключи.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">extinguisher</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">FireExtinguisher</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">extinguisher_id</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">extinguisher</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
+            <span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_404_NOT_FOUND</span><span class="p">,</span>
+            <span class="n">detail</span><span class="o">=</span><span class="s2">&quot;Огнетушитель не найден&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="c1"># Проверка уникальности инвентарного номера при изменении</span>
+    <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">inventory_number</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">existing</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">FireExtinguisher</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+                <span class="n">FireExtinguisher</span><span class="o">.</span><span class="n">inventory_number</span> <span class="o">==</span> <span class="n">data</span><span class="o">.</span><span class="n">inventory_number</span><span class="p">,</span>
+                <span class="n">FireExtinguisher</span><span class="o">.</span><span class="n">id</span> <span class="o">!=</span> <span class="n">extinguisher_id</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="o">.</span><span class="n">first</span><span class="p">()</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">existing</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
+                <span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_400_BAD_REQUEST</span><span class="p">,</span>
+                <span class="n">detail</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Огнетушитель с инвентарным номером &#39;</span><span class="si">{</span><span class="n">data</span><span class="o">.</span><span class="n">inventory_number</span><span class="si">}</span><span class="s2">&#39; уже существует&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+
+    <span class="c1"># Валидация дат</span>
+    <span class="n">today</span> <span class="o">=</span> <span class="n">date_type</span><span class="o">.</span><span class="n">today</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">manufacture_date</span> <span class="ow">and</span> <span class="n">data</span><span class="o">.</span><span class="n">manufacture_date</span> <span class="o">&gt;</span> <span class="n">today</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
+            <span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_400_BAD_REQUEST</span><span class="p">,</span>
+            <span class="n">detail</span><span class="o">=</span><span class="s2">&quot;Дата изготовления не может быть из будущего&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">commissioning_date</span> <span class="ow">and</span> <span class="n">data</span><span class="o">.</span><span class="n">commissioning_date</span> <span class="o">&gt;</span> <span class="n">today</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
+            <span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_400_BAD_REQUEST</span><span class="p">,</span>
+            <span class="n">detail</span><span class="o">=</span><span class="s2">&quot;Дата ввода в эксплуатацию не может быть из будущего&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="c1"># Проверка существования связанных объектов</span>
+    <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">location_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">location</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Location</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">location_id</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">location</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
+                <span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_400_BAD_REQUEST</span><span class="p">,</span>
+                <span class="n">detail</span><span class="o">=</span><span class="s2">&quot;Место расположения не найдено&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">status_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">status_obj</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Status</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">status_id</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">status_obj</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
+                <span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_400_BAD_REQUEST</span><span class="p">,</span>
+                <span class="n">detail</span><span class="o">=</span><span class="s2">&quot;Статус не найден&quot;</span><span class="p">,</span>
+            <span class="p">)</span>
+
+    <span class="c1"># Обновление полей</span>
+    <span class="n">update_data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">model_dump</span><span class="p">(</span><span class="n">exclude_unset</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">field</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">update_data</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">extinguisher</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+
+    <span class="n">extinguisher</span><span class="o">.</span><span class="n">updated_at</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span>
+
+    <span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">refresh</span><span class="p">(</span><span class="n">extinguisher</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">extinguisher</span></div>
+
+
+
+<div class="viewcode-block" id="delete_extinguisher">
+<a class="viewcode-back" href="../../routers.html#routers.extinguishers.delete_extinguisher">[документация]</a>
+<span class="nd">@router</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="s2">&quot;/</span><span class="si">{extinguisher_id}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_204_NO_CONTENT</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">delete_extinguisher</span><span class="p">(</span>
+    <span class="n">extinguisher_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">),</span>
+    <span class="n">current_user</span><span class="p">:</span> <span class="n">User</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">require_role</span><span class="p">([</span><span class="s2">&quot;admin&quot;</span><span class="p">]))</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Полностью удалить огнетушитель и всю историю его проверок (каскадное удаление).</span>
+<span class="sd">    Доступно ИСКЛЮЧИТЕЛЬНО администраторам.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        extinguisher_id (int): Идентификатор удаляемого оборудования.</span>
+<span class="sd">        db (Session): Сессия базы данных.</span>
+<span class="sd">        current_user (User): Текущий администратор.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        None</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        HTTPException: Если огнетушитель не найден.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">extinguisher</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">FireExtinguisher</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">extinguisher_id</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">extinguisher</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
+            <span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_404_NOT_FOUND</span><span class="p">,</span>
+            <span class="n">detail</span><span class="o">=</span><span class="s2">&quot;Огнетушитель не найден&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="c1"># Каскадное удаление проверок</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Inspection</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+        <span class="n">Inspection</span><span class="o">.</span><span class="n">fire_extinguisher_id</span> <span class="o">==</span> <span class="n">extinguisher_id</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span>
+
+    <span class="c1"># Удаление огнетушителя</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">extinguisher</span><span class="p">)</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="kc">None</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Авторские права 2026, Ralka. </p>
+  </div>
+
+  Собрано при помощи <a href="https://www.sphinx-doc.org/">Sphinx</a> с использованием
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">темы,</a>
+    предоставленной <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
