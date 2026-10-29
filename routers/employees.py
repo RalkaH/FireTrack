@@ -3,19 +3,21 @@
 Модуль для управления сотрудниками.
 Содержит маршруты для получения списка сотрудников и добавления новых.
 """
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
+from auth import EDITOR_ROLES, get_current_active_user, require_role
 from db import get_db
-from models import Employee
+from models import Employee, User
 from schemas import EmployeeCreate, EmployeeRead
 
 router = APIRouter(
     prefix="/employees",
     tags=["Employees"],
+    dependencies=[Depends(get_current_active_user)],
 )
 
 
@@ -30,7 +32,7 @@ def list_employees(db: Session = Depends(get_db)):
     Returns:
         List[Employee]: Список объектов сотрудников.
     """
-    return db.query(Employee).all()
+    return db.query(Employee).order_by(Employee.full_name).all()
 
 
 @router.post(
@@ -38,7 +40,11 @@ def list_employees(db: Session = Depends(get_db)):
     response_model=EmployeeRead,
     status_code=status.HTTP_201_CREATED,
 )
-def create_employee(data: EmployeeCreate, db: Session = Depends(get_db)):
+def create_employee(
+    data: EmployeeCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role(EDITOR_ROLES)),
+):
     """
     Создать новую карточку сотрудника.
 
@@ -50,9 +56,9 @@ def create_employee(data: EmployeeCreate, db: Session = Depends(get_db)):
         Employee: Созданный объект сотрудника с присвоенным ID и датой создания.
     """
     emp = Employee(
-        full_name=data.full_name,
-        position=data.position,
-        created_at=datetime.utcnow(),
+        full_name=data.full_name.strip(),
+        position=data.position.strip(),
+        created_at=datetime.now(timezone.utc),
     )
     db.add(emp)
     db.commit()

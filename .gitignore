@@ -22,3 +22,9 @@ fire_extinguishers.db
 # Папки IDE
 .vscode/
 .idea/
+
+# Ключ подписи JWT (генерируется автоматически)
+.secret_key
+
+# Кэш тестов
+.pytest_cache/

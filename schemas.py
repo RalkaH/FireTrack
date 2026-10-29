@@ -1,4 +1,4 @@
-# schemas.py (v1.2)
+# schemas.py (v1.3)
 """
 Модуль схем Pydantic для валидации данных, сериализации и десериализации.
 Определяет структуру данных для входящих API-запросов и исходящих ответов.
@@ -6,7 +6,14 @@
 from datetime import date, datetime
 from typing import Optional
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+
+
+def _date_not_in_future(value: Optional[date]) -> Optional[date]:
+    """Проверяет, что дата не позже сегодняшнего дня."""
+    if value and value > date.today():
+        raise ValueError("Дата не может быть из будущего")
+    return value
 
 
 # ---------- Health ----------
@@ -20,7 +27,7 @@ class HealthResponse(BaseModel):
 
 class LocationBase(BaseModel):
     """Базовая схема местоположения оборудования."""
-    name: str = Field(..., description="Название места (кабинет, этаж)")
+    name: str = Field(..., min_length=1, description="Название места (кабинет, этаж)")
     description: Optional[str] = Field(None, description="Описание места")
 
 
@@ -34,15 +41,14 @@ class LocationRead(LocationBase):
     id: int
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # ---------- Statuses ----------
 
 class StatusBase(BaseModel):
     """Базовая схема технического статуса огнетушителя."""
-    name: str = Field(..., description="Название статуса")
+    name: str = Field(..., min_length=1, description="Название статуса")
     description: str = Field(..., description="Описание статуса")
 
 
@@ -56,16 +62,15 @@ class StatusRead(StatusBase):
     id: int
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # ---------- FireExtinguishers ----------
 
 class FireExtinguisherBase(BaseModel):
     """Базовая схема огнетушителя со всеми основными характеристиками."""
-    inventory_number: str = Field(..., description="Инвентарный номер")
-    type: str = Field(..., description="Тип огнетушителя (ОУ-8 и т.п.)")
+    inventory_number: str = Field(..., min_length=1, description="Инвентарный номер")
+    type: str = Field(..., min_length=1, description="Тип огнетушителя (ОУ-8 и т.п.)")
     capacity: float = Field(..., gt=0, description="Вместимость (л / кг)")
     manufacturer: Optional[str] = Field(None, description="Производитель")
     manufacture_date: Optional[date] = Field(
@@ -79,9 +84,7 @@ class FireExtinguisherBase(BaseModel):
     @classmethod
     def not_in_future(cls, v):
         """Валидатор: проверяет, что дата изготовления и ввода не больше текущей."""
-        if v and v > date.today():
-            raise ValueError('Дата не может быть из будущего')
-        return v
+        return _date_not_in_future(v)
 
 
 class FireExtinguisherCreate(FireExtinguisherBase):
@@ -91,14 +94,20 @@ class FireExtinguisherCreate(FireExtinguisherBase):
 
 class FireExtinguisherUpdate(BaseModel):
     """Схема для частичного обновления данных огнетушителя."""
-    inventory_number: Optional[str] = None
-    type: Optional[str] = None
+    inventory_number: Optional[str] = Field(None, min_length=1)
+    type: Optional[str] = Field(None, min_length=1)
     capacity: Optional[float] = Field(None, gt=0)
     manufacturer: Optional[str] = None
     manufacture_date: Optional[date] = None
     commissioning_date: Optional[date] = None
     location_id: Optional[int] = None
     status_id: Optional[int] = None
+
+    @field_validator('manufacture_date', 'commissioning_date')
+    @classmethod
+    def not_in_future(cls, v):
+        """Валидатор: даты изготовления и ввода не могут быть из будущего."""
+        return _date_not_in_future(v)
 
 
 class FireExtinguisherRead(FireExtinguisherBase):
@@ -107,16 +116,15 @@ class FireExtinguisherRead(FireExtinguisherBase):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # ---------- Employees ----------
 
 class EmployeeBase(BaseModel):
     """Базовая схема сотрудника компании."""
-    full_name: str
-    position: str
+    full_name: str = Field(..., min_length=1)
+    position: str = Field(..., min_length=1)
 
 
 class EmployeeCreate(EmployeeBase):
@@ -129,8 +137,7 @@ class EmployeeRead(EmployeeBase):
     id: int
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # ---------- Inspections ----------
@@ -147,12 +154,29 @@ class InspectionBase(BaseModel):
     safety_pin_condition: Optional[str] = None
     hose_condition: Optional[str] = None
     comments: Optional[str] = None
-    next_inspection_date: date
+    next_inspection_date: Optional[date] = Field(
+        None,
+        description="Дата следующей проверки. Если не указана, "
+                    "рассчитывается автоматически (+6 месяцев)",
+    )
 
 
 class InspectionCreate(InspectionBase):
     """Схема для создания новой записи о проверке."""
-    pass
+
+    @field_validator('inspection_date')
+    @classmethod
+    def inspection_not_in_future(cls, v):
+        """Валидатор: дата проверки не может быть из будущего."""
+        return _date_not_in_future(v)
+
+    @model_validator(mode='after')
+    def next_after_inspection(self):
+        """Валидатор: следующая проверка не может быть раньше текущей."""
+        if self.next_inspection_date and self.next_inspection_date < self.inspection_date:
+            raise ValueError(
+                "Дата следующей проверки не может быть раньше даты проверки")
+        return self
 
 
 class InspectionRead(InspectionBase):
@@ -160,8 +184,7 @@ class InspectionRead(InspectionBase):
     id: int
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # ---------- Users & Auth ----------
 
@@ -185,14 +208,14 @@ class UserRead(UserBase):
     is_active: bool
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class Token(BaseModel):
     """Схема JWT токена доступа."""
     access_token: str
     token_type: str
+    expires_in: Optional[int] = Field(None, description="Время жизни токена, сек")
 
 
 class TokenData(BaseModel):

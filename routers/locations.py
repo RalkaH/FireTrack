@@ -3,19 +3,21 @@
 Модуль управления местами расположения (локациями).
 Предоставляет возможности добавления новых кабинетов/этажей и получения их списка.
 """
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from auth import EDITOR_ROLES, get_current_active_user, require_role
 from db import get_db
-from models import Location
+from models import Location, User
 from schemas import LocationCreate, LocationRead
 
 router = APIRouter(
     prefix="/locations",
     tags=["Locations"],
+    dependencies=[Depends(get_current_active_user)],
 )
 
 
@@ -30,7 +32,7 @@ def list_locations(db: Session = Depends(get_db)):
     Returns:
         List[Location]: Список всех мест.
     """
-    return db.query(Location).all()
+    return db.query(Location).order_by(Location.name).all()
 
 
 @router.post(
@@ -38,7 +40,11 @@ def list_locations(db: Session = Depends(get_db)):
     response_model=LocationRead,
     status_code=status.HTTP_201_CREATED,
 )
-def create_location(data: LocationCreate, db: Session = Depends(get_db)):
+def create_location(
+    data: LocationCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role(EDITOR_ROLES)),
+):
     """
     Зарегистрировать новое место установки огнетушителей.
 
@@ -54,7 +60,7 @@ def create_location(data: LocationCreate, db: Session = Depends(get_db)):
     """
     existing = (
         db.query(Location)
-        .filter(Location.name == data.name)
+        .filter(Location.name == data.name.strip())
         .first()
     )
     if existing:
@@ -64,9 +70,9 @@ def create_location(data: LocationCreate, db: Session = Depends(get_db)):
         )
 
     loc = Location(
-        name=data.name,
+        name=data.name.strip(),
         description=data.description,
-        created_at=datetime.utcnow(),
+        created_at=datetime.now(timezone.utc),
     )
     db.add(loc)
     db.commit()

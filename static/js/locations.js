@@ -16,7 +16,7 @@ async function loadLocations() {
       <!-- Page Header -->
       <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-3">
         <h2><i class="bi bi-geo-alt"></i> Места размещения</h2>
-        <button class="btn btn-primary" onclick="showAddLocationModalInList()">
+        <button class="btn btn-primary requires-edit" onclick="showAddLocationModalInList()">
           <i class="bi bi-plus-circle"></i> Добавить место
         </button>
       </div>
@@ -37,7 +37,7 @@ async function loadLocations() {
             <div class="empty-state">
               <i class="bi bi-geo-alt"></i>
               <p>Места пока не добавлены</p>
-              <button class="btn btn-primary" onclick="showAddLocationModalInList()">
+              <button class="btn btn-primary requires-edit" onclick="showAddLocationModalInList()">
                 <i class="bi bi-plus-circle"></i> Добавить первое место
               </button>
             </div>
@@ -56,9 +56,9 @@ async function loadLocations() {
                     <tr style="animation: fadeInUp 0.25s ease-out ${Math.min(idx * 0.04, 0.5)}s both;">
                       <td><span class="text-muted">${idx + 1}</span></td>
                       <td>
-                        <strong>${loc.name}</strong>
+                        <strong>${esc(loc.name)}</strong>
                       </td>
-                      <td class="text-muted">${loc.description || '<span class="text-muted" style="font-style: italic;">Нет описания</span>'}</td>
+                      <td class="text-muted">${esc(loc.description) || '<span class="text-muted" style="font-style: italic;">Нет описания</span>'}</td>
                     </tr>
                   `).join('')}
                 </tbody>
@@ -72,18 +72,13 @@ async function loadLocations() {
     content.innerHTML = `
       <div class="alert alert-danger">
         <i class="bi bi-exclamation-triangle"></i>
-        Ошибка загрузки мест: ${error.message}
+        Ошибка загрузки мест: ${esc(error.message)}
       </div>
     `;
   }
 }
 
 function showAddLocationModalInList() {
-  showAddLocationModal();
-  const form = document.getElementById('locationForm');
-  if (form) {
-    form.addEventListener('submit', () => {
-      setTimeout(loadLocations, 500);
-    }, { once: true });
-  }
+  // Список обновляется только после успешного сохранения
+  showAddLocationModal(loadLocations);
 }

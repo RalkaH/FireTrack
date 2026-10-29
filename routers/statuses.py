@@ -1,22 +1,26 @@
-# routers/statuses.py (v1.1)
+# routers/statuses.py (v1.2)
 """
 Модуль для управления техническими статусами оборудования.
-Включает инициализацию дефолтных системных статусов и фоновый пересчет актуальности.
+Включает инициализацию дефолтных системных статусов и пересчет актуальности.
+Сама логика расчета статусов находится в модуле status_logic.
 """
-from datetime import date, datetime, timezone
+from datetime import datetime, timezone
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from auth import EDITOR_ROLES, ROLE_ADMIN, get_current_active_user, require_role
 from db import get_db
-from models import Status, FireExtinguisher, Inspection
+from models import Status, User
 from schemas import StatusCreate, StatusRead
+from status_logic import ensure_default_statuses, recalculate_statuses
 
 
 router = APIRouter(
     prefix="/statuses",
     tags=["Statuses"],
+    dependencies=[Depends(get_current_active_user)],
 )
 
 
@@ -31,7 +35,7 @@ def list_statuses(db: Session = Depends(get_db)):
     Returns:
         List[Status]: Список статусов.
     """
-    return db.query(Status).all()
+    return db.query(Status).order_by(Status.id).all()
 
 
 @router.post(
@@ -39,13 +43,18 @@ def list_statuses(db: Session = Depends(get_db)):
     response_model=StatusRead,
     status_code=status.HTTP_201_CREATED,
 )
-def create_status(data: StatusCreate, db: Session = Depends(get_db)):
+def create_status(
+    data: StatusCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role([ROLE_ADMIN])),
+):
     """
-    Зарегистрировать новый кастомный статус.
+    Зарегистрировать новый кастомный статус. Доступно только администраторам.
 
     Args:
         data (StatusCreate): Наименование и описание статуса.
         db (Session): Сессия БД.
+        current_user (User): Текущий администратор.
 
     Returns:
         Status: Созданный объект.
@@ -53,7 +62,8 @@ def create_status(data: StatusCreate, db: Session = Depends(get_db)):
     Raises:
         HTTPException: Если статус с таким именем уже существует.
     """
-    existing = db.query(Status).filter(Status.name == data.name).first()
+    name = data.name.strip()
+    existing = db.query(Status).filter(Status.name == name).first()
     if existing is not None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -61,7 +71,7 @@ def create_status(data: StatusCreate, db: Session = Depends(get_db)):
         )
 
     status_obj = Status(
-        name=data.name,
+        name=name,
         description=data.description,
         created_at=datetime.now(timezone.utc),
     )
@@ -74,45 +84,22 @@ def create_status(data: StatusCreate, db: Session = Depends(get_db)):
 
 
 @router.post("/init-defaults", status_code=status.HTTP_201_CREATED)
-def init_default_statuses(db: Session = Depends(get_db)):
+def init_default_statuses(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role([ROLE_ADMIN])),
+):
     """
-    Инициализировать стандартные статусы для системы (по ГОСТ/умолчанию).
+    Инициализировать стандартные статусы системы.
     Создает записи только если они отсутствуют в базе.
 
     Args:
         db (Session): Сессия БД.
+        current_user (User): Текущий администратор.
 
     Returns:
         dict: Статистика инициализации.
     """
-    default_statuses = [
-        {"name": "Актуально", "description": "Огнетушитель прошел проверку, срок не истек"},
-        {"name": "Просрочено", "description": "Необходима проверка, срок истек"},
-        {"name": "Требует обслуживания",
-            "description": "Обнаружены дефекты при проверке"},
-        {"name": "На техническом обслуживании",
-            "description": "Огнетушитель на ТО"},
-        {"name": "Списан", "description": "Огнетушитель выведен из эксплуатации"},
-    ]
-
-    created: list[str] = []
-    for status_data in default_statuses:
-        existing = (
-            db.query(Status)
-            .filter(Status.name == status_data["name"])
-            .first()
-        )
-        if existing is None:
-            status_obj = Status(
-                name=status_data["name"],
-                description=status_data["description"],
-                created_at=datetime.now(timezone.utc),
-            )
-            db.add(status_obj)
-            created.append(status_data["name"])
-
-    db.commit()
-
+    created = ensure_default_statuses(db)
     return {
         "detail": "Инициализация завершена",
         "created": created,
@@ -120,57 +107,23 @@ def init_default_statuses(db: Session = Depends(get_db)):
 
 
 @router.post("/recalculate")
-def recalculate_statuses(db: Session = Depends(get_db)):
+def recalculate_statuses_endpoint(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role(EDITOR_ROLES)),
+):
     """
-    Массовый пересчет статусов всего парка огнетушителей на основе дат проверок.
-    Если next_inspection_date < сегодня -> устанавливается статус 'Просрочено',
-    иначе возвращается статус 'Актуально' (если не был списан или на ТО).
+    Массовый пересчет статусов всего парка огнетушителей на основе последних проверок.
+
+    Статусы «Списан» и «На техническом обслуживании» не меняются.
+    Остальные огнетушители получают «Актуально», «Просрочено» или
+    «Требует обслуживания» (если при последней проверке найдены дефекты).
 
     Args:
         db (Session): Сессия БД.
+        current_user (User): Пользователь с правами инженера или администратора.
 
     Returns:
-        dict: Сообщение об успешном выполнении.
-
-    Raises:
-        HTTPException: Если отсутствуют базовые статусы 'Актуально' и 'Просрочено'.
+        dict: Сообщение и количество измененных статусов.
     """
-    status_actual = db.query(Status).filter(Status.name == "Актуально").first()
-    status_expired = db.query(Status).filter(
-        Status.name == "Просрочено").first()
-
-    if status_actual is None or status_expired is None:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Не найдены статусы 'Актуально' и 'Просрочено'",
-        )
-
-    today = date.today()
-    extinguishers = db.query(FireExtinguisher).all()
-
-    for fe in extinguishers:
-        # Берём последнюю запись проверки для этого огнетушителя
-        last_insp = (
-            db.query(Inspection)
-            .filter(Inspection.fire_extinguisher_id == fe.id)
-            .order_by(Inspection.inspection_date.desc())
-            .first()
-        )
-
-        if last_insp is None:
-            # Без проверок считаем просроченным
-            fe.status_id = status_expired.id
-            continue
-
-        # Явно берём дату следующей проверки (для Pylance)
-        # type: ignore[assignment]
-        next_date: date = last_insp.next_inspection_date
-
-        if next_date < today:
-            fe.status_id = status_expired.id
-        else:
-            fe.status_id = status_actual.id
-
-    db.commit()
-
-    return {"detail": "Статусы пересчитаны"}
+    changed = recalculate_statuses(db)
+    return {"detail": "Статусы пересчитаны", "changed": changed}

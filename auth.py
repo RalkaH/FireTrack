@@ -1,10 +1,20 @@
-# auth.py (v1.2)
+# auth.py (v1.3)
 """
 Модуль аутентификации и авторизации пользователей.
 Обеспечивает хеширование паролей, генерацию и проверку токенов JWT,
 а также содержит зависимости FastAPI для защиты маршрутов по ролям (RBAC).
+
+Настройки берутся из переменных окружения:
+
+* ``SECRET_KEY`` — ключ подписи JWT. Если не задан, ключ генерируется
+  один раз и сохраняется в файл ``.secret_key`` рядом с проектом, чтобы
+  токены не сбрасывались при каждом перезапуске сервера.
+* ``ACCESS_TOKEN_EXPIRE_MINUTES`` — время жизни токена (по умолчанию 480 минут).
 """
+import os
+import secrets
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -15,17 +25,56 @@ from sqlalchemy.orm import Session
 
 from db import get_db
 from models import User
-from schemas import TokenData
+from schemas import Token, TokenData, UserRead
 
 router = APIRouter(
     prefix="/auth",
     tags=["Auth"],
 )
 
+BASE_DIR = Path(__file__).resolve().parent
+SECRET_KEY_FILE = BASE_DIR / ".secret_key"
+
+# Роли пользователей
+ROLE_ADMIN = "admin"
+ROLE_ENGINEER = "engineer"
+ROLE_VIEWER = "viewer"
+EDITOR_ROLES = [ROLE_ADMIN, ROLE_ENGINEER]
+
+
+def _load_secret_key() -> str:
+    """
+    Возвращает ключ подписи JWT.
+
+    Порядок поиска: переменная окружения ``SECRET_KEY``, затем файл
+    ``.secret_key``. Если ни то ни другое не найдено, генерирует новый
+    случайный ключ и сохраняет его в файл.
+
+    Returns:
+        str: Секретный ключ.
+    """
+    env_key = os.getenv("SECRET_KEY")
+    if env_key:
+        return env_key
+
+    if SECRET_KEY_FILE.exists():
+        stored = SECRET_KEY_FILE.read_text(encoding="utf-8").strip()
+        if stored:
+            return stored
+
+    new_key = secrets.token_urlsafe(48)
+    try:
+        SECRET_KEY_FILE.write_text(new_key, encoding="utf-8")
+    except OSError:
+        # Нет прав на запись: ключ будет жить до перезапуска процесса
+        pass
+    return new_key
+
+
 # Настройки
-SECRET_KEY = "your-secret-key-change-this-in-production"  # замени в production
+SECRET_KEY = _load_secret_key()
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "480"))
 
 # Используем pbkdf2_sha256
 pwd_context = CryptContext(
@@ -78,15 +127,11 @@ def create_access_token(
         str: Закодированный JWT токен.
     """
     to_encode = data.copy()
-    if expires_delta:
-        expire = datetime.now(timezone.utc) + expires_delta
-    else:
-        expire = datetime.now(timezone.utc) + timedelta(
-            minutes=ACCESS_TOKEN_EXPIRE_MINUTES
-        )
+    if expires_delta is None:
+        expires_delta = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    expire = datetime.now(timezone.utc) + expires_delta
     to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    return encoded_jwt
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 
 def authenticate_user(db: Session, username: str, password: str) -> Optional[User]:
@@ -127,11 +172,11 @@ async def get_current_user(
         User: Объект пользователя.
 
     Raises:
-        HTTPException: Если токен невалиден или пользователь не найден (401).
+        HTTPException: Если токен невалиден, истек или пользователь не найден (401).
     """
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
+        detail="Сессия истекла или токен недействителен. Войдите заново.",
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
@@ -162,11 +207,14 @@ async def get_current_active_user(
         User: Активный пользователь.
 
     Raises:
-        HTTPException: Если учетная запись деактивирована (400).
+        HTTPException: Если учетная запись деактивирована (403).
     """
     is_active: bool = bool(current_user.is_active)  # type: ignore[arg-type]
     if not is_active:
-        raise HTTPException(status_code=400, detail="Inactive user")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Учетная запись заблокирована",
+        )
     return current_user
 
 
@@ -185,14 +233,14 @@ def require_role(allowed_roles: list):
         if current_user.role not in allowed_roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Not enough permissions",
+                detail="Недостаточно прав для этого действия",
             )
         return current_user
 
     return role_checker
 
 
-@router.post("/token")
+@router.post("/token", response_model=Token)
 async def login_for_access_token(
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db),
@@ -205,18 +253,38 @@ async def login_for_access_token(
         db (Session): Сессия базы данных.
 
     Returns:
-        dict: Токен доступа и его тип.
+        dict: Токен доступа, его тип и время жизни в секундах.
     """
     user = authenticate_user(db, form_data.username, form_data.password)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
+            detail="Неверный логин или пароль",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"sub": user.username},
-        expires_delta=access_token_expires,
-    )
-    return {"access_token": access_token, "token_type": "bearer"}
+    if not bool(user.is_active):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Учетная запись заблокирована",
+        )
+    access_token = create_access_token(data={"sub": user.username})
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "expires_in": ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+    }
+
+
+@router.get("/me", response_model=UserRead)
+async def read_current_user(current_user: User = Depends(get_current_active_user)):
+    """
+    Возвращает данные текущего пользователя (логин, ФИО, роль).
+    Используется интерфейсом для отображения пользователя и проверки сессии.
+
+    Args:
+        current_user (User): Пользователь из токена.
+
+    Returns:
+        User: Текущий пользователь.
+    """
+    return current_user

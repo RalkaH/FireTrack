@@ -74,14 +74,15 @@
               <i class="bi bi-clipboard-check me-1"></i> Журнал проверок
             </a>
           </li>
-          <li class="nav-item">
+          <li class="nav-item requires-edit">
             <a class="nav-link" href="#" data-page="import">
               <i class="bi bi-upload me-1"></i> Импорт
             </a>
           </li>
         </ul>
 
-        <!-- Right: logout -->
+        <!-- Right: current user + logout -->
+        <span class="nav-user me-3" id="currentUser" title=""></span>
         <button class="btn-logout" onclick="API.logout()">
           <i class="bi bi-box-arrow-right me-1"></i> Выход
         </button>
@@ -125,6 +126,30 @@
   <script>
     // ── Global state ──
     let isRecalculating = false;
+    let currentUser = null;
+
+    const ROLE_NAMES = {
+      admin: 'Администратор',
+      engineer: 'Инженер',
+      viewer: 'Наблюдатель'
+    };
+
+    // Может ли текущий пользователь вносить изменения
+    function canEdit() {
+      return currentUser && (currentUser.role === 'admin' || currentUser.role === 'engineer');
+    }
+
+    function isAdmin() {
+      return currentUser && currentUser.role === 'admin';
+    }
+
+    // Переход на страницу с подсветкой пункта меню
+    function navigateTo(page) {
+      document.querySelectorAll('.navbar .nav-link').forEach(l => {
+        l.classList.toggle('active', l.getAttribute('data-page') === page);
+      });
+      loadPage(page);
+    }
 
     // ── Page router ──
     function loadPage(page) {
@@ -169,7 +194,7 @@
                     border: 1px solid var(--bg-glass-border);">
           <div class="d-flex align-items-center" style="padding: 0.75rem 1rem;">
             <i class="bi ${icons[type] || icons.info} me-2" style="color: var(--accent);"></i>
-            <div class="toast-body" style="padding: 0; font-size: 0.9rem;">${message}</div>
+            <div class="toast-body" style="padding: 0; font-size: 0.9rem;">${esc(message)}</div>
             <button type="button" class="btn-close btn-close-white ms-3" data-bs-dismiss="toast"
                     style="font-size: 0.7rem; opacity: 0.6;"></button>
           </div>
@@ -191,22 +216,40 @@
     }
 
     // ── Initialize app ──
-    document.addEventListener('DOMContentLoaded', () => {
-      // Check auth
-      if (!localStorage.getItem('access_token')) {
-        window.location.href = '/static/login.html';
-        return;
-      }
+    document.addEventListener('DOMContentLoaded', async () => {
+      // Check auth: токен должен быть и не должен быть просрочен
+      if (!startSessionWatcher()) return;
 
       // Nav click handlers
-      document.querySelectorAll('.nav-link').forEach(link => {
+      document.querySelectorAll('.navbar .nav-link').forEach(link => {
         link.addEventListener('click', function (e) {
           e.preventDefault();
-          document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-          this.classList.add('active');
-          loadPage(this.getAttribute('data-page'));
+          navigateTo(this.getAttribute('data-page'));
         });
       });
+
+      // Ссылки data-page внутри контента (кнопки «Показать все» и т.п.)
+      document.getElementById('content').addEventListener('click', (e) => {
+        const link = e.target.closest('[data-page]');
+        if (!link) return;
+        e.preventDefault();
+        if (link.dataset.statusFilter) pendingStatusFilter = link.dataset.statusFilter;
+        navigateTo(link.getAttribute('data-page'));
+      });
+
+      // Кто вошёл (заодно проверяем токен на сервере)
+      try {
+        currentUser = await API.getMe();
+        const userEl = document.getElementById('currentUser');
+        userEl.innerHTML = `<i class="bi bi-person-circle me-1"></i>${esc(currentUser.full_name || currentUser.username)}`
+          + ` <span class="nav-user-role">${esc(ROLE_NAMES[currentUser.role] || currentUser.role)}</span>`;
+        userEl.title = currentUser.username;
+        document.body.classList.add('role-' + currentUser.role);
+      } catch (error) {
+        // При 401 authorizedFetch уже отправил на страницу входа
+        if (!sessionRedirecting) showAlert('Не удалось получить данные пользователя: ' + error.message, 'danger');
+        return;
+      }
 
       // Load default page
       loadDashboard();

@@ -17,7 +17,7 @@ setup(
         "sqlalchemy",
         "pydantic",
         "python-multipart",
-        "python-jose[cryptography]",
+        "python-jose[cryptography]>=3.4.0",
         "passlib[bcrypt]",
     ],
     entry_points={

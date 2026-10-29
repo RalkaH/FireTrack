@@ -1,5 +1,5 @@
-# Dockerfile (v1.0)
-FROM python:3.10-slim
+# Dockerfile (v1.1)
+FROM python:3.13-slim
 
 # Устанавливаем рабочую директорию
 WORKDIR /app

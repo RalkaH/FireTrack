@@ -1,28 +1,84 @@
-# routers/reports.py (v1.2)
+# routers/reports.py (v1.3)
 """
 Модуль генерации отчетов и аналитики.
-Обеспечивает формирование статистики для дашборда, списков просроченного оборудования, 
+Обеспечивает формирование статистики для дашборда, списков просроченного оборудования,
 и выгрузку журналов проверок в форматах JSON и CSV.
+
+Все сроки считаются по ПОСЛЕДНЕЙ проверке каждого огнетушителя, поэтому
+старые записи журнала не попадают в «предстоящие» и не завышают счетчики.
+Списанные огнетушители в предстоящие проверки не попадают.
 """
-from datetime import date
-from io import StringIO
 import csv
+from datetime import date, timedelta
+from io import StringIO
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from fastapi.responses import StreamingResponse
-from sqlalchemy.orm import Session
 from sqlalchemy import func
+from sqlalchemy.orm import Session
 
+from auth import get_current_active_user
 from db import get_db
 from models import FireExtinguisher, Inspection, Location, Status, Employee
 from schemas import InspectionRead
+from status_logic import (
+    STATUS_DECOMMISSIONED,
+    STATUS_EXPIRED,
+    latest_inspections_subquery,
+    status_ids_by_name,
+)
 
 
 router = APIRouter(
     prefix="/reports",
     tags=["Reports"],
+    dependencies=[Depends(get_current_active_user)],
 )
+
+
+def _filtered_journal(db: Session, date_from: Optional[date], date_to: Optional[date]):
+    """Общий запрос журнала проверок с фильтром по периоду."""
+    query = db.query(Inspection)
+    if date_from is not None:
+        query = query.filter(Inspection.inspection_date >= date_from)
+    if date_to is not None:
+        query = query.filter(Inspection.inspection_date <= date_to)
+    return query
+
+
+def _upcoming_rows(db: Session, days: int):
+    """
+    Огнетушители, у которых плановая проверка наступает в ближайшие N дней.
+
+    Args:
+        db (Session): Сессия базы данных.
+        days (int): Горизонт в днях.
+
+    Returns:
+        list: Кортежи (FireExtinguisher, Location, last_date, next_date).
+    """
+    today = date.today()
+    deadline = today + timedelta(days=days)
+    latest = latest_inspections_subquery(db)
+
+    query = (
+        db.query(
+            FireExtinguisher,
+            Location,
+            latest.c.inspection_date,
+            latest.c.next_inspection_date,
+        )
+        .join(latest, FireExtinguisher.id == latest.c.fire_extinguisher_id)
+        .join(Location, FireExtinguisher.location_id == Location.id)
+        .filter(latest.c.next_inspection_date.between(today, deadline))
+    )
+
+    decommissioned_id = status_ids_by_name(db).get(STATUS_DECOMMISSIONED)
+    if decommissioned_id is not None:
+        query = query.filter(FireExtinguisher.status_id != decommissioned_id)
+
+    return query.order_by(latest.c.next_inspection_date).all()
 
 
 @router.get("/journal", response_model=List[InspectionRead])
@@ -43,15 +99,8 @@ def journal_json(
     Returns:
         List[Inspection]: Список записей журнала.
     """
-    query = db.query(Inspection)
-
-    if date_from is not None:
-        query = query.filter(Inspection.inspection_date >= date_from)
-    if date_to is not None:
-        query = query.filter(Inspection.inspection_date <= date_to)
-
-    query = query.order_by(Inspection.inspection_date.desc())
-    return query.all()
+    query = _filtered_journal(db, date_from, date_to)
+    return query.order_by(Inspection.inspection_date.desc(), Inspection.id.desc()).all()
 
 
 @router.get("/journal.csv")
@@ -62,6 +111,7 @@ def journal_csv(
 ):
     """
     Сгенерировать и скачать журнал проверок за период в формате CSV (совместимо с Excel).
+    Файл сохраняется в UTF-8 с BOM, поэтому Excel корректно открывает кириллицу.
 
     Args:
         date_from (Optional[date]): Начальная дата фильтра.
@@ -84,13 +134,13 @@ def journal_csv(
     if date_to is not None:
         query = query.filter(Inspection.inspection_date <= date_to)
 
-    query = query.order_by(Inspection.inspection_date.desc())
+    query = query.order_by(Inspection.inspection_date.desc(), Inspection.id.desc())
 
-    # Собираем CSV в памяти
     output = StringIO()
+    output.write("﻿")  # BOM для Excel
     writer = csv.writer(output, delimiter=";")
 
-    # Заголовок как в журнале
+    # Заголовок совпадает с форматом импорта журнала
     writer.writerow(
         [
             "Дата проверки",
@@ -136,7 +186,7 @@ def journal_csv(
     filename = f"journal_{date.today().isoformat()}.csv"
     return StreamingResponse(
         output,
-        media_type="text/csv",
+        media_type="text/csv; charset=utf-8",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 
@@ -144,7 +194,9 @@ def journal_csv(
 @router.get("/expired")
 def expired_list(db: Session = Depends(get_db)):
     """
-    Получить сводный список просроченных огнетушителей (находящихся в статусе 'Просрочено').
+    Получить сводный список просроченных огнетушителей (в статусе 'Просрочено').
+    Для каждого указывается дата, когда должна была пройти проверка,
+    и количество дней просрочки (если проверки вообще были).
 
     Args:
         db (Session): Сессия базы данных.
@@ -155,29 +207,34 @@ def expired_list(db: Session = Depends(get_db)):
     Raises:
         HTTPException: Если системный статус "Просрочено" не заведен в базу.
     """
-    expired_status = db.query(Status).filter(
-        Status.name == "Просрочено").first()
-    if expired_status is None:
+    expired_status_id = status_ids_by_name(db).get(STATUS_EXPIRED)
+    if expired_status_id is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Статус 'Просрочено' не найден",
         )
 
-    extinguishers = (
-        db.query(FireExtinguisher, Location)
+    latest = latest_inspections_subquery(db)
+    rows = (
+        db.query(FireExtinguisher, Location, latest.c.next_inspection_date)
         .join(Location, FireExtinguisher.location_id == Location.id)
-        .filter(FireExtinguisher.status_id == expired_status.id)
+        .outerjoin(latest, FireExtinguisher.id == latest.c.fire_extinguisher_id)
+        .filter(FireExtinguisher.status_id == expired_status_id)
+        .order_by(latest.c.next_inspection_date.asc().nullsfirst())
         .all()
     )
 
+    today = date.today()
     return [
         {
             "id": fe.id,
             "inventory_number": fe.inventory_number,
             "type": fe.type,
             "location": loc.name,
+            "due_date": next_date.isoformat() if next_date else None,
+            "days_overdue": (today - next_date).days if next_date else None,
         }
-        for fe, loc in extinguishers
+        for fe, loc, next_date in rows
     ]
 
 
@@ -189,7 +246,7 @@ def dashboard_statistics(db: Session = Depends(get_db)):
     Аналитика включает:
     - Общее количество инвентаря
     - Разбивка по текущим статусам
-    - Количество требующих проверки в ближайшие 30 дней
+    - Количество огнетушителей, которым проверка нужна в ближайшие 30 дней
     - Общее количество просроченного оборудования
 
     Args:
@@ -198,50 +255,21 @@ def dashboard_statistics(db: Session = Depends(get_db)):
     Returns:
         dict: Набор метрик для дашборда.
     """
-    from datetime import timedelta
-
     total = db.query(FireExtinguisher).count()
 
-    # Статистика по статусам
     status_stats = (
         db.query(Status.name, func.count(FireExtinguisher.id))
         .join(FireExtinguisher, Status.id == FireExtinguisher.status_id)
         .group_by(Status.name)
         .all()
     )
-    # Преобразуем в обычный словарь {status_name: count}
     status_breakdown = {row[0]: int(row[1]) for row in status_stats}
-
-    # Огнетушители, требующие проверки в течение 30 дней
-    today = date.today()
-    upcoming_deadline = today + timedelta(days=30)
-
-    upcoming_inspections = (
-        db.query(func.count(FireExtinguisher.id))
-        .join(Inspection, FireExtinguisher.id == Inspection.fire_extinguisher_id)
-        .filter(
-            Inspection.next_inspection_date.between(today, upcoming_deadline)
-        )
-        .scalar()
-        or 0
-    )
-
-    # Просроченные
-    expired_status = db.query(Status).filter(
-        Status.name == "Просрочено").first()
-    expired_count = 0
-    if expired_status is not None:
-        expired_count = (
-            db.query(FireExtinguisher)
-            .filter(FireExtinguisher.status_id == expired_status.id)
-            .count()
-        )
 
     return {
         "total_extinguishers": total,
         "status_breakdown": status_breakdown,
-        "expired_count": expired_count,
-        "upcoming_inspections_30_days": upcoming_inspections,
+        "expired_count": status_breakdown.get(STATUS_EXPIRED, 0),
+        "upcoming_inspections_30_days": len(_upcoming_rows(db, 30)),
     }
 
 
@@ -253,7 +281,7 @@ def upcoming_inspections_report(
 ):
     """
     Детальный список огнетушителей, для которых плановое обслуживание (ТО)
-    наступает в ближайшие N дней. Возвращает только актуальную последнюю проверку.
+    наступает в ближайшие N дней. Учитывается только последняя проверка.
 
     Args:
         days (int): Горизонт прогнозирования в днях.
@@ -262,63 +290,29 @@ def upcoming_inspections_report(
     Returns:
         list: Список оборудования, ожидающего проверку.
     """
-    from datetime import timedelta
-
     today = date.today()
-    deadline = today + timedelta(days=days)
-
-    # Подзапрос для получения последней проверки каждого огнетушителя
-    latest_inspections = (
-        db.query(
-            Inspection.fire_extinguisher_id,
-            func.max(Inspection.inspection_date).label("last_date"),
-        )
-        .group_by(Inspection.fire_extinguisher_id)
-        .subquery()
-    )
-
-    # Основной запрос
-    results = (
-        db.query(
-            FireExtinguisher,
-            Inspection,
-            Location,
-        )
-        .join(
-            latest_inspections,
-            FireExtinguisher.id == latest_inspections.c.fire_extinguisher_id,
-        )
-        .join(
-            Inspection,
-            (Inspection.fire_extinguisher_id == FireExtinguisher.id)
-            & (Inspection.inspection_date == latest_inspections.c.last_date),
-        )
-        .join(Location, FireExtinguisher.location_id == Location.id)
-        .filter(
-            Inspection.next_inspection_date.between(today, deadline)
-        )
-        .order_by(Inspection.next_inspection_date)
-        .all()
-    )
-
     return [
         {
             "extinguisher_id": fe.id,
             "inventory_number": fe.inventory_number,
             "type": fe.type,
             "location": loc.name,
-            "last_inspection": insp.inspection_date.isoformat(),
-            "next_inspection": insp.next_inspection_date.isoformat(),
-            "days_until_inspection": (insp.next_inspection_date - today).days,
+            "last_inspection": last_date.isoformat(),
+            "next_inspection": next_date.isoformat(),
+            "days_until_inspection": (next_date - today).days,
         }
-        for fe, insp, loc in results
+        for fe, loc, last_date, next_date in _upcoming_rows(db, days)
     ]
 
 
 @router.get("/upcoming")
-def upcoming_inspections(days: int = 30, db: Session = Depends(get_db)):
+def upcoming_inspections(
+    days: int = Query(30, ge=1, le=365, description="Количество дней"),
+    db: Session = Depends(get_db),
+):
     """
-    Упрощенный список предстоящих проверок (legacy-метод).
+    Упрощенный список предстоящих проверок (используется дашбордом).
+    Учитывается только последняя проверка каждого огнетушителя.
 
     Args:
         days (int): Количество дней.
@@ -327,55 +321,36 @@ def upcoming_inspections(days: int = 30, db: Session = Depends(get_db)):
     Returns:
         list: Краткая информация о предстоящих проверках.
     """
-    from datetime import date, timedelta
-
     today = date.today()
-    limit_date = today + timedelta(days=days)
-
-    query = (
-        db.query(Inspection, FireExtinguisher, Location)
-        .join(FireExtinguisher, Inspection.fire_extinguisher_id == FireExtinguisher.id)
-        .join(Location, FireExtinguisher.location_id == Location.id)
-        .filter(Inspection.next_inspection_date >= today)
-        .filter(Inspection.next_inspection_date <= limit_date)
-        .order_by(Inspection.next_inspection_date.asc())
-    )
-
-    result = []
-    for insp, fe, loc in query.all():
-        days_left = (insp.next_inspection_date - today).days
-        result.append(
-            {
-                "inventory_number": fe.inventory_number,
-                "location": loc.name,
-                "next_inspection": insp.next_inspection_date.isoformat(),
-                "days_until_inspection": days_left,
-            }
-        )
-
-    return result
+    return [
+        {
+            "extinguisher_id": fe.id,
+            "inventory_number": fe.inventory_number,
+            "location": loc.name,
+            "next_inspection": next_date.isoformat(),
+            "days_until_inspection": (next_date - today).days,
+        }
+        for fe, loc, _last_date, next_date in _upcoming_rows(db, days)
+    ]
 
 
-@router.get("/journal.json", response_model=list[InspectionRead])
+@router.get("/journal.json", response_model=List[InspectionRead])
 def export_journal_json(
-    date_from: date | None = None,
-    date_to: date | None = None,
+    date_from: Optional[date] = None,
+    date_to: Optional[date] = None,
     db: Session = Depends(get_db),
 ):
     """
-    Альтернативный эндпоинт для экспорта журнала проверок в формате JSON.
+    Альтернативный эндпоинт для экспорта журнала проверок в формате JSON
+    (в хронологическом порядке).
 
     Args:
-        date_from (date | None): Дата с.
-        date_to (date | None): Дата по.
+        date_from (Optional[date]): Дата с.
+        date_to (Optional[date]): Дата по.
         db (Session): Сессия базы данных.
 
     Returns:
         list[Inspection]: Отфильтрованный журнал.
     """
-    q = db.query(Inspection)
-    if date_from:
-        q = q.filter(Inspection.inspection_date >= date_from)
-    if date_to:
-        q = q.filter(Inspection.inspection_date <= date_to)
-    return q.order_by(Inspection.inspection_date).all()
+    query = _filtered_journal(db, date_from, date_to)
+    return query.order_by(Inspection.inspection_date, Inspection.id).all()

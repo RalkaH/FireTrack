@@ -3,6 +3,9 @@
 let currentExtinguishers = [];
 let locations = [];
 let statuses = [];
+// Фильтр по статусу, который нужно применить при следующем открытии страницы
+// (например, переход «Показать все просроченные» с дашборда)
+let pendingStatusFilter = null;
 
 async function loadExtinguishers() {
     const content = document.getElementById('content');
@@ -22,11 +25,12 @@ async function loadExtinguishers() {
         ]);
 
         renderExtinguishersPage();
+        applyPendingStatusFilter();
     } catch (error) {
         content.innerHTML = `
             <div class="alert alert-danger">
                 <i class="bi bi-exclamation-triangle"></i>
-                Ошибка загрузки данных: ${error.message}
+                Ошибка загрузки данных: ${esc(error.message)}
             </div>
         `;
     }
@@ -39,7 +43,7 @@ function renderExtinguishersPage() {
         <!-- Page Header -->
         <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-3">
             <h2><i class="bi bi-droplet"></i> Огнетушители</h2>
-            <button class="btn btn-primary" onclick="showAddExtinguisherModal()">
+            <button class="btn btn-primary requires-edit" onclick="showAddExtinguisherModal()">
                 <i class="bi bi-plus-circle"></i> Добавить огнетушитель
             </button>
         </div>
@@ -60,7 +64,7 @@ function renderExtinguishersPage() {
                     <select class="form-select" id="locationFilter">
                         <option value="">Все места</option>
                         ${locations.map(loc => `
-                            <option value="${loc.id}">${loc.name}</option>
+                            <option value="${loc.id}">${esc(loc.name)}</option>
                         `).join('')}
                     </select>
                 </div>
@@ -69,7 +73,7 @@ function renderExtinguishersPage() {
                     <select class="form-select" id="statusFilter">
                         <option value="">Все статусы</option>
                         ${statuses.map(st => `
-                            <option value="${st.id}">${st.name}</option>
+                            <option value="${st.id}">${esc(st.name)}</option>
                         `).join('')}
                     </select>
                 </div>
@@ -88,7 +92,7 @@ function renderExtinguishersPage() {
             </span>
             ${statuses.map(st => {
         const count = currentExtinguishers.filter(e => e.status_id === st.id).length;
-        return count > 0 ? `<span class="badge ${getStatusClass(st.name)}">${st.name}: ${count}</span>` : '';
+        return count > 0 ? `<span class="badge ${getStatusClass(st.name)}">${esc(st.name)}: ${count}</span>` : '';
     }).join('')}
         </div>
 
@@ -112,7 +116,7 @@ function renderExtinguishersTable(extinguishers) {
             <div class="empty-state">
                 <i class="bi bi-droplet"></i>
                 <p>Огнетушители не найдены</p>
-                <button class="btn btn-primary" onclick="showAddExtinguisherModal()">
+                <button class="btn btn-primary requires-edit" onclick="showAddExtinguisherModal()">
                     <i class="bi bi-plus-circle"></i> Добавить первый огнетушитель
                 </button>
             </div>
@@ -141,21 +145,21 @@ function renderExtinguishersTable(extinguishers) {
 
         return `
                             <tr style="animation: fadeInUp 0.25s ease-out ${Math.min(idx * 0.03, 0.5)}s both;">
-                                <td><strong>${ext.inventory_number}</strong></td>
-                                <td>${ext.type}</td>
-                                <td>${ext.capacity} л/кг</td>
+                                <td><strong>${esc(ext.inventory_number)}</strong></td>
+                                <td>${esc(ext.type)}</td>
+                                <td>${esc(ext.capacity)} л/кг</td>
                                 <td>
                                     <span class="d-flex align-items-center gap-1">
                                         <i class="bi bi-geo-alt text-muted" style="font-size: 0.8rem;"></i>
-                                        ${location ? location.name : '-'}
+                                        ${location ? esc(location.name) : '-'}
                                     </span>
                                 </td>
                                 <td>
                                     <span class="badge ${getStatusClass(status?.name)}">
-                                        ${status ? status.name : '-'}
+                                        ${status ? esc(status.name) : '-'}
                                     </span>
                                 </td>
-                                <td>${ext.manufacturer || '-'}</td>
+                                <td>${esc(ext.manufacturer) || '-'}</td>
                                 <td>${formatDate(ext.manufacture_date)}</td>
                                 <td>
                                     <div class="table-actions">
@@ -164,13 +168,13 @@ function renderExtinguishersTable(extinguishers) {
                                                 title="История проверок">
                                             <i class="bi bi-clock-history"></i>
                                         </button>
-                                        <button class="btn btn-sm btn-primary"
+                                        <button class="btn btn-sm btn-primary requires-edit"
                                                 onclick="showEditExtinguisherModal(${ext.id})"
                                                 title="Редактировать">
                                             <i class="bi bi-pencil"></i>
                                         </button>
-                                        <button class="btn btn-sm btn-danger"
-                                                onclick="deleteExtinguisher(${ext.id}, '${ext.inventory_number}')"
+                                        <button class="btn btn-sm btn-danger requires-admin"
+                                                onclick="deleteExtinguisher(${ext.id})"
                                                 title="Удалить">
                                             <i class="bi bi-trash"></i>
                                         </button>
@@ -209,6 +213,39 @@ async function filterExtinguishers() {
     document.getElementById('extinguishersTable').innerHTML = renderExtinguishersTable(filtered);
 }
 
+function applyPendingStatusFilter() {
+    if (!pendingStatusFilter) return;
+    const status = statuses.find(s => s.name === pendingStatusFilter);
+    pendingStatusFilter = null;
+    if (!status) return;
+    document.getElementById('statusFilter').value = String(status.id);
+    filterExtinguishers();
+}
+
+// Собирает данные формы огнетушителя в объект для API.
+// forUpdate=true: пустые необязательные поля отправляются как null (очищают значение)
+function collectExtinguisherForm(form, forUpdate) {
+    const data = Object.fromEntries(new FormData(form));
+
+    data.inventory_number = data.inventory_number.trim();
+    data.type = data.type.trim();
+    data.capacity = parseFloat(data.capacity);
+    data.location_id = parseInt(data.location_id);
+    data.status_id = parseInt(data.status_id);
+
+    ['manufacturer', 'manufacture_date', 'commissioning_date'].forEach(key => {
+        const value = (data[key] || '').trim();
+        if (value) {
+            data[key] = value;
+        } else if (forUpdate) {
+            data[key] = null;
+        } else {
+            delete data[key];
+        }
+    });
+    return data;
+}
+
 function resetFilters() {
     document.getElementById('searchInput').value = '';
     document.getElementById('locationFilter').value = '';
@@ -216,29 +253,21 @@ function resetFilters() {
     document.getElementById('extinguishersTable').innerHTML = renderExtinguishersTable(currentExtinguishers);
 }
 
-function showAddExtinguisherModal() {
-    const modal = new bootstrap.Modal(document.getElementById('formModal'));
+// onSuccess — что сделать после сохранения (по умолчанию обновить список огнетушителей)
+function showAddExtinguisherModal(onSuccess = loadExtinguishers) {
+    const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('formModal'));
     document.getElementById('modalTitle').textContent = 'Добавить огнетушитель';
     document.getElementById('modalBody').innerHTML = renderExtinguisherForm();
 
     document.getElementById('extinguisherForm').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const formData = new FormData(e.target);
-        const data = Object.fromEntries(formData);
-
-        data.capacity = parseFloat(data.capacity);
-        data.location_id = parseInt(data.location_id);
-        data.status_id = parseInt(data.status_id);
-
-        Object.keys(data).forEach(key => {
-            if (data[key] === '' || data[key] === null) delete data[key];
-        });
+        const data = collectExtinguisherForm(e.target, false);
 
         try {
             await API.createExtinguisher(data);
             showAlert('Огнетушитель успешно добавлен', 'success');
             modal.hide();
-            loadExtinguishers();
+            onSuccess();
         } catch (error) {
             showAlert('Ошибка: ' + error.message, 'danger');
         }
@@ -248,20 +277,21 @@ function showAddExtinguisherModal() {
 }
 
 async function showEditExtinguisherModal(id) {
-    const extinguisher = await API.getExtinguisher(id);
+    let extinguisher;
+    try {
+        extinguisher = await API.getExtinguisher(id);
+    } catch (error) {
+        showAlert('Не удалось загрузить огнетушитель: ' + error.message, 'danger');
+        return;
+    }
 
-    const modal = new bootstrap.Modal(document.getElementById('formModal'));
+    const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('formModal'));
     document.getElementById('modalTitle').textContent = 'Редактировать огнетушитель';
     document.getElementById('modalBody').innerHTML = renderExtinguisherForm(extinguisher);
 
     document.getElementById('extinguisherForm').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const formData = new FormData(e.target);
-        const data = Object.fromEntries(formData);
-
-        data.capacity = parseFloat(data.capacity);
-        data.location_id = parseInt(data.location_id);
-        data.status_id = parseInt(data.status_id);
+        const data = collectExtinguisherForm(e.target, true);
 
         try {
             await API.updateExtinguisher(id, data);
@@ -278,6 +308,7 @@ async function showEditExtinguisherModal(id) {
 
 function renderExtinguisherForm(data = null) {
     const isEdit = data !== null;
+    const today = todayISO();
 
     return `
         <form id="extinguisherForm">
@@ -285,38 +316,38 @@ function renderExtinguisherForm(data = null) {
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Инвентарный номер *</label>
                     <input type="text" class="form-control" name="inventory_number"
-                           value="${isEdit ? data.inventory_number : ''}" required>
+                           value="${isEdit ? esc(data.inventory_number) : ''}" required>
                 </div>
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Тип *</label>
                     <input type="text" class="form-control" name="type"
                            placeholder="ОУ-8, ОП-5 и т.д."
-                           value="${isEdit ? data.type : ''}" required>
+                           value="${isEdit ? esc(data.type) : ''}" required>
                 </div>
             </div>
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Вместимость (л/кг) *</label>
                     <input type="number" class="form-control" name="capacity"
-                           value="${isEdit ? data.capacity : ''}"
+                           value="${isEdit ? esc(data.capacity) : ''}"
                            step="0.1" min="0.1" required>
                 </div>
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Производитель</label>
                     <input type="text" class="form-control" name="manufacturer"
-                           value="${isEdit ? data.manufacturer || '' : ''}">
+                           value="${isEdit ? esc(data.manufacturer) : ''}">
                 </div>
             </div>
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Дата изготовления</label>
-                    <input type="date" class="form-control" name="manufacture_date"
-                           value="${isEdit ? data.manufacture_date || '' : ''}">
+                    <input type="date" class="form-control" name="manufacture_date" max="${today}"
+                           value="${isEdit ? esc(data.manufacture_date) : ''}">
                 </div>
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Дата ввода в эксплуатацию</label>
-                    <input type="date" class="form-control" name="commissioning_date"
-                           value="${isEdit ? data.commissioning_date || '' : ''}">
+                    <input type="date" class="form-control" name="commissioning_date" max="${today}"
+                           value="${isEdit ? esc(data.commissioning_date) : ''}">
                 </div>
             </div>
             <div class="row">
@@ -326,7 +357,7 @@ function renderExtinguisherForm(data = null) {
                         <option value="">Выберите место</option>
                         ${locations.map(loc => `
                             <option value="${loc.id}" ${isEdit && loc.id === data.location_id ? 'selected' : ''}>
-                                ${loc.name}
+                                ${esc(loc.name)}
                             </option>
                         `).join('')}
                     </select>
@@ -336,7 +367,7 @@ function renderExtinguisherForm(data = null) {
                     <select class="form-select" name="status_id" required>
                         ${statuses.map(st => `
                             <option value="${st.id}" ${isEdit && st.id === data.status_id ? 'selected' : ''}>
-                                ${st.name}
+                                ${esc(st.name)}
                             </option>
                         `).join('')}
                     </select>
@@ -352,7 +383,9 @@ function renderExtinguisherForm(data = null) {
     `;
 }
 
-async function deleteExtinguisher(id, inventoryNumber) {
+async function deleteExtinguisher(id) {
+    const ext = currentExtinguishers.find(e => e.id === id);
+    const inventoryNumber = ext ? ext.inventory_number : `#${id}`;
     if (confirm(`Удалить огнетушитель ${inventoryNumber}?\n\nВсе связанные проверки также будут удалены.`)) {
         try {
             await API.deleteExtinguisher(id);
@@ -365,10 +398,18 @@ async function deleteExtinguisher(id, inventoryNumber) {
 }
 
 async function viewExtinguisherHistory(id) {
-    const extinguisher = await API.getExtinguisher(id);
-    const inspections = await API.getInspectionsByExtinguisher(id);
+    let extinguisher, inspections;
+    try {
+        [extinguisher, inspections] = await Promise.all([
+            API.getExtinguisher(id),
+            API.getInspectionsByExtinguisher(id)
+        ]);
+    } catch (error) {
+        showAlert('Не удалось загрузить историю: ' + error.message, 'danger');
+        return;
+    }
 
-    const modal = new bootstrap.Modal(document.getElementById('formModal'));
+    const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('formModal'));
     document.getElementById('modalTitle').textContent = `История проверок: ${extinguisher.inventory_number}`;
 
     const location = locations.find(l => l.id === extinguisher.location_id);
@@ -376,12 +417,12 @@ async function viewExtinguisherHistory(id) {
 
     document.getElementById('modalBody').innerHTML = `
         <div class="d-flex align-items-center gap-2 mb-3 p-3" style="background: #F8FAFC; border-radius: 12px;">
-            <span class="badge ${getStatusClass(status?.name)}">${status ? status.name : '-'}</span>
+            <span class="badge ${getStatusClass(status?.name)}">${status ? esc(status.name) : '-'}</span>
             <span class="text-muted">|</span>
-            <span><strong>${extinguisher.type}</strong></span>
+            <span><strong>${esc(extinguisher.type)}</strong></span>
             <span class="text-muted">|</span>
             <span class="d-flex align-items-center gap-1">
-                <i class="bi bi-geo-alt text-muted"></i> ${location ? location.name : '-'}
+                <i class="bi bi-geo-alt text-muted"></i> ${location ? esc(location.name) : '-'}
             </span>
         </div>
 
@@ -401,11 +442,11 @@ async function viewExtinguisherHistory(id) {
                         ${inspections.map(insp => `
                             <tr>
                                 <td><strong>${formatDate(insp.inspection_date)}</strong></td>
-                                <td>${insp.pressure || '-'}</td>
-                                <td>${insp.weight || '-'}</td>
+                                <td>${insp.pressure ?? '-'}</td>
+                                <td>${insp.weight ?? '-'}</td>
                                 <td>
                                     <span class="badge badge-sm ${insp.visual_inspection === 'Исправен' ? 'status-actual' : insp.visual_inspection === 'Неисправен' ? 'status-expired' : 'status-maintenance'}">
-                                        ${insp.visual_inspection || '-'}
+                                        ${esc(insp.visual_inspection) || '-'}
                                     </span>
                                 </td>
                                 <td>${formatDate(insp.next_inspection_date)}</td>
@@ -437,11 +478,4 @@ function getStatusClass(statusName) {
         'Списан': 'status-decommissioned'
     };
     return classMap[statusName] || 'status-decommissioned';
-}
-
-function formatDate(isoString) {
-    if (!isoString) return '';
-    const d = new Date(isoString);
-    if (Number.isNaN(d.getTime())) return isoString;
-    return d.toLocaleDateString('ru-RU');
 }

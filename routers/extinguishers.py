@@ -1,14 +1,14 @@
-# routers/extinguishers.py (v1.1)
+# routers/extinguishers.py (v1.2)
 """
 Модуль для управления огнетушителями (CRUD операции).
 Включает фильтрацию, поиск по инвентарному номеру, создание, обновление и удаление оборудования.
 """
-from datetime import datetime, timezone, date as date_type
+from datetime import datetime, timezone
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 
-from auth import get_current_active_user, require_role
+from auth import EDITOR_ROLES, ROLE_ADMIN, get_current_active_user, require_role
 from db import get_db
 from models import User, FireExtinguisher, Location, Status, Inspection
 from schemas import (
@@ -17,10 +17,10 @@ from schemas import (
     FireExtinguisherUpdate,
 )
 
-# ВАЖНО: router В САМОМ НАЧАЛЕ
 router = APIRouter(
     prefix="/extinguishers",
     tags=["Fire Extinguishers"],
+    dependencies=[Depends(get_current_active_user)],
 )
 
 
@@ -29,7 +29,6 @@ def list_extinguishers(
     location_id: Optional[int] = Query(None, description="Фильтр по ID места"),
     status_id: Optional[int] = Query(None, description="Фильтр по ID статуса"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
 ):
     """
     Получить список всех огнетушителей с возможностью фильтрации.
@@ -38,7 +37,6 @@ def list_extinguishers(
         location_id (Optional[int]): ID местоположения для фильтрации.
         status_id (Optional[int]): ID статуса для фильтрации.
         db (Session): Сессия базы данных.
-        current_user (User): Авторизованный пользователь.
 
     Returns:
         List[FireExtinguisher]: Отфильтрованный список оборудования.
@@ -51,7 +49,7 @@ def list_extinguishers(
     if status_id is not None:
         query = query.filter(FireExtinguisher.status_id == status_id)
 
-    return query.all()
+    return query.order_by(FireExtinguisher.inventory_number).all()
 
 
 @router.get("/search/inventory", response_model=List[FireExtinguisherRead])
@@ -59,7 +57,6 @@ def search_by_inventory(
     query: str = Query(..., min_length=1,
                        description="Поисковый запрос по инвентарному номеру"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
 ):
     """
     Поиск огнетушителей по инвентарному номеру (частичное совпадение).
@@ -67,7 +64,6 @@ def search_by_inventory(
     Args:
         query (str): Подстрока инвентарного номера для поиска.
         db (Session): Сессия базы данных.
-        current_user (User): Авторизованный пользователь.
 
     Returns:
         List[FireExtinguisher]: Список найденного оборудования.
@@ -85,7 +81,6 @@ def search_by_inventory(
 def get_extinguisher(
     extinguisher_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
 ):
     """
     Получить детальную информацию об огнетушителе по его ID.
@@ -93,7 +88,6 @@ def get_extinguisher(
     Args:
         extinguisher_id (int): Уникальный идентификатор огнетушителя.
         db (Session): Сессия базы данных.
-        current_user (User): Авторизованный пользователь.
 
     Returns:
         FireExtinguisher: Объект огнетушителя.
@@ -101,7 +95,7 @@ def get_extinguisher(
     Raises:
         HTTPException: Если огнетушитель с указанным ID не найден (404).
     """
-    extinguisher = db.query(FireExtinguisher).get(extinguisher_id)
+    extinguisher = db.get(FireExtinguisher, extinguisher_id)
 
     if extinguisher is None:
         raise HTTPException(
@@ -116,7 +110,7 @@ def get_extinguisher(
 def create_extinguisher(
     data: FireExtinguisherCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_role(["admin", "engineer"]))
+    current_user: User = Depends(require_role(EDITOR_ROLES))
 ):
     """
     Добавить новый огнетушитель в систему. Доступно только администраторам и инженерам.
@@ -145,30 +139,16 @@ def create_extinguisher(
             detail=f"Огнетушитель с инвентарным номером '{data.inventory_number}' уже существует",
         )
 
-    # Валидация дат (не из будущего)
-    today = date_type.today()
-
-    if data.manufacture_date and data.manufacture_date > today:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Дата изготовления не может быть из будущего",
-        )
-
-    if data.commissioning_date and data.commissioning_date > today:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Дата ввода в эксплуатацию не может быть из будущего",
-        )
-
+    # Даты из будущего отсекаются валидатором схемы
     # Проверка существования связанных объектов
-    location = db.query(Location).get(data.location_id)
+    location = db.get(Location, data.location_id)
     if location is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Место расположения не найдено",
         )
 
-    status_obj = db.query(Status).get(data.status_id)
+    status_obj = db.get(Status, data.status_id)
     if status_obj is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -203,7 +183,7 @@ def update_extinguisher(
     extinguisher_id: int,
     data: FireExtinguisherUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_role(["admin", "engineer"]))
+    current_user: User = Depends(require_role(EDITOR_ROLES))
 ):
     """
     Обновить данные существующего огнетушителя. Доступно только администраторам и инженерам.
@@ -212,7 +192,7 @@ def update_extinguisher(
         extinguisher_id (int): Идентификатор обновляемого огнетушителя.
         data (FireExtinguisherUpdate): Новые данные.
         db (Session): Сессия базы данных.
-        current_user (User): Авторизованный пользователь.
+        current_user (User): Авторизованный пользователь с соответствующей ролью.
 
     Returns:
         FireExtinguisher: Обновленный объект.
@@ -220,7 +200,7 @@ def update_extinguisher(
     Raises:
         HTTPException: Если объект не найден, дублируется номер или указаны неверные связанные ключи.
     """
-    extinguisher = db.query(FireExtinguisher).get(extinguisher_id)
+    extinguisher = db.get(FireExtinguisher, extinguisher_id)
 
     if extinguisher is None:
         raise HTTPException(
@@ -245,24 +225,9 @@ def update_extinguisher(
                 detail=f"Огнетушитель с инвентарным номером '{data.inventory_number}' уже существует",
             )
 
-    # Валидация дат
-    today = date_type.today()
-
-    if data.manufacture_date and data.manufacture_date > today:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Дата изготовления не может быть из будущего",
-        )
-
-    if data.commissioning_date and data.commissioning_date > today:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Дата ввода в эксплуатацию не может быть из будущего",
-        )
-
     # Проверка существования связанных объектов
     if data.location_id is not None:
-        location = db.query(Location).get(data.location_id)
+        location = db.get(Location, data.location_id)
         if location is None:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -270,7 +235,7 @@ def update_extinguisher(
             )
 
     if data.status_id is not None:
-        status_obj = db.query(Status).get(data.status_id)
+        status_obj = db.get(Status, data.status_id)
         if status_obj is None:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -279,6 +244,14 @@ def update_extinguisher(
 
     # Обновление полей
     update_data = data.model_dump(exclude_unset=True)
+
+    # Обязательные поля нельзя очистить
+    for required_field in ("inventory_number", "type", "capacity", "location_id", "status_id"):
+        if required_field in update_data and update_data[required_field] is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Поле '{required_field}' не может быть пустым",
+            )
 
     for field, value in update_data.items():
         setattr(extinguisher, field, value)
@@ -295,7 +268,7 @@ def update_extinguisher(
 def delete_extinguisher(
     extinguisher_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_role(["admin"]))
+    current_user: User = Depends(require_role([ROLE_ADMIN]))
 ):
     """
     Полностью удалить огнетушитель и всю историю его проверок (каскадное удаление).
@@ -312,7 +285,7 @@ def delete_extinguisher(
     Raises:
         HTTPException: Если огнетушитель не найден.
     """
-    extinguisher = db.query(FireExtinguisher).get(extinguisher_id)
+    extinguisher = db.get(FireExtinguisher, extinguisher_id)
 
     if extinguisher is None:
         raise HTTPException(

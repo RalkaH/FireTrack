@@ -362,6 +362,19 @@
             font-size: 1.1rem;
         }
 
+        .alert-info-custom {
+            background: rgba(249, 115, 22, 0.1);
+            border: 1px solid rgba(249, 115, 22, 0.25);
+            color: #FDBA74;
+            margin-top: 0;
+            margin-bottom: 20px;
+        }
+
+        .alert-info-custom i {
+            color: var(--accent);
+            font-size: 1.1rem;
+        }
+
         /* Loading spinner */
         .spinner {
             width: 18px;
@@ -428,6 +441,11 @@
                 <p>Учет огнетушителей</p>
             </div>
 
+            <div id="sessionAlert" class="alert-custom alert-info-custom d-none">
+                <i class="bi bi-clock-history"></i>
+                <span>Сессия истекла. Войдите снова, чтобы продолжить работу.</span>
+            </div>
+
             <form id="loginForm">
                 <div class="form-group">
                     <label class="form-label">Логин</label>
@@ -465,6 +483,26 @@
     </div>
 
     <script>
+        // Если сессия ещё действует, сразу открываем приложение
+        (function checkExistingSession() {
+            const token = localStorage.getItem('access_token');
+            if (!token) return;
+            try {
+                const part = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+                const payload = JSON.parse(atob(part + '='.repeat((4 - part.length % 4) % 4)));
+                if (payload.exp && payload.exp * 1000 > Date.now()) {
+                    window.location.replace('/static/index.html');
+                    return;
+                }
+            } catch (e) { /* битый токен — просто удалим */ }
+            localStorage.removeItem('access_token');
+        })();
+
+        // Сообщение о причине выхода
+        if (new URLSearchParams(window.location.search).get('reason') === 'expired') {
+            document.getElementById('sessionAlert').classList.remove('d-none');
+        }
+
         // Generate floating particles
         const particlesContainer = document.getElementById('particles');
         const particleCount = 25;
@@ -523,15 +561,28 @@
                 });
 
                 if (!response.ok) {
-                    throw new Error('Неверный логин или пароль');
+                    let message = 'Неверный логин или пароль';
+                    if (response.status !== 401) {
+                        try {
+                            const err = await response.json();
+                            if (typeof err.detail === 'string') message = err.detail;
+                        } catch (e) {
+                            message = `Ошибка сервера (HTTP ${response.status})`;
+                        }
+                    }
+                    throw new Error(message);
                 }
 
                 const data = await response.json();
                 localStorage.setItem('access_token', data.access_token);
-                window.location.href = '/static/index.html';
+                window.location.replace('/static/index.html');
 
             } catch (error) {
-                document.getElementById('errorMessage').textContent = error.message;
+                const message = error instanceof TypeError
+                    ? 'Сервер недоступен. Проверьте, что приложение запущено.'
+                    : error.message;
+                document.getElementById('sessionAlert').classList.add('d-none');
+                document.getElementById('errorMessage').textContent = message;
                 errorAlert.classList.remove('d-none');
             } finally {
                 loginBtn.innerHTML = originalContent;

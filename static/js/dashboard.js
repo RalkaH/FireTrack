@@ -11,9 +11,11 @@ async function loadDashboard() {
     `;
 
     try {
-        const stats = await API.getDashboard();
-        const upcoming = await API.getUpcomingInspections(30);
-        const expired = await API.getExpiredList();
+        const [stats, upcoming, expired] = await Promise.all([
+            API.getDashboard(),
+            API.getUpcomingInspections(30),
+            API.getExpiredList()
+        ]);
 
         content.innerHTML = `
             <!-- Page Header -->
@@ -102,16 +104,16 @@ async function loadDashboard() {
                     Быстрые действия
                 </div>
                 <div class="card-body d-flex flex-wrap gap-2">
-                    <button class="btn btn-primary" onclick="showAddExtinguisherModal()">
+                    <button class="btn btn-primary requires-edit" onclick="openAddExtinguisherFromDashboard()">
                         <i class="bi bi-plus-circle"></i> Добавить огнетушитель
                     </button>
-                    <button class="btn btn-secondary" onclick="showAddLocationModal()">
+                    <button class="btn btn-secondary requires-edit" onclick="showAddLocationModal()">
                         <i class="bi bi-geo-alt"></i> Добавить место
                     </button>
-                    <button class="btn btn-secondary" onclick="showAddEmployeeModal()">
+                    <button class="btn btn-secondary requires-edit" onclick="showAddEmployeeModal()">
                         <i class="bi bi-person-plus"></i> Добавить сотрудника
                     </button>
-                    <button class="btn btn-success" onclick="openInspectionFromDashboard()">
+                    <button class="btn btn-success requires-edit" onclick="openInspectionFromDashboard()">
                         <i class="bi bi-clipboard-check"></i> Провести проверку
                     </button>
                     <button class="btn btn-info" onclick="API.downloadCSV()">
@@ -120,29 +122,18 @@ async function loadDashboard() {
                     <button class="btn btn-outline-primary" onclick="API.downloadJournalJSON()">
                         <i class="bi bi-file-code"></i> Экспорт JSON
                     </button>
-                    <button class="btn btn-warning" onclick="recalculateAllStatuses()">
+                    <button class="btn btn-warning requires-edit" onclick="recalculateAllStatuses()">
                         <i class="bi bi-arrow-clockwise"></i> Пересчитать статусы
                     </button>
                 </div>
             </div>
         `;
 
-        // Handle data-page links
-        content.querySelectorAll('[data-page]').forEach(link => {
-            link.addEventListener('click', function (e) {
-                e.preventDefault();
-                document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-                const navLink = document.querySelector(`[data-page="${this.getAttribute('data-page')}"]`);
-                if (navLink) navLink.classList.add('active');
-                loadPage(this.getAttribute('data-page'));
-            });
-        });
-
     } catch (error) {
         content.innerHTML = `
             <div class="alert alert-danger animate-fadeIn">
                 <i class="bi bi-exclamation-triangle"></i>
-                Ошибка загрузки данных: ${error.message}
+                Ошибка загрузки данных: ${esc(error.message)}
             </div>
         `;
     }
@@ -172,8 +163,8 @@ function renderUpcoming(upcoming) {
                 <tbody>
                     ${upcoming.slice(0, 5).map((item, idx) => `
                         <tr style="animation: fadeInUp 0.3s ease-out ${idx * 0.05}s both;">
-                            <td><strong>${item.inventory_number}</strong></td>
-                            <td>${item.location}</td>
+                            <td><strong>${esc(item.inventory_number)}</strong></td>
+                            <td>${esc(item.location)}</td>
                             <td>${formatDate(item.next_inspection)}</td>
                             <td>
                                 <span class="badge badge-sm ${item.days_until_inspection <= 7 ? 'status-expired' : 'status-maintenance'}">
@@ -213,14 +204,20 @@ function renderExpired(expired) {
                         <th>Инв. номер</th>
                         <th>Тип</th>
                         <th>Место</th>
+                        <th>Просрочено</th>
                     </tr>
                 </thead>
                 <tbody>
                     ${expired.slice(0, 5).map((item, idx) => `
                         <tr style="animation: fadeInUp 0.3s ease-out ${idx * 0.05}s both;">
-                            <td><strong style="color: #DC2626;">${item.inventory_number}</strong></td>
-                            <td>${item.type}</td>
-                            <td>${item.location}</td>
+                            <td><strong style="color: #DC2626;">${esc(item.inventory_number)}</strong></td>
+                            <td>${esc(item.type)}</td>
+                            <td>${esc(item.location)}</td>
+                            <td>
+                                <span class="badge badge-sm status-expired">
+                                    ${item.days_overdue === null || item.days_overdue === undefined ? 'нет проверок' : item.days_overdue + ' дн.'}
+                                </span>
+                            </td>
                         </tr>
                     `).join('')}
                 </tbody>
@@ -228,7 +225,7 @@ function renderExpired(expired) {
         </div>
         ${expired.length > 5 ? `
             <div class="text-center mt-3">
-                <a href="#" class="btn btn-sm btn-outline-danger" data-page="extinguishers">
+                <a href="#" class="btn btn-sm btn-outline-danger" data-page="extinguishers" data-status-filter="Просрочено">
                     Показать все (${expired.length})
                 </a>
             </div>
@@ -241,19 +238,20 @@ async function recalculateAllStatuses() {
     isRecalculating = true;
 
     try {
-        await API.recalculateStatuses();
-        showAlert('Статусы пересчитаны успешно', 'success');
+        const result = await API.recalculateStatuses();
+        showAlert(`Статусы пересчитаны, изменено: ${result.changed}`, 'success');
         await loadDashboard();
     } catch (err) {
         console.error('Ошибка пересчёта статусов', err);
-        showAlert('Ошибка пересчёта статусов', 'danger');
+        showAlert('Ошибка пересчёта статусов: ' + err.message, 'danger');
     } finally {
         isRecalculating = false;
     }
 }
 
-function showAddLocationModal() {
-    const modal = new bootstrap.Modal(document.getElementById('formModal'));
+// onSuccess вызывается после успешного сохранения (например, чтобы обновить список)
+function showAddLocationModal(onSuccess) {
+    const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('formModal'));
     document.getElementById('modalTitle').textContent = 'Добавить место расположения';
     document.getElementById('modalBody').innerHTML = `
         <form id="locationForm">
@@ -285,6 +283,7 @@ function showAddLocationModal() {
             await API.createLocation(data);
             showAlert('Место успешно добавлено', 'success');
             modal.hide();
+            if (typeof onSuccess === 'function') onSuccess();
         } catch (error) {
             showAlert('Ошибка: ' + error.message, 'danger');
         }
@@ -293,8 +292,8 @@ function showAddLocationModal() {
     modal.show();
 }
 
-function showAddEmployeeModal() {
-    const modal = new bootstrap.Modal(document.getElementById('formModal'));
+function showAddEmployeeModal(onSuccess) {
+    const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('formModal'));
     document.getElementById('modalTitle').textContent = 'Добавить сотрудника';
     document.getElementById('modalBody').innerHTML = `
         <form id="employeeForm">
@@ -326,6 +325,7 @@ function showAddEmployeeModal() {
             await API.createEmployee(data);
             showAlert('Сотрудник успешно добавлен', 'success');
             modal.hide();
+            if (typeof onSuccess === 'function') onSuccess();
         } catch (error) {
             showAlert('Ошибка: ' + error.message, 'danger');
         }
@@ -334,28 +334,35 @@ function showAddEmployeeModal() {
     modal.show();
 }
 
-function formatDate(isoString) {
-    if (!isoString) return '';
-    const d = new Date(isoString);
-    if (Number.isNaN(d.getTime())) return isoString;
-    return d.toLocaleDateString('ru-RU');
+// Загружает справочники, нужные формам (огнетушители, сотрудники, места, статусы).
+// Переменные объявлены через let в extinguishers.js и inspections.js и общие для всех скриптов.
+async function loadReferenceData() {
+    [allExtinguishers, allEmployees, locations, statuses] = await Promise.all([
+        API.getExtinguishers(),
+        API.getEmployees(),
+        API.getLocations(),
+        API.getStatuses()
+    ]);
 }
 
 async function openInspectionFromDashboard() {
     try {
-        if (typeof allExtinguishers === 'undefined' || allExtinguishers.length === 0 ||
-            typeof allEmployees === 'undefined' || allEmployees.length === 0) {
-            const [exts, emps, locs] = await Promise.all([
-                API.getExtinguishers(),
-                API.getEmployees(),
-                API.getLocations()
-            ]);
-            window.allExtinguishers = exts;
-            window.allEmployees = emps;
-            window.locations = locs;
-        }
-        showAddInspectionModal();
+        await loadReferenceData();
+        showAddInspectionModal(loadDashboard);
     } catch (error) {
         showAlert('Не удалось подготовить данные для проверки: ' + error.message, 'danger');
+    }
+}
+
+async function openAddExtinguisherFromDashboard() {
+    try {
+        await loadReferenceData();
+        if (locations.length === 0) {
+            showAlert('Сначала добавьте хотя бы одно место размещения', 'warning');
+            return;
+        }
+        showAddExtinguisherModal(loadDashboard);
+    } catch (error) {
+        showAlert('Не удалось подготовить форму: ' + error.message, 'danger');
     }
 }

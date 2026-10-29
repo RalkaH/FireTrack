@@ -297,6 +297,30 @@ body {
   color: #FCA5A5;
 }
 
+/* Текущий пользователь в шапке */
+.nav-user {
+  color: var(--text-light);
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.nav-user-role {
+  display: inline-block;
+  margin-left: 0.35rem;
+  padding: 0.1rem 0.5rem;
+  border-radius: var(--radius-full);
+  background: var(--accent-light);
+  color: var(--accent);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+/* Скрываем действия, на которые у роли нет прав (сервер всё равно проверяет) */
+body:not(.role-admin):not(.role-engineer) .requires-edit,
+body:not(.role-admin) .requires-admin {
+  display: none !important;
+}
+
 /* ── Page Headers ── */
 .page-header {
   margin-bottom: 1.5rem;

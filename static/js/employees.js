@@ -16,7 +16,7 @@ async function loadEmployees() {
       <!-- Page Header -->
       <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-3">
         <h2><i class="bi bi-people"></i> Сотрудники</h2>
-        <button class="btn btn-primary" onclick="showAddEmployeeModalInList()">
+        <button class="btn btn-primary requires-edit" onclick="showAddEmployeeModalInList()">
           <i class="bi bi-person-plus"></i> Добавить сотрудника
         </button>
       </div>
@@ -37,7 +37,7 @@ async function loadEmployees() {
             <div class="empty-state">
               <i class="bi bi-people"></i>
               <p>Сотрудники пока не добавлены</p>
-              <button class="btn btn-primary" onclick="showAddEmployeeModalInList()">
+              <button class="btn btn-primary requires-edit" onclick="showAddEmployeeModalInList()">
                 <i class="bi bi-person-plus"></i> Добавить первого сотрудника
               </button>
             </div>
@@ -58,12 +58,12 @@ async function loadEmployees() {
                       <td>
                         <div class="d-flex align-items-center gap-2">
                           <div style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #3B82F6, #1D4ED8); display: flex; align-items: center; justify-content: center; color: white; font-size: 0.8rem; font-weight: 600;">
-                            ${emp.full_name.split(' ').map(n => n[0]).join('').substring(0, 2)}
+                            ${esc(getInitials(emp.full_name))}
                           </div>
-                          <strong>${emp.full_name}</strong>
+                          <strong>${esc(emp.full_name)}</strong>
                         </div>
                       </td>
-                      <td class="text-muted">${emp.position}</td>
+                      <td class="text-muted">${esc(emp.position)}</td>
                     </tr>
                   `).join('')}
                 </tbody>
@@ -77,18 +77,13 @@ async function loadEmployees() {
     content.innerHTML = `
       <div class="alert alert-danger">
         <i class="bi bi-exclamation-triangle"></i>
-        Ошибка загрузки сотрудников: ${error.message}
+        Ошибка загрузки сотрудников: ${esc(error.message)}
       </div>
     `;
   }
 }
 
 function showAddEmployeeModalInList() {
-  showAddEmployeeModal();
-  const form = document.getElementById('employeeForm');
-  if (form) {
-    form.addEventListener('submit', () => {
-      setTimeout(loadEmployees, 500);
-    }, { once: true });
-  }
+  // Список обновляется только после успешного сохранения
+  showAddEmployeeModal(loadEmployees);
 }

@@ -28,7 +28,7 @@ async function loadInspections() {
         content.innerHTML = `
             <div class="alert alert-danger">
                 <i class="bi bi-exclamation-triangle"></i>
-                Ошибка загрузки данных: ${error.message}
+                Ошибка загрузки данных: ${esc(error.message)}
             </div>
         `;
     }
@@ -41,7 +41,7 @@ function renderInspectionsPage() {
         <!-- Page Header -->
         <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-3">
             <h2><i class="bi bi-clipboard-check"></i> Журнал проверок</h2>
-            <button class="btn btn-success" onclick="showAddInspectionModal()">
+            <button class="btn btn-success requires-edit" onclick="showAddInspectionModal()">
                 <i class="bi bi-plus-circle"></i> Новая проверка
             </button>
         </div>
@@ -103,7 +103,7 @@ function renderInspectionsTable(inspections) {
             <div class="empty-state">
                 <i class="bi bi-clipboard-x"></i>
                 <p>Проверки не найдены</p>
-                <button class="btn btn-success" onclick="showAddInspectionModal()">
+                <button class="btn btn-success requires-edit" onclick="showAddInspectionModal()">
                     <i class="bi bi-plus-circle"></i> Провести первую проверку
                 </button>
             </div>
@@ -140,49 +140,49 @@ function renderInspectionsTable(inspections) {
                                 <td><strong>${formatDate(insp.inspection_date)}</strong></td>
                                 <td>
                                     ${extinguisher ? `
-                                        <div><strong>${extinguisher.inventory_number}</strong></div>
-                                        <small class="text-muted">${extinguisher.type}</small>
+                                        <div><strong>${esc(extinguisher.inventory_number)}</strong></div>
+                                        <small class="text-muted">${esc(extinguisher.type)}</small>
                                     ` : '-'}
                                 </td>
                                 <td>
                                     <span class="d-flex align-items-center gap-1">
                                         <i class="bi bi-geo-alt text-muted" style="font-size: 0.75rem;"></i>
-                                        ${location ? location.name : '-'}
+                                        ${location ? esc(location.name) : '-'}
                                     </span>
                                 </td>
                                 <td>
                                     ${employee ? `
                                         <div class="d-flex align-items-center gap-2">
                                             <div style="width: 24px; height: 24px; border-radius: 50%; background: linear-gradient(135deg, #10B981, #059669); display: flex; align-items: center; justify-content: center; color: white; font-size: 0.65rem; font-weight: 600;">
-                                                ${employee.full_name.split(' ').map(n => n[0]).join('').substring(0, 2)}
+                                                ${esc(getInitials(employee.full_name))}
                                             </div>
                                             <div>
-                                                <div style="font-size: 0.85rem;">${employee.full_name}</div>
-                                                <small class="text-muted">${employee.position}</small>
+                                                <div style="font-size: 0.85rem;">${esc(employee.full_name)}</div>
+                                                <small class="text-muted">${esc(employee.position)}</small>
                                             </div>
                                         </div>
                                     ` : '-'}
                                 </td>
-                                <td>${insp.pressure || '-'}</td>
-                                <td>${insp.weight || '-'}</td>
+                                <td>${insp.pressure ?? '-'}</td>
+                                <td>${insp.weight ?? '-'}</td>
                                 <td>
                                     <span class="badge badge-sm ${getInspectionBadgeClass(insp.visual_inspection)}">
-                                        ${insp.visual_inspection || '-'}
+                                        ${esc(insp.visual_inspection) || '-'}
                                     </span>
                                 </td>
                                 <td>
                                     <span class="badge badge-sm ${getConditionBadgeClass(insp.seal_condition)}">
-                                        ${insp.seal_condition || '-'}
+                                        ${esc(insp.seal_condition) || '-'}
                                     </span>
                                 </td>
                                 <td>
                                     <span class="badge badge-sm ${getConditionBadgeClass(insp.safety_pin_condition)}">
-                                        ${insp.safety_pin_condition || '-'}
+                                        ${esc(insp.safety_pin_condition) || '-'}
                                     </span>
                                 </td>
                                 <td>
                                     <span class="badge badge-sm ${getConditionBadgeClass(insp.hose_condition)}">
-                                        ${insp.hose_condition || '-'}
+                                        ${esc(insp.hose_condition) || '-'}
                                     </span>
                                 </td>
                                 <td>
@@ -192,7 +192,7 @@ function renderInspectionsTable(inspections) {
                                 </td>
                                 <td>
                                     ${insp.comments ? `
-                                        <small class="text-muted" title="${insp.comments}">${insp.comments.length > 30 ? insp.comments.substring(0, 30) + '...' : insp.comments}</small>
+                                        <small class="text-muted" title="${esc(insp.comments)}">${esc(insp.comments.length > 30 ? insp.comments.substring(0, 30) + '...' : insp.comments)}</small>
                                     ` : '<span class="text-muted">-</span>'}
                                 </td>
                             </tr>
@@ -225,10 +225,21 @@ function getConditionBadgeClass(value) {
     }
 }
 
+// Просрочена ли дата (сравнение строк ГГГГ-ММ-ДД, без сдвига часового пояса)
 function isOverdue(dateString) {
     if (!dateString) return false;
-    const date = new Date(dateString);
-    return date < new Date();
+    return dateString < todayISO();
+}
+
+// Инициалы для аватарки сотрудника
+function getInitials(fullName) {
+    return (fullName || '')
+        .split(/\s+/)
+        .filter(Boolean)
+        .map(part => part[0])
+        .join('')
+        .substring(0, 2)
+        .toUpperCase();
 }
 
 async function filterInspections() {
@@ -247,16 +258,19 @@ async function filterInspections() {
     }
 }
 
-function resetInspectionFilters() {
+async function resetInspectionFilters() {
     document.getElementById('dateFrom').value = '';
     document.getElementById('dateTo').value = '';
-    API.getJournal().then(data => {
-        allInspections = data;
+    try {
+        allInspections = await API.getJournal();
         document.getElementById('inspectionsTable').innerHTML = renderInspectionsTable(allInspections);
-    });
+    } catch (error) {
+        showAlert('Ошибка загрузки журнала: ' + error.message, 'danger');
+    }
 }
 
-function showAddInspectionModal() {
+// onSuccess — что сделать после сохранения (по умолчанию обновить журнал)
+function showAddInspectionModal(onSuccess = loadInspections) {
     if (allExtinguishers.length === 0) {
         showAlert('Сначала добавьте огнетушители', 'warning');
         return;
@@ -267,13 +281,15 @@ function showAddInspectionModal() {
         return;
     }
 
-    const modal = new bootstrap.Modal(document.getElementById('formModal'));
+    const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('formModal'));
     document.getElementById('modalTitle').textContent = 'Провести проверку';
 
-    const today = new Date().toISOString().split('T')[0];
-    const nextInspection = new Date();
-    nextInspection.setMonth(nextInspection.getMonth() + 6);
-    const nextInspectionDate = nextInspection.toISOString().split('T')[0];
+    // Списанные огнетушители в списке не показываем
+    const decommissioned = statuses.find(st => st.name === 'Списан');
+    const activeExtinguishers = allExtinguishers.filter(ext => !decommissioned || ext.status_id !== decommissioned.id);
+
+    const today = todayISO();
+    const nextInspectionDate = addMonthsISO(today, 6);
 
     document.getElementById('modalBody').innerHTML = `
         <form id="inspectionForm">
@@ -282,11 +298,11 @@ function showAddInspectionModal() {
                     <label class="form-label">Огнетушитель *</label>
                     <select class="form-select" name="fire_extinguisher_id" required>
                         <option value="">Выберите огнетушитель</option>
-                        ${allExtinguishers.map(ext => {
+                        ${activeExtinguishers.map(ext => {
         const loc = locations.find(l => l.id === ext.location_id);
         return `
                                 <option value="${ext.id}">
-                                    ${ext.inventory_number} — ${ext.type} (${loc ? loc.name : '-'})
+                                    ${esc(ext.inventory_number)} — ${esc(ext.type)} (${loc ? esc(loc.name) : '-'})
                                 </option>
                             `;
     }).join('')}
@@ -294,7 +310,7 @@ function showAddInspectionModal() {
                 </div>
                 <div class="col-md-6 mb-3">
                     <label class="form-label">Дата проверки *</label>
-                    <input type="date" class="form-control" name="inspection_date"
+                    <input type="date" class="form-control" name="inspection_date" id="inspectionDateInput"
                            value="${today}" required max="${today}">
                 </div>
             </div>
@@ -305,7 +321,7 @@ function showAddInspectionModal() {
                     <option value="">Выберите сотрудника</option>
                     ${allEmployees.map(emp => `
                         <option value="${emp.id}">
-                            ${emp.full_name} — ${emp.position}
+                            ${esc(emp.full_name)} — ${esc(emp.position)}
                         </option>
                     `).join('')}
                 </select>
@@ -363,10 +379,10 @@ function showAddInspectionModal() {
             </div>
 
             <div class="mb-3">
-                <label class="form-label">Дата следующей проверки *</label>
-                <input type="date" class="form-control" name="next_inspection_date"
-                       value="${nextInspectionDate}" required>
-                <small class="text-muted">По умолчанию через 6 месяцев (ГОСТ)</small>
+                <label class="form-label">Дата следующей проверки</label>
+                <input type="date" class="form-control" name="next_inspection_date" id="nextInspectionInput"
+                       value="${nextInspectionDate}" min="${today}">
+                <small class="text-muted">По умолчанию через 6 месяцев после проверки. Если оставить пустым, сервер рассчитает сам.</small>
             </div>
 
             <div class="mb-3">
@@ -383,6 +399,17 @@ function showAddInspectionModal() {
             </div>
         </form>
     `;
+
+    // При смене даты проверки сдвигаем дату следующей, если её не меняли вручную
+    const inspectionInput = document.getElementById('inspectionDateInput');
+    const nextInput = document.getElementById('nextInspectionInput');
+    let nextEditedManually = false;
+    nextInput.addEventListener('input', () => { nextEditedManually = true; });
+    inspectionInput.addEventListener('change', () => {
+        if (!inspectionInput.value) return;
+        nextInput.min = inspectionInput.value;
+        if (!nextEditedManually) nextInput.value = addMonthsISO(inspectionInput.value, 6);
+    });
 
     document.getElementById('inspectionForm').addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -403,18 +430,11 @@ function showAddInspectionModal() {
             await API.createInspection(data);
             showAlert('Проверка успешно зарегистрирована', 'success');
             modal.hide();
-            loadInspections();
+            onSuccess();
         } catch (error) {
             showAlert('Ошибка: ' + error.message, 'danger');
         }
     });
 
     modal.show();
-}
-
-function formatDate(isoString) {
-    if (!isoString) return '';
-    const d = new Date(isoString);
-    if (Number.isNaN(d.getTime())) return isoString;
-    return d.toLocaleDateString('ru-RU');
 }

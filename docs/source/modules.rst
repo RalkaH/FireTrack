@@ -10,3 +10,4 @@ FireExtinguishers
    models
    schemas
    setup
+   status_logic

@@ -186,7 +186,7 @@ async function importLocationsText() {
         const result = await API.importLocations(form);
         renderImportResult(resultDiv, result);
     } catch (error) {
-        resultDiv.innerHTML = `<div class="alert alert-danger"><i class="bi bi-exclamation-triangle"></i> Ошибка: ${error.message}</div>`;
+        resultDiv.innerHTML = `<div class="alert alert-danger"><i class="bi bi-exclamation-triangle"></i> Ошибка: ${esc(error.message)}</div>`;
     }
 }
 
@@ -209,7 +209,7 @@ async function importEmployeesText() {
         const result = await API.importEmployees(form);
         renderImportResult(resultDiv, result);
     } catch (error) {
-        resultDiv.innerHTML = `<div class="alert alert-danger"><i class="bi bi-exclamation-triangle"></i> Ошибка: ${error.message}</div>`;
+        resultDiv.innerHTML = `<div class="alert alert-danger"><i class="bi bi-exclamation-triangle"></i> Ошибка: ${esc(error.message)}</div>`;
     }
 }
 
@@ -232,7 +232,7 @@ async function importExtinguishersText() {
         const result = await API.importExtinguishers(form);
         renderImportResult(resultDiv, result);
     } catch (error) {
-        resultDiv.innerHTML = `<div class="alert alert-danger"><i class="bi bi-exclamation-triangle"></i> Ошибка: ${error.message}</div>`;
+        resultDiv.innerHTML = `<div class="alert alert-danger"><i class="bi bi-exclamation-triangle"></i> Ошибка: ${esc(error.message)}</div>`;
     }
 }
 
@@ -255,7 +255,7 @@ async function importInspectionsText() {
         const result = await API.importInspections(form);
         renderImportResult(resultDiv, result);
     } catch (error) {
-        resultDiv.innerHTML = `<div class="alert alert-danger"><i class="bi bi-exclamation-triangle"></i> Ошибка: ${error.message}</div>`;
+        resultDiv.innerHTML = `<div class="alert alert-danger"><i class="bi bi-exclamation-triangle"></i> Ошибка: ${esc(error.message)}</div>`;
     }
 }
 
@@ -277,7 +277,7 @@ function renderImportResult(container, result) {
                 <i class="bi bi-exclamation-triangle"></i>
                 <strong>Ошибки (${result.errors.length}):</strong>
                 <ul class="mb-0 mt-2">
-                    ${result.errors.map(err => `<li>${err}</li>`).join('')}
+                    ${result.errors.map(err => `<li>${esc(err)}</li>`).join('')}
                 </ul>
             </div>
         `;

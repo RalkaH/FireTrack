@@ -4,14 +4,6 @@ routers package
 Submodules
 ----------
 
-routers.auth module
--------------------
-
-.. automodule:: routers.auth
-   :members:
-   :show-inheritance:
-   :undoc-members:
-
 routers.employees module
 ------------------------
 
