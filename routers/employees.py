@@ -1,4 +1,4 @@
-# routers/employees.py (v1.1)
+# routers/employees.py (v1.2)
 """
 Модуль для управления сотрудниками.
 Содержит маршруты для получения списка сотрудников и добавления новых.
@@ -6,9 +6,10 @@
 from datetime import datetime, timezone
 from typing import List
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Request, status
 from sqlalchemy.orm import Session
 
+import audit
 from auth import EDITOR_ROLES, get_current_active_user, require_role
 from db import get_db
 from models import Employee, User
@@ -42,6 +43,7 @@ def list_employees(db: Session = Depends(get_db)):
 )
 def create_employee(
     data: EmployeeCreate,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role(EDITOR_ROLES)),
 ):
@@ -61,6 +63,11 @@ def create_employee(
         created_at=datetime.now(timezone.utc),
     )
     db.add(emp)
+    db.flush()
+    audit.log(db, request, current_user, audit.ACTION_CREATE,
+              f"Добавлен сотрудник «{emp.full_name}»",
+              entity_type="employee", entity_id=emp.id,
+              changes=audit.diff({}, audit.snapshot(emp, ("full_name", "position"))))
     db.commit()
     db.refresh(emp)
     return emp

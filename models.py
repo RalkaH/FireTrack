@@ -1,9 +1,24 @@
-# models.py (v1.1)
+# models.py (v1.2)
 """
 Модуль описания ORM-моделей системы FireTrack.
-Определяет таблицы для локаций, статусов, огнетушителей, сотрудников, проверок и пользователей.
+Определяет таблицы для локаций, статусов, огнетушителей, сотрудников, проверок,
+пользователей, журнала действий и настроек.
+
+Схема базы меняется только через миграции Alembic (папка ``migrations``).
+Если добавляете колонку здесь, создайте для нее новую ревизию.
 """
-from sqlalchemy import Column, Integer, String, Date, DateTime, Float, ForeignKey
+from sqlalchemy import (
+    Boolean,
+    Column,
+    Date,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    text,
+)
 from sqlalchemy.orm import relationship
 from db import Base
 
@@ -33,7 +48,15 @@ class Status(Base):
 
 
 class FireExtinguisher(Base):
-    """Модель единицы противопожарного оборудования (огнетушителя)."""
+    """
+    Модель единицы противопожарного оборудования (огнетушителя).
+
+    Кроме плановых осмотров у огнетушителя есть сроки перезарядки и срок
+    службы. Интервалы по умолчанию зависят от вида огнетушащего вещества
+    и задаются в настройках (модуль ``deadlines``). Колонки
+    ``recharge_interval_months`` и ``service_life_years`` позволяют
+    переопределить их для конкретного экземпляра (например, по паспорту).
+    """
     __tablename__ = "FireExtinguishers"
     id = Column(Integer, primary_key=True, index=True)
     inventory_number = Column(String, unique=True, nullable=False)
@@ -46,6 +69,9 @@ class FireExtinguisher(Base):
     status_id = Column(Integer, ForeignKey("Statuses.id"), nullable=False)
     created_at = Column(DateTime, nullable=False)
     updated_at = Column(DateTime, nullable=False)
+    last_recharge_date = Column(Date, nullable=True)
+    recharge_interval_months = Column(Integer, nullable=True)
+    service_life_years = Column(Integer, nullable=True)
 
     location = relationship("Location", back_populates="fire_extinguishers")
     status = relationship("Status", back_populates="fire_extinguishers")
@@ -88,7 +114,13 @@ class Inspection(Base):
 
 
 class User(Base):
-    """Модель пользователя системы для авторизации и управления правами доступа."""
+    """
+    Модель пользователя системы для авторизации и управления правами доступа.
+
+    ``token_version`` входит в каждый выданный JWT. Смена или сброс пароля
+    и блокировка увеличивают его, и все старые токены пользователя
+    сразу перестают работать.
+    """
     __tablename__ = "Users"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -99,3 +131,40 @@ class User(Base):
     role = Column(String, nullable=False)  # "admin", "engineer", "viewer"
     is_active = Column(Integer, default=1)
     created_at = Column(DateTime, nullable=False)
+    must_change_password = Column(
+        Boolean, nullable=False, default=False, server_default=text("0"))
+    token_version = Column(
+        Integer, nullable=False, default=0, server_default=text("0"))
+    last_login_at = Column(DateTime, nullable=True)
+
+
+class AuditLog(Base):
+    """
+    Запись журнала действий пользователей.
+
+    Логин хранится строкой, поэтому запись остается понятной, даже если
+    пользователя потом переименуют или удалят. Пароли и хеши сюда
+    никогда не попадают.
+    """
+    __tablename__ = "AuditLog"
+
+    id = Column(Integer, primary_key=True)
+    created_at = Column(DateTime, nullable=False, index=True)
+    user_id = Column(Integer, nullable=True)
+    username = Column(String, nullable=True, index=True)
+    action = Column(String, nullable=False, index=True)
+    entity_type = Column(String, nullable=True, index=True)
+    entity_id = Column(Integer, nullable=True)
+    summary = Column(String, nullable=False)
+    changes = Column(Text, nullable=True)  # JSON: {"поле": {"old": ..., "new": ...}}
+    ip = Column(String, nullable=True)
+    user_agent = Column(String, nullable=True)
+
+
+class AppSetting(Base):
+    """Настройка приложения в виде пары «ключ — значение» (строкой)."""
+    __tablename__ = "Settings"
+
+    key = Column(String, primary_key=True)
+    value = Column(String, nullable=True)
+    updated_at = Column(DateTime, nullable=False)

@@ -1,4 +1,4 @@
-# routers/statuses.py (v1.2)
+# routers/statuses.py (v1.3)
 """
 Модуль для управления техническими статусами оборудования.
 Включает инициализацию дефолтных системных статусов и пересчет актуальности.
@@ -7,9 +7,10 @@
 from datetime import datetime, timezone
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
+import audit
 from auth import EDITOR_ROLES, ROLE_ADMIN, get_current_active_user, require_role
 from db import get_db
 from models import Status, User
@@ -45,6 +46,7 @@ def list_statuses(db: Session = Depends(get_db)):
 )
 def create_status(
     data: StatusCreate,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role([ROLE_ADMIN])),
 ):
@@ -77,6 +79,9 @@ def create_status(
     )
 
     db.add(status_obj)
+    db.flush()
+    audit.log(db, request, current_user, audit.ACTION_CREATE, f"Добавлен статус «{name}»",
+              entity_type="status", entity_id=status_obj.id)
     db.commit()
     db.refresh(status_obj)
 
@@ -108,6 +113,7 @@ def init_default_statuses(
 
 @router.post("/recalculate")
 def recalculate_statuses_endpoint(
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role(EDITOR_ROLES)),
 ):
@@ -126,4 +132,6 @@ def recalculate_statuses_endpoint(
         dict: Сообщение и количество измененных статусов.
     """
     changed = recalculate_statuses(db)
+    audit.log(db, request, current_user, audit.ACTION_RECALCULATE,
+              f"Ручной пересчет статусов, изменено: {changed}", commit=True)
     return {"detail": "Статусы пересчитаны", "changed": changed}

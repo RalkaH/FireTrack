@@ -1,4 +1,4 @@
-// extinguishers.js — Управление огнетушителями
+// extinguishers.js — Управление огнетушителями (карточки, сроки перезарядки и службы)
 
 let currentExtinguishers = [];
 let locations = [];
@@ -133,9 +133,9 @@ function renderExtinguishersTable(extinguishers) {
                         <th>Вместимость</th>
                         <th>Место</th>
                         <th>Статус</th>
-                        <th>Производитель</th>
                         <th>Дата изг.</th>
-                        <th style="width: 130px;">Действия</th>
+                        <th>Перезарядка</th>
+                        <th style="width: 170px;">Действия</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -159,14 +159,19 @@ function renderExtinguishersTable(extinguishers) {
                                         ${status ? esc(status.name) : '-'}
                                     </span>
                                 </td>
-                                <td>${esc(ext.manufacturer) || '-'}</td>
-                                <td>${formatDate(ext.manufacture_date)}</td>
+                                <td>${formatDate(ext.manufacture_date) || '-'}</td>
+                                <td>${renderDeadlineBadge(ext.next_recharge_date, ext.recharge_days_left, ext.recharge_state)}</td>
                                 <td>
                                     <div class="table-actions">
                                         <button class="btn btn-sm btn-info"
                                                 onclick="viewExtinguisherHistory(${ext.id})"
                                                 title="История проверок">
                                             <i class="bi bi-clock-history"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-warning requires-edit"
+                                                onclick="showRechargeModal(${ext.id})"
+                                                title="Отметить перезарядку">
+                                            <i class="bi bi-arrow-repeat"></i>
                                         </button>
                                         <button class="btn btn-sm btn-primary requires-edit"
                                                 onclick="showEditExtinguisherModal(${ext.id})"
@@ -233,10 +238,11 @@ function collectExtinguisherForm(form, forUpdate) {
     data.location_id = parseInt(data.location_id);
     data.status_id = parseInt(data.status_id);
 
-    ['manufacturer', 'manufacture_date', 'commissioning_date'].forEach(key => {
+    ['manufacturer', 'manufacture_date', 'commissioning_date', 'last_recharge_date',
+     'recharge_interval_months', 'service_life_years'].forEach(key => {
         const value = (data[key] || '').trim();
         if (value) {
-            data[key] = value;
+            data[key] = key.endsWith('_months') || key.endsWith('_years') ? parseInt(value, 10) : value;
         } else if (forUpdate) {
             data[key] = null;
         } else {
@@ -373,6 +379,29 @@ function renderExtinguisherForm(data = null) {
                     </select>
                 </div>
             </div>
+            <div class="form-section-title"><i class="bi bi-arrow-repeat"></i> Перезарядка и срок службы</div>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Последняя перезарядка</label>
+                    <input type="date" class="form-control" name="last_recharge_date" max="${today}"
+                           value="${isEdit ? esc(data.last_recharge_date) : ''}">
+                    <small class="text-muted">Если пусто, отсчёт от даты изготовления</small>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Интервал перезарядки, мес.</label>
+                    <input type="number" class="form-control" name="recharge_interval_months" min="1" max="240" step="1"
+                           placeholder="${isEdit && data.effective_recharge_interval_months && !data.recharge_interval_months ? esc(data.effective_recharge_interval_months) + ' (по виду ОТВ)' : 'по виду ОТВ'}"
+                           value="${isEdit && data.recharge_interval_months ? esc(data.recharge_interval_months) : ''}">
+                    <small class="text-muted">Только если в паспорте указан другой срок</small>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Срок службы, лет</label>
+                    <input type="number" class="form-control" name="service_life_years" min="1" max="50" step="1"
+                           placeholder="${isEdit && data.effective_service_life_years && !data.service_life_years ? esc(data.effective_service_life_years) + ' (по умолчанию)' : 'по умолчанию'}"
+                           value="${isEdit && data.service_life_years ? esc(data.service_life_years) : ''}">
+                    <small class="text-muted">По паспорту огнетушителя</small>
+                </div>
+            </div>
             <div class="text-end">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
                 <button type="submit" class="btn btn-primary">
@@ -426,6 +455,29 @@ async function viewExtinguisherHistory(id) {
             </span>
         </div>
 
+        <div class="row g-2 mb-3">
+            <div class="col-md-6">
+                <div class="deadline-box">
+                    <div class="deadline-title"><i class="bi bi-arrow-repeat"></i> Перезарядка</div>
+                    <div>${renderDeadlineBadge(extinguisher.next_recharge_date, extinguisher.recharge_days_left, extinguisher.recharge_state)}</div>
+                    <small class="text-muted">
+                        ${extinguisher.agent_label ? `ОТВ: ${esc(extinguisher.agent_label)}. ` : ''}
+                        ${extinguisher.effective_recharge_interval_months ? `Интервал ${extinguisher.effective_recharge_interval_months} мес.` : 'Интервал не определён, укажите его в карточке.'}
+                        ${extinguisher.last_recharge_date ? ` Последняя: ${formatDate(extinguisher.last_recharge_date)}.` : ''}
+                    </small>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="deadline-box">
+                    <div class="deadline-title"><i class="bi bi-hourglass-split"></i> Срок службы</div>
+                    <div>${renderDeadlineBadge(extinguisher.service_end_date, null, extinguisher.service_state)}</div>
+                    <small class="text-muted">
+                        ${extinguisher.effective_service_life_years ? `${extinguisher.effective_service_life_years} лет от даты изготовления.` : ''}
+                    </small>
+                </div>
+            </div>
+        </div>
+
         ${inspections.length > 0 ? `
             <div class="table-responsive">
                 <table class="table table-sm table-hover mb-0">
@@ -466,6 +518,79 @@ async function viewExtinguisherHistory(id) {
         </div>
     `;
 
+    modal.show();
+}
+
+// Бейдж срока: дата и сколько осталось, цвет по состоянию (ok, soon, overdue, unknown)
+function renderDeadlineBadge(dateIso, daysLeft, state) {
+    if (!dateIso || state === 'unknown') {
+        return '<span class="badge badge-sm status-decommissioned" title="Не хватает даты изготовления или интервала">нет данных</span>';
+    }
+    const cls = { ok: 'status-actual', soon: 'status-maintenance', overdue: 'status-expired' }[state] || 'status-decommissioned';
+    let suffix = '';
+    if (daysLeft !== null && daysLeft !== undefined) {
+        if (daysLeft < 0) suffix = ` · просрочено ${-daysLeft} ${plural(-daysLeft, 'день', 'дня', 'дней')}`;
+        else if (state === 'soon') suffix = ` · через ${daysLeft} ${plural(daysLeft, 'день', 'дня', 'дней')}`;
+    } else if (state === 'overdue') {
+        suffix = ' · истёк';
+    }
+    return `<span class="badge badge-sm ${cls}">${formatDate(dateIso)}${suffix}</span>`;
+}
+
+// Отметка о перезарядке. onSuccess — что обновить после сохранения
+async function showRechargeModal(id, onSuccess = loadExtinguishers) {
+    let ext;
+    try {
+        ext = await API.getExtinguisher(id);
+    } catch (error) {
+        showAlert('Не удалось загрузить огнетушитель: ' + error.message, 'danger');
+        return;
+    }
+    const today = todayISO();
+    const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('formModal'));
+    document.getElementById('modalTitle').textContent = `Перезарядка: ${ext.inventory_number}`;
+    document.getElementById('modalBody').innerHTML = `
+        <form id="rechargeForm">
+            <p class="text-muted">
+                ${esc(ext.type)}${ext.agent_label ? `, ${esc(ext.agent_label.toLowerCase())}` : ''}.
+                Текущий срок перезарядки: ${renderDeadlineBadge(ext.next_recharge_date, ext.recharge_days_left, ext.recharge_state)}
+            </p>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Дата перезарядки *</label>
+                    <input type="date" class="form-control" name="recharge_date" value="${today}" max="${today}" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Интервал по паспорту, мес.</label>
+                    <input type="number" class="form-control" name="recharge_interval_months" min="1" max="240"
+                           placeholder="${ext.effective_recharge_interval_months ? esc(ext.effective_recharge_interval_months) + ' (без изменений)' : ''}">
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Комментарий</label>
+                <input type="text" class="form-control" name="comment" maxlength="200" placeholder="Организация, номер акта">
+            </div>
+            <div class="text-end">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="submit" class="btn btn-warning"><i class="bi bi-arrow-repeat"></i> Отметить перезарядку</button>
+            </div>
+        </form>
+    `;
+    document.getElementById('rechargeForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const form = Object.fromEntries(new FormData(e.target));
+        const data = { recharge_date: form.recharge_date };
+        if (form.recharge_interval_months) data.recharge_interval_months = parseInt(form.recharge_interval_months, 10);
+        if (form.comment.trim()) data.comment = form.comment.trim();
+        try {
+            const updated = await API.markRecharged(id, data);
+            showAlert(`Перезарядка отмечена. Следующая: ${formatDate(updated.next_recharge_date) || 'не определена'}`, 'success');
+            modal.hide();
+            onSuccess();
+        } catch (error) {
+            showAlert('Ошибка: ' + error.message, 'danger');
+        }
+    });
     modal.show();
 }
 

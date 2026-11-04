@@ -1,4 +1,4 @@
-# routers/locations.py (v1.1)
+# routers/locations.py (v1.2)
 """
 Модуль управления местами расположения (локациями).
 Предоставляет возможности добавления новых кабинетов/этажей и получения их списка.
@@ -6,9 +6,10 @@
 from datetime import datetime, timezone
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
+import audit
 from auth import EDITOR_ROLES, get_current_active_user, require_role
 from db import get_db
 from models import Location, User
@@ -42,6 +43,7 @@ def list_locations(db: Session = Depends(get_db)):
 )
 def create_location(
     data: LocationCreate,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role(EDITOR_ROLES)),
 ):
@@ -75,6 +77,10 @@ def create_location(
         created_at=datetime.now(timezone.utc),
     )
     db.add(loc)
+    db.flush()
+    audit.log(db, request, current_user, audit.ACTION_CREATE, f"Добавлено место «{loc.name}»",
+              entity_type="location", entity_id=loc.id,
+              changes=audit.diff({}, audit.snapshot(loc, ("name", "description"))))
     db.commit()
     db.refresh(loc)
     return loc

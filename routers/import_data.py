@@ -1,4 +1,4 @@
-# import_data.py (v1.2)
+# import_data.py (v1.3)
 """
 Модуль для импорта данных в систему из CSV-файлов.
 Предоставляет эндпоинты для массовой загрузки местоположений,
@@ -11,18 +11,21 @@
 * Ошибочные строки пропускаются, а причина попадает в список ошибок;
   остальные строки импортируются.
 * Дубликаты внутри одного файла тоже отлавливаются.
+* Итог каждого импорта (сколько создано и сколько ошибок) пишется
+  в журнал действий.
 """
 import csv
 from datetime import date, datetime, timezone
 from io import StringIO
 from typing import Dict, Iterable, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, Request, status, UploadFile, File
 from fastapi.responses import StreamingResponse
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from auth import EDITOR_ROLES, require_role
+import audit
+from auth import EDITOR_ROLES, get_current_active_user, require_role
 from db import get_db
 from models import Location, Employee, FireExtinguisher, Inspection, Status, User
 from status_logic import STATUS_ACTUAL, STATUS_DECOMMISSIONED, recalculate_statuses
@@ -31,6 +34,7 @@ from status_logic import STATUS_ACTUAL, STATUS_DECOMMISSIONED, recalculate_statu
 router = APIRouter(
     prefix="/import",
     tags=["Import"],
+    dependencies=[Depends(get_current_active_user)],
 )
 
 
@@ -150,8 +154,34 @@ def _result(created: List[str], errors: List[str]) -> dict:
     return {"success": len(created), "created": created, "errors": errors}
 
 
+def _parse_int(value: str, column: str, low: int, high: int) -> Optional[int]:
+    """Разбирает целое число в заданном диапазоне (пустая строка дает None)."""
+    if not value:
+        return None
+    try:
+        number = int(value)
+    except ValueError:
+        raise RowError(f"неверное целое число в поле '{column}': '{value}'")
+    if not low <= number <= high:
+        raise RowError(f"значение поля '{column}' должно быть от {low} до {high}")
+    return number
+
+
+def _log_import(db: Session, request: Request, user: User, what: str,
+                created: List[str], errors: List[str], entity_type: str) -> None:
+    """Пишет итог импорта в журнал действий (без commit)."""
+    changes = {"created": {"old": None, "new": len(created)},
+               "errors": {"old": None, "new": len(errors)}}
+    if errors:
+        changes["first_errors"] = {"old": None, "new": errors[:10]}
+    audit.log(db, request, user, audit.ACTION_IMPORT,
+              f"Импорт {what}: создано {len(created)}, ошибок {len(errors)}",
+              entity_type=entity_type, changes=changes)
+
+
 @router.post("/locations")
 async def import_locations(
+    request: Request,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role(EDITOR_ROLES))
@@ -189,12 +219,14 @@ async def import_locations(
         except RowError as e:
             errors.append(f"Строка {row_num}: {e}")
 
+    _log_import(db, request, current_user, "мест", created, errors, "location")
     _commit(db)
     return _result(created, errors)
 
 
 @router.post("/employees")
 async def import_employees(
+    request: Request,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role(EDITOR_ROLES))
@@ -234,12 +266,14 @@ async def import_employees(
         except RowError as e:
             errors.append(f"Строка {row_num}: {e}")
 
+    _log_import(db, request, current_user, "сотрудников", created, errors, "employee")
     _commit(db)
     return _result(created, errors)
 
 
 @router.post("/extinguishers")
 async def import_extinguishers(
+    request: Request,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role(EDITOR_ROLES))
@@ -249,6 +283,7 @@ async def import_extinguishers(
 
     Связывает огнетушители с существующими локациями и статусами по их названиям.
     Формат колонок: inventory_number;type;capacity;manufacturer;manufacture_date;commissioning_date;location_name;status_name
+    Необязательные колонки сроков: last_recharge_date;recharge_interval_months;service_life_years
 
     Args:
         file (UploadFile): Файл формата CSV.
@@ -289,8 +324,13 @@ async def import_extinguishers(
 
             manufacture_date = _parse_date(_cell(row, "manufacture_date"), "manufacture_date")
             commissioning_date = _parse_date(_cell(row, "commissioning_date"), "commissioning_date")
+            last_recharge_date = _parse_date(_cell(row, "last_recharge_date"), "last_recharge_date")
+            recharge_interval = _parse_int(_cell(row, "recharge_interval_months"),
+                                           "recharge_interval_months", 1, 240)
+            service_life = _parse_int(_cell(row, "service_life_years"), "service_life_years", 1, 50)
             for value, column in ((manufacture_date, "manufacture_date"),
-                                  (commissioning_date, "commissioning_date")):
+                                  (commissioning_date, "commissioning_date"),
+                                  (last_recharge_date, "last_recharge_date")):
                 if value and value > today:
                     raise RowError(f"дата в поле '{column}' не может быть из будущего")
 
@@ -302,6 +342,9 @@ async def import_extinguishers(
                 manufacturer=_cell(row, "manufacturer") or None,
                 manufacture_date=manufacture_date,
                 commissioning_date=commissioning_date,
+                last_recharge_date=last_recharge_date,
+                recharge_interval_months=recharge_interval,
+                service_life_years=service_life,
                 location_id=locations[location_name],
                 status_id=statuses[status_name],
                 created_at=now,
@@ -312,12 +355,14 @@ async def import_extinguishers(
         except RowError as e:
             errors.append(f"Строка {row_num}: {e}")
 
+    _log_import(db, request, current_user, "огнетушителей", created, errors, "extinguisher")
     _commit(db)
     return _result(created, errors)
 
 
 @router.post("/inspections")
 async def import_inspections(
+    request: Request,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role(EDITOR_ROLES))
@@ -392,6 +437,7 @@ async def import_inspections(
         except RowError as e:
             errors.append(f"Строка {row_num}: {e}")
 
+    _log_import(db, request, current_user, "проверок", created, errors, "inspection")
     _commit(db)
     recalculate_statuses(db, extinguisher_ids=touched_ids,
                          keep_manual=[STATUS_DECOMMISSIONED])
@@ -449,15 +495,16 @@ def download_extinguishers_template():
     """
     csv_content = (
         "inventory_number;type;capacity;manufacturer;manufacture_date;"
-        "commissioning_date;location_name;status_name\n"
+        "commissioning_date;location_name;status_name;"
+        "last_recharge_date;recharge_interval_months;service_life_years\n"
     )
     csv_content += (
         "ОУ-001;ОУ-8;8.0;ПожТехника;2023-05-15;2023-06-01;"
-        "Кабинет 101;Актуально\n"
+        "Кабинет 101;Актуально;;;\n"
     )
     csv_content += (
         "ОП-002;ОП-5;5.0;ТПКН;2024-01-10;2024-02-01;"
-        "Коридор 2 этаж;Актуально\n"
+        "Коридор 2 этаж;Актуально;2025-03-01;60;10\n"
     )
 
     return _csv_response(csv_content, "extinguishers_template.csv")

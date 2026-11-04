@@ -1,4 +1,4 @@
-# routers/reports.py (v1.3)
+# routers/reports.py (v1.4)
 """
 Модуль генерации отчетов и аналитики.
 Обеспечивает формирование статистики для дашборда, списков просроченного оборудования,
@@ -7,20 +7,30 @@
 Все сроки считаются по ПОСЛЕДНЕЙ проверке каждого огнетушителя, поэтому
 старые записи журнала не попадают в «предстоящие» и не завышают счетчики.
 Списанные огнетушители в предстоящие проверки не попадают.
+
+Отчеты для печати (журнал проверок, журнал ТО по форме Г.2
+СП 9.13130.2009, состояние парка) отдаются в двух видах: XLSX-файлом
+и JSON для страницы печати ``/static/print.html``. Данные для обоих
+готовит модуль ``report_data``.
 """
 import csv
 from datetime import date, timedelta
 from io import StringIO
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query
-from fastapi.responses import StreamingResponse
+from fastapi import APIRouter, Depends, HTTPException, Request, status, Query
+from fastapi.responses import Response, StreamingResponse
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+import audit
+import report_data
+import xlsx_export
+from app_settings import get_settings
 from auth import get_current_active_user
 from db import get_db
-from models import FireExtinguisher, Inspection, Location, Status, Employee
+from deadlines import STATE_OVERDUE, STATE_SOON, compute_deadlines
+from models import FireExtinguisher, Inspection, Location, Status, Employee, User
 from schemas import InspectionRead
 from status_logic import (
     STATUS_DECOMMISSIONED,
@@ -79,6 +89,47 @@ def _upcoming_rows(db: Session, days: int):
         query = query.filter(FireExtinguisher.status_id != decommissioned_id)
 
     return query.order_by(latest.c.next_inspection_date).all()
+
+
+def _recharge_rows(db: Session) -> list:
+    """
+    Огнетушители, у которых перезарядка просрочена или скоро (в пределах
+    ``recharge_warning_days`` из настроек). Списанные не учитываются.
+
+    Args:
+        db (Session): Сессия базы данных.
+
+    Returns:
+        list: Словари с номером, местом, сроком и состоянием, просроченные сверху.
+    """
+    settings = get_settings(db)
+    today = date.today()
+    decommissioned_id = status_ids_by_name(db).get(STATUS_DECOMMISSIONED)
+    rows = (
+        db.query(FireExtinguisher, Location)
+        .join(Location, FireExtinguisher.location_id == Location.id)
+        .all()
+    )
+    result = []
+    for fe, loc in rows:
+        if fe.status_id == decommissioned_id:
+            continue
+        d = compute_deadlines(fe, settings, today)
+        if d["recharge_state"] not in (STATE_OVERDUE, STATE_SOON):
+            continue
+        result.append({
+            "extinguisher_id": fe.id,
+            "inventory_number": fe.inventory_number,
+            "type": fe.type,
+            "agent": d["agent_label"],
+            "location": loc.name,
+            "next_recharge": d["next_recharge_date"].isoformat(),
+            "days_left": d["recharge_days_left"],
+            "state": d["recharge_state"],
+            "basis": d["recharge_basis"],
+        })
+    result.sort(key=lambda r: r["next_recharge"])
+    return result
 
 
 @router.get("/journal", response_model=List[InspectionRead])
@@ -248,6 +299,7 @@ def dashboard_statistics(db: Session = Depends(get_db)):
     - Разбивка по текущим статусам
     - Количество огнетушителей, которым проверка нужна в ближайшие 30 дней
     - Общее количество просроченного оборудования
+    - Количество огнетушителей с просроченной и подходящей перезарядкой
 
     Args:
         db (Session): Сессия базы данных.
@@ -264,12 +316,16 @@ def dashboard_statistics(db: Session = Depends(get_db)):
         .all()
     )
     status_breakdown = {row[0]: int(row[1]) for row in status_stats}
+    recharge = _recharge_rows(db)
 
     return {
         "total_extinguishers": total,
         "status_breakdown": status_breakdown,
         "expired_count": status_breakdown.get(STATUS_EXPIRED, 0),
         "upcoming_inspections_30_days": len(_upcoming_rows(db, 30)),
+        "recharge_overdue_count": sum(1 for r in recharge if r["state"] == STATE_OVERDUE),
+        "recharge_soon_count": sum(1 for r in recharge if r["state"] == STATE_SOON),
+        "recharge_warning_days": get_settings(db)["recharge_warning_days"],
     }
 
 
@@ -354,3 +410,149 @@ def export_journal_json(
     """
     query = _filtered_journal(db, date_from, date_to)
     return query.order_by(Inspection.inspection_date, Inspection.id).all()
+
+
+@router.get("/recharge")
+def recharge_report(db: Session = Depends(get_db)):
+    """
+    Огнетушители с просроченной или подходящей перезарядкой (для дашборда).
+
+    Returns:
+        list: Список с датой перезарядки, остатком дней и состоянием
+        (``overdue`` или ``soon``).
+    """
+    return _recharge_rows(db)
+
+
+# ---------- Отчеты для печати ----------
+
+def _xlsx_response(content: bytes, filename: str) -> Response:
+    """Отдает XLSX-файл на скачивание."""
+    return Response(
+        content=content,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+def _log_export(db: Session, request: Request, user: User, what: str) -> None:
+    """Пишет выгрузку отчета в журнал действий."""
+    audit.log(db, request, user, audit.ACTION_EXPORT, f"Выгрузка отчета: {what}",
+              entity_type="report", commit=True)
+
+
+def _period_suffix(date_from: Optional[date], date_to: Optional[date]) -> str:
+    """Часть имени файла с периодом."""
+    if date_from or date_to:
+        return f"{date_from or 'start'}_{date_to or 'today'}"
+    return date.today().isoformat()
+
+
+@router.get("/print/journal")
+def print_journal(
+    date_from: Optional[date] = None,
+    date_to: Optional[date] = None,
+    db: Session = Depends(get_db),
+):
+    """
+    Журнал проверок за период для страницы печати.
+
+    Returns:
+        dict: ``header`` (организация, ответственный), ``period`` и ``rows``.
+    """
+    return {"header": report_data.report_header(db),
+            "period": report_data.period_label(date_from, date_to),
+            "rows": report_data.journal_rows(db, date_from, date_to)}
+
+
+@router.get("/print/maintenance")
+def print_maintenance(
+    date_from: Optional[date] = None,
+    date_to: Optional[date] = None,
+    db: Session = Depends(get_db),
+):
+    """
+    Журнал ТО огнетушителей по форме Г.2 СП 9.13130.2009 для страницы печати.
+
+    Returns:
+        dict: ``header``, ``period`` и ``rows``.
+    """
+    return {"header": report_data.report_header(db),
+            "period": report_data.period_label(date_from, date_to),
+            "rows": report_data.maintenance_rows(db, date_from, date_to)}
+
+
+@router.get("/print/fleet")
+def print_fleet(
+    days: int = Query(30, ge=1, le=365, description="Горизонт ближайших проверок, дней"),
+    db: Session = Depends(get_db),
+):
+    """
+    Отчет «Состояние парка» для страницы печати.
+
+    Returns:
+        dict: ``header`` и ``summary``.
+    """
+    return {"header": report_data.report_header(db),
+            "summary": report_data.fleet_summary(db, horizon_days=days)}
+
+
+@router.get("/journal.xlsx")
+def journal_xlsx(
+    request: Request,
+    date_from: Optional[date] = None,
+    date_to: Optional[date] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """
+    Журнал проверок за период в Excel (оформлен для печати).
+
+    Returns:
+        Response: Файл XLSX.
+    """
+    period = report_data.period_label(date_from, date_to)
+    content = xlsx_export.journal_workbook(
+        report_data.journal_rows(db, date_from, date_to), report_data.report_header(db), period)
+    _log_export(db, request, current_user, f"журнал проверок XLSX ({period})")
+    return _xlsx_response(content, f"journal_{_period_suffix(date_from, date_to)}.xlsx")
+
+
+@router.get("/maintenance.xlsx")
+def maintenance_xlsx(
+    request: Request,
+    date_from: Optional[date] = None,
+    date_to: Optional[date] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """
+    Журнал ТО огнетушителей (форма Г.2 СП 9.13130.2009) в Excel.
+
+    Returns:
+        Response: Файл XLSX.
+    """
+    period = report_data.period_label(date_from, date_to)
+    content = xlsx_export.maintenance_workbook(
+        report_data.maintenance_rows(db, date_from, date_to), report_data.report_header(db), period)
+    _log_export(db, request, current_user, f"журнал ТО XLSX ({period})")
+    return _xlsx_response(content, f"maintenance_{_period_suffix(date_from, date_to)}.xlsx")
+
+
+@router.get("/fleet.xlsx")
+def fleet_xlsx(
+    request: Request,
+    days: int = Query(30, ge=1, le=365),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """
+    Отчет «Состояние парка» в Excel (несколько листов).
+
+    Returns:
+        Response: Файл XLSX.
+    """
+    content = xlsx_export.fleet_workbook(
+        report_data.fleet_summary(db, horizon_days=days), report_data.report_header(db))
+    _log_export(db, request, current_user, "состояние парка XLSX")
+    return _xlsx_response(content, f"fleet_{date.today().isoformat()}.xlsx")

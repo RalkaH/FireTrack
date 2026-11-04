@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="ru">
+<!--
+  print.html — отчёты для печати и сохранения в PDF.
+  Параметры: ?report=journal|maintenance|fleet, date_from, date_to (журналы), days (состояние парка).
+  Данные приходят из /reports/print/<report>; оформление рассчитано на A4 в альбомной ориентации.
+-->
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FireTrack — печать отчёта</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <style>
+    :root {
+      --ink: #111827;
+      --muted: #6B7280;
+      --line: #9CA3AF;
+      --head: #E7ECF3;
+      --alert: #FDECEC;
+      --warn: #FFF6E0;
+      --accent: #F97316;
+    }
+    @page { size: A4 landscape; margin: 12mm 10mm 14mm; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #E5E7EB;
+      color: var(--ink);
+      font: 10pt/1.35 "Segoe UI", "Inter", Arial, sans-serif;
+    }
+    .toolbar {
+      position: sticky; top: 0; z-index: 10;
+      display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;
+      padding: 0.6rem 1rem;
+      background: #0B1120; color: #CBD5E1;
+      font-size: 0.9rem;
+    }
+    .toolbar strong { color: #fff; margin-right: auto; }
+    .toolbar button {
+      border: 0; border-radius: 999px; padding: 0.45rem 1rem; cursor: pointer;
+      font: inherit; font-weight: 600;
+    }
+    .btn-print { background: var(--accent); color: #fff; }
+    .btn-close-page { background: rgba(255,255,255,0.1); color: #E5E7EB; }
+    .sheet {
+      background: #fff;
+      max-width: 287mm;
+      margin: 1rem auto;
+      padding: 10mm;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+    }
+    .org { font-weight: 700; font-size: 11pt; }
+    h1 { font-size: 15pt; text-align: center; margin: 0.4rem 0 0.2rem; }
+    .subtitle { text-align: center; color: var(--muted); margin: 0; }
+    .meta { display: flex; justify-content: space-between; color: var(--muted); font-size: 8.5pt; margin: 0.6rem 0; }
+    h2 { font-size: 11.5pt; margin: 1.1rem 0 0.4rem; break-after: avoid; }
+    table { width: 100%; border-collapse: collapse; }
+    thead { display: table-header-group; }
+    th, td { border: 0.6pt solid var(--line); padding: 3px 5px; vertical-align: top; }
+    th { background: var(--head); font-weight: 600; text-align: center; vertical-align: middle; font-size: 8.5pt; }
+    td { font-size: 9pt; }
+    tr { break-inside: avoid; }
+    td.num, td.date { text-align: center; white-space: nowrap; }
+    tr.alert td { background: var(--alert); }
+    tr.warn td { background: var(--warn); }
+    tbody tr:nth-child(even):not(.alert):not(.warn) td { background: #F9FAFB; }
+    .empty { text-align: center; color: var(--muted); font-style: italic; padding: 8px; }
+    .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 6px; margin: 0.6rem 0; }
+    .tile { border: 0.6pt solid var(--line); border-radius: 4px; padding: 6px 8px; }
+    .tile .v { font-size: 15pt; font-weight: 700; }
+    .tile .l { color: var(--muted); font-size: 8pt; }
+    .signature { display: grid; grid-template-columns: 2fr 1fr 1.4fr; gap: 1rem; margin-top: 1.4rem; align-items: end; break-inside: avoid; }
+    .signature .line { border-bottom: 0.6pt solid var(--ink); height: 1.2rem; }
+    .signature small { display: block; color: var(--muted); font-size: 7.5pt; text-align: center; }
+    .loading, .error { text-align: center; padding: 3rem; color: var(--muted); }
+    .error { color: #B91C1C; }
+    @media print {
+      body { background: #fff; }
+      .toolbar { display: none; }
+      .sheet { box-shadow: none; margin: 0; padding: 0; max-width: none; }
+      tbody tr:nth-child(even):not(.alert):not(.warn) td { background: none; }
+      tr.alert td, tr.warn td, th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <strong><i class="bi bi-fire"></i> FireTrack · печать отчёта</strong>
+    <span>Для PDF выберите в окне печати «Сохранить как PDF»</span>
+    <button class="btn-print" onclick="window.print()"><i class="bi bi-printer"></i> Печать / PDF</button>
+    <button class="btn-close-page" onclick="window.close()">Закрыть</button>
+  </div>
+  <div class="sheet" id="sheet"><div class="loading">Формирую отчёт...</div></div>
+
+  <script src="/static/js/api.js"></script>
+  <script>
+    const params = new URLSearchParams(location.search);
+    const report = params.get('report') || 'journal';
+
+    const val = v => (v === null || v === undefined || v === '') ? '' : esc(v);
+    const num = v => (v === null || v === undefined) ? '' : esc(String(v).replace('.', ','));
+
+    function table(columns, rows, emptyText, rowClass) {
+      const head = columns.map(c => `<th${c.width ? ` style="width:${c.width}"` : ''}>${esc(c.title)}</th>`).join('');
+      const body = rows.length
+        ? rows.map(r => `<tr class="${rowClass ? rowClass(r) : ''}">${columns.map(c =>
+            `<td class="${c.cls || ''}">${c.render ? c.render(r) : val(r[c.key])}</td>`).join('')}</tr>`).join('')
+        : `<tr><td class="empty" colspan="${columns.length}">${esc(emptyText || 'Нет данных')}</td></tr>`;
+      return `<table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
+    }
+
+    function header(h, title, subtitle) {
+      const now = new Date().toLocaleString('ru-RU', { dateStyle: 'short', timeStyle: 'short' });
+      return `
+        ${h.organization_name ? `<div class="org">${esc(h.organization_name)}</div>` : ''}
+        <h1>${esc(title)}</h1>
+        ${subtitle ? `<p class="subtitle">${subtitle}</p>` : ''}
+        <div class="meta"><span>FireTrack</span><span>Сформирован ${esc(now)}</span></div>`;
+    }
+
+    function signature(h) {
+      return `
+        <div class="signature">
+          <div>${esc(h.responsible_position || 'Ответственный за пожарную безопасность')}</div>
+          <div><div class="line"></div><small>подпись</small></div>
+          <div><div class="line">${h.responsible_name ? esc(h.responsible_name) : ''}</div><small>фамилия, инициалы</small></div>
+        </div>
+        <p style="margin-top:0.8rem">«___» ____________ 20___ г.</p>`;
+    }
+
+    function renderJournal(data) {
+      const cols = [
+        { key: 'n', title: '№', cls: 'num', width: '3%' },
+        { title: 'Дата', cls: 'date', render: r => formatDate(r.inspection_date) },
+        { key: 'inventory_number', title: 'Инв. номер' },
+        { key: 'type', title: 'Тип' },
+        { key: 'location', title: 'Место установки' },
+        { title: 'Давление, МПа', cls: 'num', render: r => num(r.pressure) },
+        { title: 'Масса, кг', cls: 'num', render: r => num(r.weight) },
+        { key: 'visual_inspection', title: 'Осмотр' },
+        { key: 'seal_condition', title: 'Пломба' },
+        { key: 'safety_pin_condition', title: 'Чека' },
+        { key: 'hose_condition', title: 'Шланг' },
+        { title: 'Замечания', render: r => [r.defects, r.comments].filter(Boolean).map(esc).join('. ') },
+        { title: 'След. проверка', cls: 'date', render: r => formatDate(r.next_inspection_date) },
+        { title: 'Проверяющий', render: r => `${val(r.employee)}<br><small>${val(r.employee_position)}</small>` },
+      ];
+      return header(data.header, 'Журнал проверок огнетушителей',
+                    `Период: ${esc(data.period)} · проверок: ${data.rows.length}`)
+        + table(cols, data.rows, 'За выбранный период проверок нет', r => r.defects ? 'alert' : '')
+        + signature(data.header);
+    }
+
+    function renderMaintenance(data) {
+      const groupCols = [
+        ['units_check', 'Проверка узлов огнетушителя'], ['agent_check', 'Проверка качества ОТВ'],
+        ['pressure_check', 'Проверка индикатора давления'], ['recharge', 'Перезарядка огнетушителя'],
+        ['units_test', 'Испытание узлов огнетушителя'],
+      ];
+      const rows = data.rows.length ? data.rows.map(r => `
+        <tr>
+          <td class="num">${r.n}</td><td>${val(r.extinguisher)}</td>
+          ${groupCols.map(([k]) => `<td>${val(r[k])}</td>`).join('')}
+          <td>${val(r.remarks)}</td><td>${val(r.measures)}</td><td>${val(r.responsible)}</td>
+        </tr>`).join('')
+        : `<tr><td class="empty" colspan="10">За выбранный период записей нет</td></tr>`;
+      return header(data.header, 'Журнал технического обслуживания огнетушителей',
+                    `Период: ${esc(data.period)} · форма Г.2 приложения Г СП 9.13130.2009 (рекомендуемая)`)
+        + `<table>
+            <thead>
+              <tr>
+                <th rowspan="2" style="width:3%">№ п/п</th>
+                <th rowspan="2" style="width:10%">№ и марка огнетушителя</th>
+                <th colspan="5">Техническое обслуживание (вид и дата)</th>
+                <th rowspan="2">Замечания о техническом состоянии</th>
+                <th rowspan="2" style="width:10%">Принятые меры</th>
+                <th rowspan="2" style="width:14%">Должность, фамилия, инициалы и подпись ответственного лица</th>
+              </tr>
+              <tr>${groupCols.map(([, t]) => `<th style="width:8%">${t}</th>`).join('')}</tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>`
+        + signature(data.header);
+    }
+
+    function renderFleet(data) {
+      const s = data.summary;
+      const tiles = [['Всего', s.total], ...Object.entries(s.by_status)]
+        .map(([l, v]) => `<div class="tile"><div class="v">${v}</div><div class="l">${esc(l)}</div></div>`).join('');
+      const days = r => r.days_left === null || r.days_left === undefined ? '' : r.days_left;
+      return header(data.header, 'Состояние парка огнетушителей', `на ${formatDate(s.date)}`)
+        + `<div class="summary">${tiles}</div>`
+        + `<h2>Просроченные и требующие обслуживания (${s.problems.length})</h2>`
+        + table([
+            { key: 'inventory_number', title: 'Инв. номер' }, { key: 'type', title: 'Тип' },
+            { key: 'location', title: 'Место' }, { key: 'status', title: 'Статус' },
+            { title: 'Последняя проверка', cls: 'date', render: r => formatDate(r.last_inspection) || 'не было' },
+            { title: 'Срок проверки', cls: 'date', render: r => formatDate(r.next_inspection) },
+            { title: 'Просрочено, дн.', cls: 'num', render: r => val(r.days_overdue) },
+          ], s.problems, 'Проблемных огнетушителей нет', () => 'alert')
+        + `<h2>Перезарядка: просрочена или в ближайшие ${s.recharge_warning_days} дн. (${s.recharge.length})</h2>`
+        + table([
+            { key: 'inventory_number', title: 'Инв. номер' }, { key: 'type', title: 'Тип' },
+            { key: 'agent', title: 'ОТВ' }, { key: 'location', title: 'Место' },
+            { title: 'Срок перезарядки', cls: 'date', render: r => formatDate(r.next_recharge) },
+            { title: 'Осталось, дн.', cls: 'num', render: days }, { key: 'basis', title: 'Отсчёт от' },
+          ], s.recharge, 'Перезарядка в ближайшее время не требуется', r => r.state === 'overdue' ? 'alert' : 'warn')
+        + `<h2>Плановые проверки в ближайшие ${s.horizon_days} дн. (${s.upcoming_inspections.length})</h2>`
+        + table([
+            { key: 'inventory_number', title: 'Инв. номер' }, { key: 'type', title: 'Тип' },
+            { key: 'location', title: 'Место' },
+            { title: 'Дата проверки', cls: 'date', render: r => formatDate(r.next_inspection) },
+            { title: 'Осталось, дн.', cls: 'num', render: days },
+          ], s.upcoming_inspections, 'Проверок в этот период нет')
+        + `<h2>Срок службы истёк или истекает (${s.service_life.length})</h2>`
+        + table([
+            { key: 'inventory_number', title: 'Инв. номер' }, { key: 'type', title: 'Тип' },
+            { key: 'location', title: 'Место' },
+            { title: 'Окончание срока службы', cls: 'date', render: r => formatDate(r.service_end) },
+            { title: 'Осталось, дн.', cls: 'num', render: days },
+          ], s.service_life, 'Сроки службы в порядке', r => r.state === 'overdue' ? 'alert' : 'warn')
+        + `<h2>По местам установки</h2>`
+        + table([
+            { key: 'location', title: 'Место' }, { key: 'total', title: 'Всего', cls: 'num' },
+            { key: 'problems', title: 'Просрочено или требует обслуживания', cls: 'num' },
+          ], s.by_location, 'Нет данных')
+        + signature(data.header);
+    }
+
+    const RENDERERS = { journal: renderJournal, maintenance: renderMaintenance, fleet: renderFleet };
+    const TITLES = { journal: 'Журнал проверок', maintenance: 'Журнал ТО (Г.2)', fleet: 'Состояние парка' };
+
+    (async () => {
+      const sheet = document.getElementById('sheet');
+      if (!RENDERERS[report]) {
+        sheet.innerHTML = '<div class="error">Неизвестный отчёт</div>';
+        return;
+      }
+      if (!getToken() || !isTokenValid()) { redirectToLogin('expired'); return; }
+      const query = {};
+      for (const key of ['date_from', 'date_to', 'days']) if (params.get(key)) query[key] = params.get(key);
+      try {
+        const data = await API.getPrintData(report, query);
+        document.title = `${TITLES[report]} — FireTrack`;
+        sheet.innerHTML = RENDERERS[report](data);
+      } catch (error) {
+        sheet.innerHTML = `<div class="error">Не удалось сформировать отчёт: ${esc(error.message)}</div>`;
+      }
+    })();
+  </script>
+</body>
+</html>

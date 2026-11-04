@@ -11,10 +11,11 @@ async function loadDashboard() {
     `;
 
     try {
-        const [stats, upcoming, expired] = await Promise.all([
+        const [stats, upcoming, expired, recharge] = await Promise.all([
             API.getDashboard(),
             API.getUpcomingInspections(30),
-            API.getExpiredList()
+            API.getExpiredList(),
+            API.getRechargeList()
         ]);
 
         content.innerHTML = `
@@ -97,6 +98,18 @@ async function loadDashboard() {
                 </div>
             </div>
 
+            <!-- Recharge -->
+            <div class="section-card mb-4 animate-fadeInUp stagger-5">
+                <div class="card-header d-flex align-items-center flex-wrap gap-2">
+                    <span><i class="bi bi-arrow-repeat"></i> Перезарядка</span>
+                    <span class="badge badge-sm status-expired ms-2">Просрочена: ${stats.recharge_overdue_count}</span>
+                    <span class="badge badge-sm status-maintenance">В ближайшие ${stats.recharge_warning_days} дн.: ${stats.recharge_soon_count}</span>
+                </div>
+                <div class="card-body">
+                    ${renderRecharge(recharge)}
+                </div>
+            </div>
+
             <!-- Quick Actions -->
             <div class="section-card quick-actions animate-fadeInUp stagger-5">
                 <div class="card-header">
@@ -116,12 +129,9 @@ async function loadDashboard() {
                     <button class="btn btn-success requires-edit" onclick="openInspectionFromDashboard()">
                         <i class="bi bi-clipboard-check"></i> Провести проверку
                     </button>
-                    <button class="btn btn-info" onclick="API.downloadCSV()">
-                        <i class="bi bi-download"></i> Скачать журнал (CSV)
-                    </button>
-                    <button class="btn btn-outline-primary" onclick="API.downloadJournalJSON()">
-                        <i class="bi bi-file-code"></i> Экспорт JSON
-                    </button>
+                    <a href="#" class="btn btn-info" data-page="reports">
+                        <i class="bi bi-printer"></i> Отчёты и печать
+                    </a>
                     <button class="btn btn-warning requires-edit" onclick="recalculateAllStatuses()">
                         <i class="bi bi-arrow-clockwise"></i> Пересчитать статусы
                     </button>
@@ -227,6 +237,55 @@ function renderExpired(expired) {
             <div class="text-center mt-3">
                 <a href="#" class="btn btn-sm btn-outline-danger" data-page="extinguishers" data-status-filter="Просрочено">
                     Показать все (${expired.length})
+                </a>
+            </div>
+        ` : ''}
+    `;
+}
+
+function renderRecharge(rows) {
+    if (rows.length === 0) {
+        return `
+            <div class="empty-state">
+                <i class="bi bi-check-circle"></i>
+                <p>Перезарядка в ближайшее время не требуется</p>
+            </div>
+        `;
+    }
+    return `
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Инв. номер</th>
+                        <th>Тип</th>
+                        <th>Место</th>
+                        <th>Срок перезарядки</th>
+                        <th class="requires-edit" style="width: 60px;"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${rows.slice(0, 8).map(item => `
+                        <tr>
+                            <td><strong>${esc(item.inventory_number)}</strong></td>
+                            <td>${esc(item.type)}${item.agent ? ` <small class="text-muted">(${esc(item.agent.toLowerCase())})</small>` : ''}</td>
+                            <td>${esc(item.location)}</td>
+                            <td>${renderDeadlineBadge(item.next_recharge, item.days_left, item.state)}</td>
+                            <td class="requires-edit">
+                                <button class="btn btn-sm btn-warning" title="Отметить перезарядку"
+                                        onclick="showRechargeModal(${Number(item.extinguisher_id)}, loadDashboard)">
+                                    <i class="bi bi-arrow-repeat"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        </div>
+        ${rows.length > 8 ? `
+            <div class="text-center mt-3">
+                <a href="#" class="btn btn-sm btn-outline-primary" data-page="reports">
+                    Все в отчёте «Состояние парка» (${rows.length})
                 </a>
             </div>
         ` : ''}

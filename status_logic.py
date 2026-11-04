@@ -1,4 +1,4 @@
-# status_logic.py (v1.0)
+# status_logic.py (v1.1)
 """
 Бизнес-логика статусов огнетушителей.
 
@@ -13,8 +13,11 @@
 2. Если проверок не было, огнетушитель считается просроченным.
 3. Если при последней проверке обнаружены дефекты, ставится
    «Требует обслуживания».
-4. Если дата следующей проверки уже прошла, ставится «Просрочено».
-5. Иначе ставится «Актуально».
+4. Если просрочена перезарядка (см. модуль ``deadlines``) и в настройках
+   включено ``recharge_overdue_needs_service``, ставится
+   «Требует обслуживания».
+5. Если дата следующей проверки уже прошла, ставится «Просрочено».
+6. Иначе ставится «Актуально».
 """
 from datetime import date, datetime, timezone
 from typing import Dict, Iterable, Optional
@@ -22,6 +25,8 @@ from typing import Dict, Iterable, Optional
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from app_settings import get_settings
+from deadlines import STATE_OVERDUE, compute_deadlines
 from models import FireExtinguisher, Inspection, Status
 
 # Названия системных статусов
@@ -160,13 +165,18 @@ def has_defects(inspection: Inspection) -> bool:
     return any((v or "").strip() in DEFECT_VALUES for v in values)
 
 
-def compute_status_name(last_inspection: Optional[Inspection], today: Optional[date] = None) -> str:
+def compute_status_name(
+    last_inspection: Optional[Inspection],
+    today: Optional[date] = None,
+    recharge_overdue: bool = False,
+) -> str:
     """
-    Определяет статус огнетушителя по его последней проверке.
+    Определяет статус огнетушителя по его последней проверке и сроку перезарядки.
 
     Args:
         last_inspection (Optional[Inspection]): Последняя проверка или None.
         today (Optional[date]): Текущая дата (для тестов).
+        recharge_overdue (bool): Просрочена ли перезарядка (и учитывать ли это).
 
     Returns:
         str: Название статуса.
@@ -175,6 +185,8 @@ def compute_status_name(last_inspection: Optional[Inspection], today: Optional[d
     if last_inspection is None:
         return STATUS_EXPIRED
     if has_defects(last_inspection):
+        return STATUS_NEEDS_SERVICE
+    if recharge_overdue:
         return STATUS_NEEDS_SERVICE
     if last_inspection.next_inspection_date < today:
         return STATUS_EXPIRED
@@ -214,11 +226,18 @@ def recalculate_statuses(
         query = query.filter(FireExtinguisher.id.in_(id_list))
 
     today = date.today()
+    settings = get_settings(db)
+    check_recharge = bool(settings.get("recharge_overdue_needs_service"))
     changed = 0
     for fe in query.all():
         if fe.status_id in protected_ids:
             continue
-        new_status_id = ids[compute_status_name(get_latest_inspection(db, fe.id), today)]
+        recharge_overdue = (
+            check_recharge
+            and compute_deadlines(fe, settings, today)["recharge_state"] == STATE_OVERDUE
+        )
+        new_status_id = ids[compute_status_name(
+            get_latest_inspection(db, fe.id), today, recharge_overdue)]
         if fe.status_id != new_status_id:
             fe.status_id = new_status_id
             fe.updated_at = datetime.now(timezone.utc)

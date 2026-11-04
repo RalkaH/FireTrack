@@ -26,5 +26,11 @@ fire_extinguishers.db
 # Ключ подписи JWT (генерируется автоматически)
 .secret_key
 
+# Резервные копии базы перед миграциями (migrate.py)
+backups/
+
+# Кэш линтера
+.ruff_cache/
+
 # Кэш тестов
 .pytest_cache/

@@ -34,7 +34,7 @@
 
 <body class="app-shell">
   <!-- Navigation -->
-  <nav class="navbar navbar-expand-lg fixed-top">
+  <nav class="navbar navbar-expand-xl fixed-top">
     <div class="container-fluid px-4">
       <a class="navbar-brand" href="#">
         <i class="bi bi-fire"></i>
@@ -74,15 +74,38 @@
               <i class="bi bi-clipboard-check me-1"></i> Журнал проверок
             </a>
           </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#" data-page="reports">
+              <i class="bi bi-printer me-1"></i> Отчёты
+            </a>
+          </li>
           <li class="nav-item requires-edit">
             <a class="nav-link" href="#" data-page="import">
               <i class="bi bi-upload me-1"></i> Импорт
             </a>
           </li>
+          <li class="nav-item dropdown requires-admin">
+            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" id="adminMenu"
+               aria-expanded="false" data-group="admin">
+              <i class="bi bi-shield-lock me-1"></i> Администрирование
+            </a>
+            <ul class="dropdown-menu" aria-labelledby="adminMenu">
+              <li><a class="dropdown-item" href="#" data-page="users"><i class="bi bi-person-gear me-2"></i>Пользователи</a></li>
+              <li><a class="dropdown-item" href="#" data-page="audit"><i class="bi bi-journal-text me-2"></i>Журнал действий</a></li>
+              <li><a class="dropdown-item" href="#" data-page="settings"><i class="bi bi-sliders me-2"></i>Настройки</a></li>
+            </ul>
+          </li>
         </ul>
 
-        <!-- Right: current user + logout -->
-        <span class="nav-user me-3" id="currentUser" title=""></span>
+        <!-- Right: current user menu + logout -->
+        <div class="dropdown me-3">
+          <button class="nav-user nav-user-btn dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                  id="currentUser" title="" aria-expanded="false"></button>
+          <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="currentUser">
+            <li><a class="dropdown-item" href="#" onclick="showChangePasswordModal(false); return false;">
+              <i class="bi bi-key me-2"></i>Сменить пароль</a></li>
+          </ul>
+        </div>
         <button class="btn-logout" onclick="API.logout()">
           <i class="bi bi-box-arrow-right me-1"></i> Выход
         </button>
@@ -108,6 +131,20 @@
     </div>
   </div>
 
+  <!-- Смена пароля: отдельное окно, чтобы при обязательной смене его нельзя было закрыть
+       и чтобы оно не затирало форму в общем окне -->
+  <div class="modal fade" id="passwordModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-key me-2"></i>Смена пароля</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body" id="passwordModalBody"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast container for notifications -->
   <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 9999;"></div>
 
@@ -122,6 +159,11 @@
   <script src="/static/js/employees.js"></script>
   <script src="/static/js/inspections.js"></script>
   <script src="/static/js/import.js"></script>
+  <script src="/static/js/reports.js"></script>
+  <script src="/static/js/account.js"></script>
+  <script src="/static/js/users.js"></script>
+  <script src="/static/js/audit.js"></script>
+  <script src="/static/js/settings.js"></script>
 
   <script>
     // ── Global state ──
@@ -143,11 +185,20 @@
       return currentUser && currentUser.role === 'admin';
     }
 
+    // Страницы, доступные только администратору (сервер всё равно проверяет права)
+    const ADMIN_PAGES = ['users', 'audit', 'settings'];
+
     // Переход на страницу с подсветкой пункта меню
     function navigateTo(page) {
-      document.querySelectorAll('.navbar .nav-link').forEach(l => {
+      if (ADMIN_PAGES.includes(page) && !isAdmin()) page = 'dashboard';
+      document.querySelectorAll('.navbar .nav-link[data-page], .navbar .dropdown-item[data-page]').forEach(l => {
         l.classList.toggle('active', l.getAttribute('data-page') === page);
       });
+      const adminMenu = document.getElementById('adminMenu');
+      if (adminMenu) adminMenu.classList.toggle('active', ADMIN_PAGES.includes(page));
+      // Свернуть мобильное меню после выбора пункта
+      const collapse = document.getElementById('navbarMain');
+      if (collapse && collapse.classList.contains('show')) bootstrap.Collapse.getOrCreateInstance(collapse).hide();
       loadPage(page);
     }
 
@@ -166,6 +217,10 @@
         else if (page === 'employees') loadEmployees();
         else if (page === 'inspections') loadInspections();
         else if (page === 'import') loadImportPage();
+        else if (page === 'reports') loadReportsPage();
+        else if (page === 'users') loadUsers();
+        else if (page === 'audit') loadAuditPage();
+        else if (page === 'settings') loadSettingsPage();
 
         // Fade in
         requestAnimationFrame(() => {
@@ -220,8 +275,8 @@
       // Check auth: токен должен быть и не должен быть просрочен
       if (!startSessionWatcher()) return;
 
-      // Nav click handlers
-      document.querySelectorAll('.navbar .nav-link').forEach(link => {
+      // Nav click handlers (пункты меню и выпадающих списков с data-page)
+      document.querySelectorAll('.navbar [data-page]').forEach(link => {
         link.addEventListener('click', function (e) {
           e.preventDefault();
           navigateTo(this.getAttribute('data-page'));
@@ -248,6 +303,17 @@
       } catch (error) {
         // При 401 authorizedFetch уже отправил на страницу входа
         if (!sessionRedirecting) showAlert('Не удалось получить данные пользователя: ' + error.message, 'danger');
+        return;
+      }
+
+      // Временный пароль или admin123: сначала смена пароля, потом работа
+      if (currentUser.must_change_password) {
+        document.getElementById('content').innerHTML = `
+          <div class="empty-state" style="color: var(--text-light);">
+            <i class="bi bi-shield-lock"></i>
+            <p>Чтобы продолжить, смените пароль</p>
+          </div>`;
+        showChangePasswordModal(true);
         return;
       }
 

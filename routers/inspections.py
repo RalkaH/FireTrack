@@ -1,4 +1,4 @@
-# inspections.py (v1.2)
+# inspections.py (v1.3)
 """
 Модуль для управления процессом проверок огнетушителей.
 Содержит маршруты для создания новых записей о проверках,
@@ -8,9 +8,10 @@
 from datetime import datetime, timezone, date, timedelta
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
+import audit
 from auth import EDITOR_ROLES, get_current_active_user, require_role
 from db import get_db
 from models import Inspection, FireExtinguisher, Employee, User
@@ -34,6 +35,7 @@ router = APIRouter(
 )
 def create_inspection(
     data: InspectionCreate,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role(EDITOR_ROLES)),
 ):
@@ -94,6 +96,15 @@ def create_inspection(
 
     db.add(insp)
     extinguisher.updated_at = now
+    db.flush()
+    audit.log(db, request, current_user, audit.ACTION_CREATE,
+              f"Проверка огнетушителя {extinguisher.inventory_number} "
+              f"от {data.inspection_date:%d.%m.%Y} ({employee.full_name})",
+              entity_type="inspection", entity_id=insp.id,
+              changes=audit.diff({}, audit.snapshot(insp, (
+                  "fire_extinguisher_id", "inspection_date", "employee_id", "pressure", "weight",
+                  "visual_inspection", "seal_condition", "safety_pin_condition",
+                  "hose_condition", "comments", "next_inspection_date"))))
     db.commit()
     db.refresh(insp)
 

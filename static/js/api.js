@@ -27,6 +27,27 @@ function formatDate(isoString) {
     return d.toLocaleDateString('ru-RU');
 }
 
+// Дата и время из API (UTC с суффиксом Z) в местное «ДД.ММ.ГГГГ ЧЧ:ММ:СС»
+function formatDateTime(isoString) {
+    if (!isoString) return '';
+    const d = new Date(isoString);
+    if (Number.isNaN(d.getTime())) return esc(isoString);
+    return d.toLocaleString('ru-RU', {
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit', second: '2-digit'
+    });
+}
+
+// Склонение: plural(5, 'день', 'дня', 'дней') -> 'дней'
+function plural(n, one, few, many) {
+    const abs = Math.abs(n) % 100;
+    const last = abs % 10;
+    if (abs > 10 && abs < 20) return many;
+    if (last === 1) return one;
+    if (last >= 2 && last <= 4) return few;
+    return many;
+}
+
 // Сегодняшняя дата в формате ГГГГ-ММ-ДД по местному времени
 function todayISO() {
     const d = new Date();
@@ -155,6 +176,11 @@ async function authorizedFetch(path, options = {}) {
         redirectToLogin('expired');
         throw new Error('Сессия истекла');
     }
+    // Сервер требует сменить пароль (временный пароль или admin123)
+    if (resp.status === 403 && resp.headers.get('X-Password-Change-Required') === '1') {
+        if (typeof showChangePasswordModal === 'function') showChangePasswordModal(true);
+        throw new Error('Сначала смените пароль');
+    }
     if (!resp.ok) {
         throw new Error(await extractErrorMessage(resp));
     }
@@ -165,6 +191,13 @@ async function authorizedFetch(path, options = {}) {
         return resp.json();
     }
     return resp;
+}
+
+// Собирает ?a=1&b=2 из объекта, пропуская пустые значения
+function queryString(params = {}) {
+    const clean = Object.entries(params).filter(([, v]) => v !== '' && v !== null && v !== undefined);
+    if (clean.length === 0) return '';
+    return '?' + new URLSearchParams(clean).toString();
 }
 
 // Скачивает ответ сервера как файл
@@ -205,6 +238,21 @@ const API = {
 
     getExpiredList() {
         return authorizedFetch('/reports/expired', { method: 'GET' });
+    },
+
+    getRechargeList() {
+        return authorizedFetch('/reports/recharge', { method: 'GET' });
+    },
+
+    // Данные отчёта для страницы печати: kind = journal | maintenance | fleet
+    getPrintData(kind, params = {}) {
+        return authorizedFetch(`/reports/print/${encodeURIComponent(kind)}${queryString(params)}`, { method: 'GET' });
+    },
+
+    // Скачивает файл отчёта (XLSX, CSV) с учётом фильтров
+    async downloadFile(path, params = {}, fallbackName = 'report') {
+        const resp = await authorizedFetch(path + queryString(params), { method: 'GET' });
+        await downloadBlob(resp, fallbackName);
     },
 
     async downloadCSV() {
@@ -327,5 +375,74 @@ const API = {
 
     importInspections(formData) {
         return authorizedFetch('/import/inspections', { method: 'POST', body: formData });
+    },
+
+    /* -------- Перезарядка -------- */
+
+    markRecharged(id, data) {
+        return authorizedFetch(`/extinguishers/${id}/recharge`, {
+            method: 'POST',
+            body: JSON.stringify(data)
+        });
+    },
+
+    /* -------- Пароль -------- */
+
+    // Меняет пароль и сохраняет новый токен (старые токены сервер отзывает)
+    async changePassword(oldPassword, newPassword) {
+        const result = await authorizedFetch('/auth/change-password', {
+            method: 'POST',
+            body: JSON.stringify({ old_password: oldPassword, new_password: newPassword })
+        });
+        localStorage.setItem(TOKEN_KEY, result.access_token);
+        return result;
+    },
+
+    /* -------- Пользователи (admin) -------- */
+
+    getUsers() {
+        return authorizedFetch('/users/', { method: 'GET' });
+    },
+
+    createUser(data) {
+        return authorizedFetch('/users/', { method: 'POST', body: JSON.stringify(data) });
+    },
+
+    updateUser(id, data) {
+        return authorizedFetch(`/users/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+    },
+
+    setUserActive(id, isActive) {
+        return authorizedFetch(`/users/${id}/status`, {
+            method: 'POST',
+            body: JSON.stringify({ is_active: isActive })
+        });
+    },
+
+    resetUserPassword(id, newPassword) {
+        return authorizedFetch(`/users/${id}/reset-password`, {
+            method: 'POST',
+            body: JSON.stringify({ new_password: newPassword })
+        });
+    },
+
+    /* -------- Журнал действий (admin) -------- */
+
+    getAudit(params = {}) {
+        return authorizedFetch('/audit/' + queryString(params), { method: 'GET' });
+    },
+
+    getAuditMeta() {
+        return authorizedFetch('/audit/meta', { method: 'GET' });
+    },
+
+    /* -------- Настройки -------- */
+
+    getSettings() {
+        return authorizedFetch('/settings/', { method: 'GET' });
+    },
+
+    saveSettings(values) {
+        return authorizedFetch('/settings/', { method: 'PUT', body: JSON.stringify(values) });
     }
 };

@@ -1006,3 +1006,117 @@ body.app-shell {
   justify-content: center;
   font-size: 1rem;
 }
+/* ═══════════ V4: пользователи, журнал действий, сроки, отчёты ═══════════ */
+
+/* Кнопка с именем пользователя в шапке (открывает меню) */
+.nav-user-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-full);
+  padding: 0.3rem 0.75rem;
+  transition: all var(--transition-base);
+}
+
+.nav-user-btn:hover,
+.nav-user-btn[aria-expanded="true"] {
+  border-color: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.dropdown-item.active,
+.dropdown-item:active {
+  background: var(--accent-light);
+  color: var(--accent);
+}
+
+/* Подзаголовок раздела внутри формы */
+.form-section-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+  border-top: 1px solid #E2E8F0;
+  padding-top: 0.9rem;
+  margin: 0.25rem 0 0.75rem;
+}
+
+/* Блоки сроков в карточке огнетушителя */
+.deadline-box {
+  background: #F8FAFC;
+  border-radius: var(--radius-md);
+  padding: 0.75rem 1rem;
+  height: 100%;
+}
+
+.deadline-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 0.35rem;
+}
+
+/* Заблокированный пользователь в таблице */
+.row-muted td {
+  opacity: 0.6;
+}
+
+/* Журнал действий: блок «было и стало» */
+.audit-details td {
+  background: #F8FAFC !important;
+}
+
+.audit-diff {
+  max-width: 900px;
+  font-size: 0.82rem;
+}
+
+.audit-diff th {
+  font-size: 0.75rem;
+}
+
+.audit-diff td:first-child {
+  color: var(--text-secondary);
+  width: 220px;
+}
+
+.audit-old {
+  color: #B91C1C;
+  text-decoration: line-through;
+  text-decoration-color: rgba(185, 28, 28, 0.4);
+}
+
+.audit-new {
+  color: #047857;
+  font-weight: 500;
+}
+
+.audit-table td {
+  vertical-align: middle;
+}
+
+/* Раздел «Отчёты» */
+.report-card .card-body p {
+  min-height: 3.5rem;
+}
+
+/* Меню целиком помещается только на широких экранах: на средних ужимаем пункты */
+@media (min-width: 1200px) and (max-width: 1499.98px) {
+  .navbar .nav-link {
+    padding: 0.45rem 0.6rem !important;
+    font-size: 0.84rem;
+  }
+  .nav-user-role {
+    display: none;
+  }
+}
+
+/* Карточки отчётов растянуты на высоту колонки (h-100), внешний отступ ломает сетку */
+.section-card.report-card {
+  margin-top: 0;
+}
+
+/* Подписи под заголовком страницы лежат на тёмном фоне */
+.page-header .text-muted {
+  color: var(--text-muted) !important;
+}

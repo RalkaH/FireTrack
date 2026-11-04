@@ -1,8 +1,11 @@
-# main.py (v1.3) uvicorn main:app
+# main.py (v1.4) uvicorn main:app
 """
 Главный модуль приложения FireTrack.
 Инициализирует FastAPI, подключает маршрутизаторы (роутеры),
 настраивает статические файлы и создает базовые данные (администратора и статусы) при старте.
+
+При запуске схема базы доводится до последней версии миграциями Alembic
+(см. ``migrate.py``), перед изменениями делается резервная копия базы.
 
 При работе сервера статусы огнетушителей пересчитываются автоматически:
 при запуске и далее раз в час (интервал задается переменной
@@ -20,7 +23,8 @@ from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from db import engine, Base, SessionLocal
+from db import SessionLocal
+from migrate import upgrade_database
 from models import User
 from routers import (
     locations,
@@ -30,9 +34,12 @@ from routers import (
     inspections,
     reports,
     import_data,
+    users,
+    audit_log,
+    settings,
 )
 import auth as auth_router
-from auth import get_password_hash, ROLE_ADMIN
+from auth import DEFAULT_ADMIN_PASSWORD, ROLE_ADMIN, get_password_hash, verify_password
 from schemas import HealthResponse
 from status_logic import ensure_default_statuses, recalculate_statuses
 
@@ -41,24 +48,25 @@ logger = logging.getLogger("firetrack")
 BASE_DIR = Path(__file__).resolve().parent
 RECALC_INTERVAL_MINUTES = int(os.getenv("STATUS_RECALC_INTERVAL_MINUTES", "60"))
 
-# Создаем таблицы
-Base.metadata.create_all(bind=engine)
-
 
 def init_admin() -> None:
     """
     Создает пользователя-администратора, если в базе еще нет пользователя 'admin'.
     Пароль берется из переменной окружения ADMIN_PASSWORD (по умолчанию admin123).
+
+    Если у администратора пароль по умолчанию (только что созданный или
+    оставшийся с прошлых версий), ему ставится обязательная смена пароля
+    при следующем входе.
     """
     db = SessionLocal()
     try:
         user = db.query(User).filter(User.username == "admin").first()
         if user is None:
-            password = os.getenv("ADMIN_PASSWORD", "admin123")
-            if password == "admin123":
+            password = os.getenv("ADMIN_PASSWORD", DEFAULT_ADMIN_PASSWORD)
+            if password == DEFAULT_ADMIN_PASSWORD:
                 logger.warning(
                     "Создан администратор с паролем по умолчанию admin123. "
-                    "Задайте ADMIN_PASSWORD для рабочего развертывания."
+                    "При первом входе система попросит его сменить."
                 )
             admin = User(
                 username="admin",
@@ -68,9 +76,15 @@ def init_admin() -> None:
                 role=ROLE_ADMIN,
                 is_active=True,
                 created_at=datetime.now(timezone.utc),
+                must_change_password=password == DEFAULT_ADMIN_PASSWORD,
             )
             db.add(admin)
             db.commit()
+        elif not user.must_change_password and verify_password(
+                DEFAULT_ADMIN_PASSWORD, user.hashed_password):
+            user.must_change_password = True
+            db.commit()
+            logger.warning("У администратора пароль по умолчанию: при входе потребуется его сменить.")
     finally:
         db.close()
 
@@ -117,6 +131,7 @@ async def _recalc_loop() -> None:
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     """Действия при запуске и остановке приложения."""
+    upgrade_database()
     init_admin()
     init_statuses()
     run_status_recalculation()
@@ -130,7 +145,7 @@ async def lifespan(_app: FastAPI):
 app = FastAPI(
     title="Система отметки проверки средств пожаротушения",
     description="API для управления огнетушителями и проверками",
-    version="1.3.0",
+    version="1.4.0",
     lifespan=lifespan,
 )
 
@@ -144,6 +159,9 @@ app.include_router(extinguishers.router)
 app.include_router(inspections.router)
 app.include_router(reports.router)
 app.include_router(import_data.router)
+app.include_router(users.router)
+app.include_router(audit_log.router)
+app.include_router(settings.router)
 app.include_router(auth_router.router)
 
 

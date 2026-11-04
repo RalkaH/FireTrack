@@ -1,4 +1,4 @@
-# routers/__init__.py (v1.1)
+# routers/__init__.py (v1.2)
 """
 Инициализационный модуль пакета routers.
 Экспортирует все роутеры для удобного подключения в главном файле main.py.
@@ -11,4 +11,7 @@ from . import (
     inspections,
     reports,
     import_data,
+    users,
+    audit_log,
+    settings,
 )
