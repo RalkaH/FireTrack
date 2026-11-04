@@ -70,24 +70,33 @@
            <div itemprop="articleBody">
              
   <h1>Исходный код main</h1><div class="highlight"><pre>
-<span></span><span class="c1"># main.py (v1.2) uvicorn main:app</span>
-<span class="sd">&quot;&quot;&quot;</span>
+<span></span><span class="c1"># main.py (v1.4) uvicorn main:app</span>
+<span class="sd">"""</span>
 <span class="sd">Главный модуль приложения FireTrack.</span>
 <span class="sd">Инициализирует FastAPI, подключает маршрутизаторы (роутеры),</span>
 <span class="sd">настраивает статические файлы и создает базовые данные (администратора и статусы) при старте.</span>
-<span class="sd">&quot;&quot;&quot;</span>
 
+<span class="sd">При запуске схема базы доводится до последней версии миграциями Alembic</span>
+<span class="sd">(см. ``migrate.py``), перед изменениями делается резервная копия базы.</span>
+
+<span class="sd">При работе сервера статусы огнетушителей пересчитываются автоматически:</span>
+<span class="sd">при запуске и далее раз в час (интервал задается переменной</span>
+<span class="sd">окружения ``STATUS_RECALC_INTERVAL_MINUTES``).</span>
+<span class="sd">"""</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">contextlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">asynccontextmanager</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timezone</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">fastapi</span><span class="w"> </span><span class="kn">import</span> <span class="n">FastAPI</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">fastapi.staticfiles</span><span class="w"> </span><span class="kn">import</span> <span class="n">StaticFiles</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">fastapi.responses</span><span class="w"> </span><span class="kn">import</span> <span class="n">FileResponse</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fastapi.staticfiles</span><span class="w"> </span><span class="kn">import</span> <span class="n">StaticFiles</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Status</span>
-
-<span class="kn">from</span><span class="w"> </span><span class="nn">db</span><span class="w"> </span><span class="kn">import</span> <span class="n">engine</span><span class="p">,</span> <span class="n">Base</span><span class="p">,</span> <span class="n">SessionLocal</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">models</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">db</span><span class="w"> </span><span class="kn">import</span> <span class="n">SessionLocal</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">migrate</span><span class="w"> </span><span class="kn">import</span> <span class="n">upgrade_database</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">models</span><span class="w"> </span><span class="kn">import</span> <span class="n">User</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">routers</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">locations</span><span class="p">,</span>
@@ -97,48 +106,59 @@
     <span class="n">inspections</span><span class="p">,</span>
     <span class="n">reports</span><span class="p">,</span>
     <span class="n">import_data</span><span class="p">,</span>
+    <span class="n">users</span><span class="p">,</span>
+    <span class="n">audit_log</span><span class="p">,</span>
+    <span class="n">settings</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">auth</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">auth_router</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">auth</span><span class="w"> </span><span class="kn">import</span> <span class="n">DEFAULT_ADMIN_PASSWORD</span><span class="p">,</span> <span class="n">ROLE_ADMIN</span><span class="p">,</span> <span class="n">get_password_hash</span><span class="p">,</span> <span class="n">verify_password</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">schemas</span><span class="w"> </span><span class="kn">import</span> <span class="n">HealthResponse</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">auth</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_password_hash</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">status_logic</span><span class="w"> </span><span class="kn">import</span> <span class="n">ensure_default_statuses</span><span class="p">,</span> <span class="n">recalculate_statuses</span>
 
-
-<span class="c1"># Создаем таблицы</span>
-<span class="n">Base</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">create_all</span><span class="p">(</span><span class="n">bind</span><span class="o">=</span><span class="n">engine</span><span class="p">)</span>
-
-<span class="n">app</span> <span class="o">=</span> <span class="n">FastAPI</span><span class="p">(</span>
-    <span class="n">title</span><span class="o">=</span><span class="s2">&quot;Система отметки проверки средств пожаротушения&quot;</span><span class="p">,</span>
-    <span class="n">description</span><span class="o">=</span><span class="s2">&quot;API для управления огнетушителями и проверками&quot;</span><span class="p">,</span>
-    <span class="n">version</span><span class="o">=</span><span class="s2">&quot;1.0.0&quot;</span><span class="p">,</span>
-<span class="p">)</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">"firetrack"</span><span class="p">)</span>
 
 <span class="n">BASE_DIR</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span><span class="o">.</span><span class="n">parent</span>
-<span class="n">app</span><span class="o">.</span><span class="n">mount</span><span class="p">(</span><span class="s2">&quot;/static&quot;</span><span class="p">,</span> <span class="n">StaticFiles</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">BASE_DIR</span> <span class="o">/</span> <span class="s2">&quot;static&quot;</span><span class="p">)),</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;static&quot;</span><span class="p">)</span>
+<span class="n">RECALC_INTERVAL_MINUTES</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">"STATUS_RECALC_INTERVAL_MINUTES"</span><span class="p">,</span> <span class="s2">"60"</span><span class="p">))</span>
 
 
 <div class="viewcode-block" id="init_admin">
 <a class="viewcode-back" href="../main.html#main.init_admin">[документация]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">init_admin</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Создает пользователя администратора по умолчанию (admin/admin123),</span>
-<span class="sd">    если в базе данных еще нет пользователя с логином &#39;admin&#39;.</span>
-<span class="sd">    Выполняется при запуске приложения.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Создает пользователя-администратора, если в базе еще нет пользователя 'admin'.</span>
+<span class="sd">    Пароль берется из переменной окружения ADMIN_PASSWORD (по умолчанию admin123).</span>
+
+<span class="sd">    Если у администратора пароль по умолчанию (только что созданный или</span>
+<span class="sd">    оставшийся с прошлых версий), ему ставится обязательная смена пароля</span>
+<span class="sd">    при следующем входе.</span>
+<span class="sd">    """</span>
     <span class="n">db</span> <span class="o">=</span> <span class="n">SessionLocal</span><span class="p">()</span>
     <span class="k">try</span><span class="p">:</span>
-        <span class="n">user</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">User</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">User</span><span class="o">.</span><span class="n">username</span> <span class="o">==</span> <span class="s2">&quot;admin&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+        <span class="n">user</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">User</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">User</span><span class="o">.</span><span class="n">username</span> <span class="o">==</span> <span class="s2">"admin"</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
         <span class="k">if</span> <span class="n">user</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">password</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">"ADMIN_PASSWORD"</span><span class="p">,</span> <span class="n">DEFAULT_ADMIN_PASSWORD</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">password</span> <span class="o">==</span> <span class="n">DEFAULT_ADMIN_PASSWORD</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="s2">"Создан администратор с паролем по умолчанию admin123. "</span>
+                    <span class="s2">"При первом входе система попросит его сменить."</span>
+                <span class="p">)</span>
             <span class="n">admin</span> <span class="o">=</span> <span class="n">User</span><span class="p">(</span>
-                <span class="n">username</span><span class="o">=</span><span class="s2">&quot;admin&quot;</span><span class="p">,</span>
-                <span class="n">email</span><span class="o">=</span><span class="s2">&quot;admin@example.com&quot;</span><span class="p">,</span>
-                <span class="n">hashed_password</span><span class="o">=</span><span class="n">get_password_hash</span><span class="p">(</span><span class="s2">&quot;admin123&quot;</span><span class="p">),</span>
-                <span class="n">full_name</span><span class="o">=</span><span class="s2">&quot;Administrator&quot;</span><span class="p">,</span>
-                <span class="n">role</span><span class="o">=</span><span class="s2">&quot;admin&quot;</span><span class="p">,</span>
+                <span class="n">username</span><span class="o">=</span><span class="s2">"admin"</span><span class="p">,</span>
+                <span class="n">email</span><span class="o">=</span><span class="s2">"admin@example.com"</span><span class="p">,</span>
+                <span class="n">hashed_password</span><span class="o">=</span><span class="n">get_password_hash</span><span class="p">(</span><span class="n">password</span><span class="p">),</span>
+                <span class="n">full_name</span><span class="o">=</span><span class="s2">"Administrator"</span><span class="p">,</span>
+                <span class="n">role</span><span class="o">=</span><span class="n">ROLE_ADMIN</span><span class="p">,</span>
                 <span class="n">is_active</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                 <span class="n">created_at</span><span class="o">=</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">),</span>
+                <span class="n">must_change_password</span><span class="o">=</span><span class="n">password</span> <span class="o">==</span> <span class="n">DEFAULT_ADMIN_PASSWORD</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="n">db</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">admin</span><span class="p">)</span>
             <span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="ow">not</span> <span class="n">user</span><span class="o">.</span><span class="n">must_change_password</span> <span class="ow">and</span> <span class="n">verify_password</span><span class="p">(</span>
+                <span class="n">DEFAULT_ADMIN_PASSWORD</span><span class="p">,</span> <span class="n">user</span><span class="o">.</span><span class="n">hashed_password</span><span class="p">):</span>
+            <span class="n">user</span><span class="o">.</span><span class="n">must_change_password</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">"У администратора пароль по умолчанию: при входе потребуется его сменить."</span><span class="p">)</span>
     <span class="k">finally</span><span class="p">:</span>
         <span class="n">db</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
 
@@ -147,41 +167,73 @@
 <div class="viewcode-block" id="init_statuses">
 <a class="viewcode-back" href="../main.html#main.init_statuses">[документация]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">init_statuses</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Инициализирует стандартные статусы огнетушителей в базе данных,</span>
 <span class="sd">    если они отсутствуют. Включает статусы: Актуально, Просрочено,</span>
 <span class="sd">    Требует обслуживания, На техническом обслуживании, Списан.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">db</span> <span class="o">=</span> <span class="n">SessionLocal</span><span class="p">()</span>
     <span class="k">try</span><span class="p">:</span>
-        <span class="n">defaults</span> <span class="o">=</span> <span class="p">[</span>
-            <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;Актуально&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;description&quot;</span><span class="p">:</span> <span class="s2">&quot;Огнетушитель прошел проверку, срок не истек&quot;</span><span class="p">},</span>
-            <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;Просрочено&quot;</span><span class="p">,</span> <span class="s2">&quot;description&quot;</span><span class="p">:</span> <span class="s2">&quot;Необходима проверка, срок истек&quot;</span><span class="p">},</span>
-            <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;Требует обслуживания&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;description&quot;</span><span class="p">:</span> <span class="s2">&quot;Обнаружены дефекты при проверке&quot;</span><span class="p">},</span>
-            <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;На техническом обслуживании&quot;</span><span class="p">,</span>
-                <span class="s2">&quot;description&quot;</span><span class="p">:</span> <span class="s2">&quot;Огнетушитель на ТО&quot;</span><span class="p">},</span>
-            <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;Списан&quot;</span><span class="p">,</span> <span class="s2">&quot;description&quot;</span><span class="p">:</span> <span class="s2">&quot;Огнетушитель выведен из эксплуатации&quot;</span><span class="p">},</span>
-        <span class="p">]</span>
-        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">defaults</span><span class="p">:</span>
-            <span class="n">exists</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Status</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
-                <span class="n">Status</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">item</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
-            <span class="k">if</span> <span class="n">exists</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">st</span> <span class="o">=</span> <span class="n">Status</span><span class="p">(</span>
-                    <span class="n">name</span><span class="o">=</span><span class="n">item</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">],</span>
-                    <span class="n">description</span><span class="o">=</span><span class="n">item</span><span class="p">[</span><span class="s2">&quot;description&quot;</span><span class="p">],</span>
-                    <span class="n">created_at</span><span class="o">=</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">),</span>
-                <span class="p">)</span>
-                <span class="n">db</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">st</span><span class="p">)</span>
-        <span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+        <span class="n">ensure_default_statuses</span><span class="p">(</span><span class="n">db</span><span class="p">)</span>
     <span class="k">finally</span><span class="p">:</span>
         <span class="n">db</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
 
 
 
-<span class="n">init_admin</span><span class="p">()</span>
-<span class="n">init_statuses</span><span class="p">()</span>
+<div class="viewcode-block" id="run_status_recalculation">
+<a class="viewcode-back" href="../main.html#main.run_status_recalculation">[документация]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">run_status_recalculation</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Пересчитывает статусы всего парка огнетушителей в отдельной сессии.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        int: Количество изменившихся статусов.</span>
+<span class="sd">    """</span>
+    <span class="n">db</span> <span class="o">=</span> <span class="n">SessionLocal</span><span class="p">()</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">recalculate_statuses</span><span class="p">(</span><span class="n">db</span><span class="p">)</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="n">db</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div>
+
+
+
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_recalc_loop</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Фоновая задача: периодически пересчитывает статусы."""</span>
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">RECALC_INTERVAL_MINUTES</span> <span class="o">*</span> <span class="mi">60</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">changed</span> <span class="o">=</span> <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">to_thread</span><span class="p">(</span><span class="n">run_status_recalculation</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">changed</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"Автопересчет статусов: изменено </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span> <span class="n">changed</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>  <span class="c1"># noqa: BLE001 - фоновая задача не должна падать</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span><span class="s2">"Ошибка автопересчета статусов"</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="lifespan">
+<a class="viewcode-back" href="../main.html#main.lifespan">[документация]</a>
+<span class="nd">@asynccontextmanager</span>
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">lifespan</span><span class="p">(</span><span class="n">_app</span><span class="p">:</span> <span class="n">FastAPI</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Действия при запуске и остановке приложения."""</span>
+    <span class="n">upgrade_database</span><span class="p">()</span>
+    <span class="n">init_admin</span><span class="p">()</span>
+    <span class="n">init_statuses</span><span class="p">()</span>
+    <span class="n">run_status_recalculation</span><span class="p">()</span>
+    <span class="n">task</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">create_task</span><span class="p">(</span><span class="n">_recalc_loop</span><span class="p">())</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">yield</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="n">task</span><span class="o">.</span><span class="n">cancel</span><span class="p">()</span></div>
+
+
+
+<span class="n">app</span> <span class="o">=</span> <span class="n">FastAPI</span><span class="p">(</span>
+    <span class="n">title</span><span class="o">=</span><span class="s2">"Система отметки проверки средств пожаротушения"</span><span class="p">,</span>
+    <span class="n">description</span><span class="o">=</span><span class="s2">"API для управления огнетушителями и проверками"</span><span class="p">,</span>
+    <span class="n">version</span><span class="o">=</span><span class="s2">"1.4.0"</span><span class="p">,</span>
+    <span class="n">lifespan</span><span class="o">=</span><span class="n">lifespan</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">app</span><span class="o">.</span><span class="n">mount</span><span class="p">(</span><span class="s2">"/static"</span><span class="p">,</span> <span class="n">StaticFiles</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">BASE_DIR</span> <span class="o">/</span> <span class="s2">"static"</span><span class="p">)),</span> <span class="n">name</span><span class="o">=</span><span class="s2">"static"</span><span class="p">)</span>
 
 <span class="c1"># Подключаем роутеры API</span>
 <span class="n">app</span><span class="o">.</span><span class="n">include_router</span><span class="p">(</span><span class="n">locations</span><span class="o">.</span><span class="n">router</span><span class="p">)</span>
@@ -191,36 +243,39 @@
 <span class="n">app</span><span class="o">.</span><span class="n">include_router</span><span class="p">(</span><span class="n">inspections</span><span class="o">.</span><span class="n">router</span><span class="p">)</span>
 <span class="n">app</span><span class="o">.</span><span class="n">include_router</span><span class="p">(</span><span class="n">reports</span><span class="o">.</span><span class="n">router</span><span class="p">)</span>
 <span class="n">app</span><span class="o">.</span><span class="n">include_router</span><span class="p">(</span><span class="n">import_data</span><span class="o">.</span><span class="n">router</span><span class="p">)</span>
+<span class="n">app</span><span class="o">.</span><span class="n">include_router</span><span class="p">(</span><span class="n">users</span><span class="o">.</span><span class="n">router</span><span class="p">)</span>
+<span class="n">app</span><span class="o">.</span><span class="n">include_router</span><span class="p">(</span><span class="n">audit_log</span><span class="o">.</span><span class="n">router</span><span class="p">)</span>
+<span class="n">app</span><span class="o">.</span><span class="n">include_router</span><span class="p">(</span><span class="n">settings</span><span class="o">.</span><span class="n">router</span><span class="p">)</span>
 <span class="n">app</span><span class="o">.</span><span class="n">include_router</span><span class="p">(</span><span class="n">auth_router</span><span class="o">.</span><span class="n">router</span><span class="p">)</span>
 
 
 <span class="c1"># Health check</span>
 <div class="viewcode-block" id="health_check">
 <a class="viewcode-back" href="../main.html#main.health_check">[документация]</a>
-<span class="nd">@app</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;/health&quot;</span><span class="p">,</span> <span class="n">response_model</span><span class="o">=</span><span class="n">HealthResponse</span><span class="p">)</span>
+<span class="nd">@app</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"/health"</span><span class="p">,</span> <span class="n">response_model</span><span class="o">=</span><span class="n">HealthResponse</span><span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">health_check</span><span class="p">():</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Эндпоинт для проверки работоспособности (Health Check) API.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        dict: Словарь со статусом &#39;ok&#39;, если сервер работает.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;status&quot;</span><span class="p">:</span> <span class="s2">&quot;ok&quot;</span><span class="p">}</span></div>
+<span class="sd">        dict: Словарь со статусом 'ok', если сервер работает.</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s2">"status"</span><span class="p">:</span> <span class="s2">"ok"</span><span class="p">}</span></div>
 
 
 
 <span class="c1"># Главная страница</span>
 <div class="viewcode-block" id="read_root">
 <a class="viewcode-back" href="../main.html#main.read_root">[документация]</a>
-<span class="nd">@app</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">)</span>
+<span class="nd">@app</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"/"</span><span class="p">)</span>
 <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">read_root</span><span class="p">():</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Отдает главную страницу Frontend-приложения (index.html).</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        FileResponse: HTML-файл интерфейса системы.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">FileResponse</span><span class="p">(</span><span class="n">BASE_DIR</span> <span class="o">/</span> <span class="s2">&quot;static&quot;</span> <span class="o">/</span> <span class="s2">&quot;index.html&quot;</span><span class="p">)</span></div>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="n">FileResponse</span><span class="p">(</span><span class="n">BASE_DIR</span> <span class="o">/</span> <span class="s2">"static"</span> <span class="o">/</span> <span class="s2">"index.html"</span><span class="p">)</span></div>
 
 </pre></div>
 

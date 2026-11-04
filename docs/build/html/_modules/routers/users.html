@@ -1,0 +1,402 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="ru" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>routers.users &mdash; документация FireTrack 1</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=47a0e12c"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../_static/translations.js?v=cd1d70c9"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Алфавитный указатель" href="../../genindex.html" />
+    <link rel="search" title="Поиск" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            FireTrack
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Поиск в документации" aria-label="Поиск в документации" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Меню навигации">
+              <p class="caption" role="heading"><span class="caption-text">Содержание:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">FireExtinguishers</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Меню навигации для мобильных устройств" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">FireTrack</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Навигация по страницам">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Код модуля</a></li>
+      <li class="breadcrumb-item active">routers.users</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Исходный код routers.users</h1><div class="highlight"><pre>
+<span></span><span class="c1"># routers/users.py (v1.0)</span>
+<span class="sd">"""</span>
+<span class="sd">Управление пользователями (только для администратора).</span>
+
+<span class="sd">Возможности: список, создание, изменение ФИО, email и роли, блокировка</span>
+<span class="sd">и разблокировка, сброс пароля. Защита от выстрела себе в ногу:</span>
+
+<span class="sd">1. Нельзя заблокировать себя и понизить собственную роль.</span>
+<span class="sd">2. Нельзя оставить систему без единого активного администратора.</span>
+
+<span class="sd">Блокировка, смена роли и сброс пароля отзывают все токены пользователя,</span>
+<span class="sd">поэтому изменения действуют сразу, а не после истечения сессии.</span>
+<span class="sd">Удаления пользователей нет намеренно: для истории и журнала действий</span>
+<span class="sd">учетную запись лучше заблокировать.</span>
+<span class="sd">"""</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timezone</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">fastapi</span><span class="w"> </span><span class="kn">import</span> <span class="n">APIRouter</span><span class="p">,</span> <span class="n">Depends</span><span class="p">,</span> <span class="n">HTTPException</span><span class="p">,</span> <span class="n">Request</span><span class="p">,</span> <span class="n">status</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sqlalchemy</span><span class="w"> </span><span class="kn">import</span> <span class="n">func</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sqlalchemy.orm</span><span class="w"> </span><span class="kn">import</span> <span class="n">Session</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">audit</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">auth</span><span class="w"> </span><span class="kn">import</span> <span class="n">ROLE_ADMIN</span><span class="p">,</span> <span class="n">get_current_active_user</span><span class="p">,</span> <span class="n">get_password_hash</span><span class="p">,</span> <span class="n">require_role</span><span class="p">,</span> <span class="n">revoke_tokens</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">db</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_db</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">models</span><span class="w"> </span><span class="kn">import</span> <span class="n">User</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">schemas</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">PasswordReset</span><span class="p">,</span>
+    <span class="n">UserCreate</span><span class="p">,</span>
+    <span class="n">UserRead</span><span class="p">,</span>
+    <span class="n">UserStatusUpdate</span><span class="p">,</span>
+    <span class="n">UserUpdate</span><span class="p">,</span>
+    <span class="n">validate_password_strength</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">router</span> <span class="o">=</span> <span class="n">APIRouter</span><span class="p">(</span>
+    <span class="n">prefix</span><span class="o">=</span><span class="s2">"/users"</span><span class="p">,</span>
+    <span class="n">tags</span><span class="o">=</span><span class="p">[</span><span class="s2">"Users"</span><span class="p">],</span>
+    <span class="n">dependencies</span><span class="o">=</span><span class="p">[</span><span class="n">Depends</span><span class="p">(</span><span class="n">get_current_active_user</span><span class="p">)],</span>
+<span class="p">)</span>
+
+<span class="n">_admin_only</span> <span class="o">=</span> <span class="n">require_role</span><span class="p">([</span><span class="n">ROLE_ADMIN</span><span class="p">])</span>
+<span class="n">_AUDIT_FIELDS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"username"</span><span class="p">,</span> <span class="s2">"full_name"</span><span class="p">,</span> <span class="s2">"email"</span><span class="p">,</span> <span class="s2">"role"</span><span class="p">,</span> <span class="s2">"is_active"</span><span class="p">,</span> <span class="s2">"must_change_password"</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_get_user</span><span class="p">(</span><span class="n">db</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span> <span class="n">user_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">User</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Возвращает пользователя или 404."""</span>
+    <span class="n">user</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">User</span><span class="p">,</span> <span class="n">user_id</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">user</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_404_NOT_FOUND</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="s2">"Пользователь не найден"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">user</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_active_admins_except</span><span class="p">(</span><span class="n">db</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span> <span class="n">user_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Количество активных администраторов, не считая указанного пользователя."""</span>
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">User</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">User</span><span class="o">.</span><span class="n">role</span> <span class="o">==</span> <span class="n">ROLE_ADMIN</span><span class="p">,</span> <span class="n">User</span><span class="o">.</span><span class="n">is_active</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="n">User</span><span class="o">.</span><span class="n">id</span> <span class="o">!=</span> <span class="n">user_id</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">count</span><span class="p">()</span>
+    <span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_check_email_free</span><span class="p">(</span><span class="n">db</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span> <span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">user_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Проверяет, что email не занят другим пользователем."""</span>
+    <span class="n">taken</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">User</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">func</span><span class="o">.</span><span class="n">lower</span><span class="p">(</span><span class="n">User</span><span class="o">.</span><span class="n">email</span><span class="p">)</span> <span class="o">==</span> <span class="n">email</span><span class="o">.</span><span class="n">lower</span><span class="p">(),</span> <span class="n">User</span><span class="o">.</span><span class="n">id</span> <span class="o">!=</span> <span class="n">user_id</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">first</span><span class="p">()</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">taken</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_400_BAD_REQUEST</span><span class="p">,</span>
+                            <span class="n">detail</span><span class="o">=</span><span class="s2">"Пользователь с таким email уже существует"</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="list_users">
+<a class="viewcode-back" href="../../routers.html#routers.users.list_users">[документация]</a>
+<span class="nd">@router</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"/"</span><span class="p">,</span> <span class="n">response_model</span><span class="o">=</span><span class="n">List</span><span class="p">[</span><span class="n">UserRead</span><span class="p">])</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">list_users</span><span class="p">(</span><span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">),</span> <span class="n">_</span><span class="p">:</span> <span class="n">User</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">_admin_only</span><span class="p">)):</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Список всех пользователей.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        db (Session): Сессия базы данных.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        List[User]: Пользователи, отсортированные по логину.</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">User</span><span class="p">)</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="n">User</span><span class="o">.</span><span class="n">username</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="create_user">
+<a class="viewcode-back" href="../../routers.html#routers.users.create_user">[документация]</a>
+<span class="nd">@router</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s2">"/"</span><span class="p">,</span> <span class="n">response_model</span><span class="o">=</span><span class="n">UserRead</span><span class="p">,</span> <span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_201_CREATED</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">create_user</span><span class="p">(</span>
+    <span class="n">data</span><span class="p">:</span> <span class="n">UserCreate</span><span class="p">,</span>
+    <span class="n">request</span><span class="p">:</span> <span class="n">Request</span><span class="p">,</span>
+    <span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">),</span>
+    <span class="n">current_user</span><span class="p">:</span> <span class="n">User</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">_admin_only</span><span class="p">),</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Создать пользователя.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        data (UserCreate): Логин, ФИО, email, роль, пароль.</span>
+<span class="sd">        request (Request): Запрос (для журнала).</span>
+<span class="sd">        db (Session): Сессия базы данных.</span>
+<span class="sd">        current_user (User): Администратор.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        User: Созданный пользователь.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        HTTPException: Если логин или email уже заняты (400).</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">User</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">func</span><span class="o">.</span><span class="n">lower</span><span class="p">(</span><span class="n">User</span><span class="o">.</span><span class="n">username</span><span class="p">)</span> <span class="o">==</span> <span class="n">data</span><span class="o">.</span><span class="n">username</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span><span class="o">.</span><span class="n">first</span><span class="p">():</span>
+        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_400_BAD_REQUEST</span><span class="p">,</span>
+                            <span class="n">detail</span><span class="o">=</span><span class="sa">f</span><span class="s2">"Логин '</span><span class="si">{</span><span class="n">data</span><span class="o">.</span><span class="n">username</span><span class="si">}</span><span class="s2">' уже занят"</span><span class="p">)</span>
+    <span class="n">_check_email_free</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">email</span><span class="p">)</span>
+
+    <span class="n">user</span> <span class="o">=</span> <span class="n">User</span><span class="p">(</span>
+        <span class="n">username</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">username</span><span class="p">,</span>
+        <span class="n">email</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">email</span><span class="p">,</span>
+        <span class="n">full_name</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">full_name</span><span class="p">,</span>
+        <span class="n">role</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">role</span><span class="p">,</span>
+        <span class="n">hashed_password</span><span class="o">=</span><span class="n">get_password_hash</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">password</span><span class="p">),</span>
+        <span class="n">is_active</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">must_change_password</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">must_change_password</span><span class="p">,</span>
+        <span class="n">token_version</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">created_at</span><span class="o">=</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">),</span>
+    <span class="p">)</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">user</span><span class="p">)</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+    <span class="n">audit</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">current_user</span><span class="p">,</span> <span class="n">audit</span><span class="o">.</span><span class="n">ACTION_CREATE</span><span class="p">,</span>
+              <span class="sa">f</span><span class="s2">"Создан пользователь «</span><span class="si">{</span><span class="n">user</span><span class="o">.</span><span class="n">username</span><span class="si">}</span><span class="s2">» с ролью </span><span class="si">{</span><span class="n">user</span><span class="o">.</span><span class="n">role</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
+              <span class="n">entity_type</span><span class="o">=</span><span class="s2">"user"</span><span class="p">,</span> <span class="n">entity_id</span><span class="o">=</span><span class="n">user</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+              <span class="n">changes</span><span class="o">=</span><span class="n">audit</span><span class="o">.</span><span class="n">diff</span><span class="p">({},</span> <span class="n">audit</span><span class="o">.</span><span class="n">snapshot</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="n">_AUDIT_FIELDS</span><span class="p">)))</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">refresh</span><span class="p">(</span><span class="n">user</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">user</span></div>
+
+
+
+<div class="viewcode-block" id="update_user">
+<a class="viewcode-back" href="../../routers.html#routers.users.update_user">[документация]</a>
+<span class="nd">@router</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="s2">"/</span><span class="si">{user_id}</span><span class="s2">"</span><span class="p">,</span> <span class="n">response_model</span><span class="o">=</span><span class="n">UserRead</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">update_user</span><span class="p">(</span>
+    <span class="n">user_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">data</span><span class="p">:</span> <span class="n">UserUpdate</span><span class="p">,</span>
+    <span class="n">request</span><span class="p">:</span> <span class="n">Request</span><span class="p">,</span>
+    <span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">),</span>
+    <span class="n">current_user</span><span class="p">:</span> <span class="n">User</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">_admin_only</span><span class="p">),</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Изменить ФИО, email или роль пользователя.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        user_id (int): ID пользователя.</span>
+<span class="sd">        data (UserUpdate): Новые значения (только переданные поля).</span>
+<span class="sd">        request (Request): Запрос (для журнала).</span>
+<span class="sd">        db (Session): Сессия базы данных.</span>
+<span class="sd">        current_user (User): Администратор.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        User: Обновленный пользователь.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        HTTPException: Попытка понизить себя или последнего администратора (400).</span>
+<span class="sd">    """</span>
+    <span class="n">user</span> <span class="o">=</span> <span class="n">_get_user</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">user_id</span><span class="p">)</span>
+    <span class="n">before</span> <span class="o">=</span> <span class="n">audit</span><span class="o">.</span><span class="n">snapshot</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="n">_AUDIT_FIELDS</span><span class="p">)</span>
+    <span class="n">update</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">model_dump</span><span class="p">(</span><span class="n">exclude_unset</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exclude_none</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">new_role</span> <span class="o">=</span> <span class="n">update</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"role"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">new_role</span> <span class="ow">and</span> <span class="n">new_role</span> <span class="o">!=</span> <span class="n">user</span><span class="o">.</span><span class="n">role</span> <span class="ow">and</span> <span class="n">user</span><span class="o">.</span><span class="n">role</span> <span class="o">==</span> <span class="n">ROLE_ADMIN</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">user</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">current_user</span><span class="o">.</span><span class="n">id</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_400_BAD_REQUEST</span><span class="p">,</span>
+                                <span class="n">detail</span><span class="o">=</span><span class="s2">"Нельзя понизить собственную роль"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">bool</span><span class="p">(</span><span class="n">user</span><span class="o">.</span><span class="n">is_active</span><span class="p">)</span> <span class="ow">and</span> <span class="n">_active_admins_except</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">user</span><span class="o">.</span><span class="n">id</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_400_BAD_REQUEST</span><span class="p">,</span>
+                                <span class="n">detail</span><span class="o">=</span><span class="s2">"Нельзя оставить систему без активного администратора"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="s2">"email"</span> <span class="ow">in</span> <span class="n">update</span><span class="p">:</span>
+        <span class="n">_check_email_free</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">update</span><span class="p">[</span><span class="s2">"email"</span><span class="p">],</span> <span class="n">user</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">field</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">update</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">new_role</span> <span class="ow">and</span> <span class="n">new_role</span> <span class="o">!=</span> <span class="n">before</span><span class="p">[</span><span class="s2">"role"</span><span class="p">]:</span>
+        <span class="n">revoke_tokens</span><span class="p">(</span><span class="n">user</span><span class="p">)</span>  <span class="c1"># новые права действуют сразу</span>
+
+    <span class="n">changes</span> <span class="o">=</span> <span class="n">audit</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">before</span><span class="p">,</span> <span class="n">audit</span><span class="o">.</span><span class="n">snapshot</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="n">_AUDIT_FIELDS</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">changes</span><span class="p">:</span>
+        <span class="n">audit</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">current_user</span><span class="p">,</span> <span class="n">audit</span><span class="o">.</span><span class="n">ACTION_UPDATE</span><span class="p">,</span>
+                  <span class="sa">f</span><span class="s2">"Изменен пользователь «</span><span class="si">{</span><span class="n">user</span><span class="o">.</span><span class="n">username</span><span class="si">}</span><span class="s2">»"</span><span class="p">,</span>
+                  <span class="n">entity_type</span><span class="o">=</span><span class="s2">"user"</span><span class="p">,</span> <span class="n">entity_id</span><span class="o">=</span><span class="n">user</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">changes</span><span class="o">=</span><span class="n">changes</span><span class="p">)</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">refresh</span><span class="p">(</span><span class="n">user</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">user</span></div>
+
+
+
+<div class="viewcode-block" id="set_user_status">
+<a class="viewcode-back" href="../../routers.html#routers.users.set_user_status">[документация]</a>
+<span class="nd">@router</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s2">"/</span><span class="si">{user_id}</span><span class="s2">/status"</span><span class="p">,</span> <span class="n">response_model</span><span class="o">=</span><span class="n">UserRead</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">set_user_status</span><span class="p">(</span>
+    <span class="n">user_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">data</span><span class="p">:</span> <span class="n">UserStatusUpdate</span><span class="p">,</span>
+    <span class="n">request</span><span class="p">:</span> <span class="n">Request</span><span class="p">,</span>
+    <span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">),</span>
+    <span class="n">current_user</span><span class="p">:</span> <span class="n">User</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">_admin_only</span><span class="p">),</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Заблокировать или разблокировать пользователя.</span>
+
+<span class="sd">    Заблокированный пользователь не может войти, а его текущие токены</span>
+<span class="sd">    сразу перестают работать.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        user_id (int): ID пользователя.</span>
+<span class="sd">        data (UserStatusUpdate): ``is_active``: true разблокирует, false блокирует.</span>
+<span class="sd">        request (Request): Запрос (для журнала).</span>
+<span class="sd">        db (Session): Сессия базы данных.</span>
+<span class="sd">        current_user (User): Администратор.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        User: Пользователь с новым статусом.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        HTTPException: Попытка заблокировать себя или последнего администратора (400).</span>
+<span class="sd">    """</span>
+    <span class="n">user</span> <span class="o">=</span> <span class="n">_get_user</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">user_id</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">bool</span><span class="p">(</span><span class="n">user</span><span class="o">.</span><span class="n">is_active</span><span class="p">)</span> <span class="o">==</span> <span class="n">data</span><span class="o">.</span><span class="n">is_active</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">user</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">data</span><span class="o">.</span><span class="n">is_active</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">user</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">current_user</span><span class="o">.</span><span class="n">id</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_400_BAD_REQUEST</span><span class="p">,</span>
+                                <span class="n">detail</span><span class="o">=</span><span class="s2">"Нельзя заблокировать самого себя"</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">user</span><span class="o">.</span><span class="n">role</span> <span class="o">==</span> <span class="n">ROLE_ADMIN</span> <span class="ow">and</span> <span class="n">_active_admins_except</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">user</span><span class="o">.</span><span class="n">id</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_400_BAD_REQUEST</span><span class="p">,</span>
+                                <span class="n">detail</span><span class="o">=</span><span class="s2">"Нельзя заблокировать последнего активного администратора"</span><span class="p">)</span>
+        <span class="n">user</span><span class="o">.</span><span class="n">is_active</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">revoke_tokens</span><span class="p">(</span><span class="n">user</span><span class="p">)</span>
+        <span class="n">action</span><span class="p">,</span> <span class="n">summary</span> <span class="o">=</span> <span class="n">audit</span><span class="o">.</span><span class="n">ACTION_BLOCK</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"Заблокирован пользователь «</span><span class="si">{</span><span class="n">user</span><span class="o">.</span><span class="n">username</span><span class="si">}</span><span class="s2">»"</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">user</span><span class="o">.</span><span class="n">is_active</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">action</span><span class="p">,</span> <span class="n">summary</span> <span class="o">=</span> <span class="n">audit</span><span class="o">.</span><span class="n">ACTION_UNBLOCK</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"Разблокирован пользователь «</span><span class="si">{</span><span class="n">user</span><span class="o">.</span><span class="n">username</span><span class="si">}</span><span class="s2">»"</span>
+
+    <span class="n">audit</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">current_user</span><span class="p">,</span> <span class="n">action</span><span class="p">,</span> <span class="n">summary</span><span class="p">,</span> <span class="n">entity_type</span><span class="o">=</span><span class="s2">"user"</span><span class="p">,</span> <span class="n">entity_id</span><span class="o">=</span><span class="n">user</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+              <span class="n">changes</span><span class="o">=</span><span class="p">{</span><span class="s2">"is_active"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"old"</span><span class="p">:</span> <span class="ow">not</span> <span class="n">data</span><span class="o">.</span><span class="n">is_active</span><span class="p">,</span> <span class="s2">"new"</span><span class="p">:</span> <span class="n">data</span><span class="o">.</span><span class="n">is_active</span><span class="p">}})</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">refresh</span><span class="p">(</span><span class="n">user</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">user</span></div>
+
+
+
+<div class="viewcode-block" id="reset_password">
+<a class="viewcode-back" href="../../routers.html#routers.users.reset_password">[документация]</a>
+<span class="nd">@router</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s2">"/</span><span class="si">{user_id}</span><span class="s2">/reset-password"</span><span class="p">,</span> <span class="n">response_model</span><span class="o">=</span><span class="n">UserRead</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">reset_password</span><span class="p">(</span>
+    <span class="n">user_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">data</span><span class="p">:</span> <span class="n">PasswordReset</span><span class="p">,</span>
+    <span class="n">request</span><span class="p">:</span> <span class="n">Request</span><span class="p">,</span>
+    <span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">),</span>
+    <span class="n">current_user</span><span class="p">:</span> <span class="n">User</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">_admin_only</span><span class="p">),</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Задать пользователю временный пароль.</span>
+
+<span class="sd">    При следующем входе пользователь обязан сменить его на свой.</span>
+<span class="sd">    Все текущие сессии пользователя завершаются.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        user_id (int): ID пользователя.</span>
+<span class="sd">        data (PasswordReset): Временный пароль.</span>
+<span class="sd">        request (Request): Запрос (для журнала).</span>
+<span class="sd">        db (Session): Сессия базы данных.</span>
+<span class="sd">        current_user (User): Администратор.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        User: Пользователь.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        HTTPException: Если пароль слишком простой (422).</span>
+<span class="sd">    """</span>
+    <span class="n">user</span> <span class="o">=</span> <span class="n">_get_user</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">user_id</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">validate_password_strength</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">new_password</span><span class="p">,</span> <span class="n">user</span><span class="o">.</span><span class="n">username</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="mi">422</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">exc</span><span class="p">))</span>
+
+    <span class="n">user</span><span class="o">.</span><span class="n">hashed_password</span> <span class="o">=</span> <span class="n">get_password_hash</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">new_password</span><span class="p">)</span>
+    <span class="n">user</span><span class="o">.</span><span class="n">must_change_password</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">revoke_tokens</span><span class="p">(</span><span class="n">user</span><span class="p">)</span>
+    <span class="n">audit</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">current_user</span><span class="p">,</span> <span class="n">audit</span><span class="o">.</span><span class="n">ACTION_PASSWORD_RESET</span><span class="p">,</span>
+              <span class="sa">f</span><span class="s2">"Сброшен пароль пользователя «</span><span class="si">{</span><span class="n">user</span><span class="o">.</span><span class="n">username</span><span class="si">}</span><span class="s2">»"</span><span class="p">,</span>
+              <span class="n">entity_type</span><span class="o">=</span><span class="s2">"user"</span><span class="p">,</span> <span class="n">entity_id</span><span class="o">=</span><span class="n">user</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">refresh</span><span class="p">(</span><span class="n">user</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">user</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Авторские права 2026, Ralka. </p>
+  </div>
+
+  Собрано при помощи <a href="https://www.sphinx-doc.org/">Sphinx</a> с использованием
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">темы,</a>
+    предоставленной <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -20,8 +20,8 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Алфавитный указатель" href="genindex.html" />
     <link rel="search" title="Поиск" href="search.html" />
-    <link rel="next" title="schemas module" href="schemas.html" />
-    <link rel="prev" title="main module" href="main.html" /> 
+    <link rel="next" title="report_data module" href="report_data.html" />
+    <link rel="prev" title="migrate module" href="migrate.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -46,10 +46,34 @@
               <p class="caption" role="heading"><span class="caption-text">Содержание:</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="modules.html">FireExtinguishers</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="app_settings.html">app_settings module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="audit.html">audit module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="auth.html">auth module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="db.html">db module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deadlines.html">deadlines module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="main.html">main module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="migrate.html">migrate module</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">models module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#models.AppSetting"><code class="docutils literal notranslate"><span class="pre">AppSetting</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#models.AppSetting.key"><code class="docutils literal notranslate"><span class="pre">AppSetting.key</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.AppSetting.updated_at"><code class="docutils literal notranslate"><span class="pre">AppSetting.updated_at</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.AppSetting.value"><code class="docutils literal notranslate"><span class="pre">AppSetting.value</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#models.AuditLog"><code class="docutils literal notranslate"><span class="pre">AuditLog</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#models.AuditLog.action"><code class="docutils literal notranslate"><span class="pre">AuditLog.action</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.AuditLog.changes"><code class="docutils literal notranslate"><span class="pre">AuditLog.changes</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.AuditLog.created_at"><code class="docutils literal notranslate"><span class="pre">AuditLog.created_at</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.AuditLog.entity_id"><code class="docutils literal notranslate"><span class="pre">AuditLog.entity_id</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.AuditLog.entity_type"><code class="docutils literal notranslate"><span class="pre">AuditLog.entity_type</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.AuditLog.id"><code class="docutils literal notranslate"><span class="pre">AuditLog.id</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.AuditLog.ip"><code class="docutils literal notranslate"><span class="pre">AuditLog.ip</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.AuditLog.summary"><code class="docutils literal notranslate"><span class="pre">AuditLog.summary</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.AuditLog.user_agent"><code class="docutils literal notranslate"><span class="pre">AuditLog.user_agent</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.AuditLog.user_id"><code class="docutils literal notranslate"><span class="pre">AuditLog.user_id</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.AuditLog.username"><code class="docutils literal notranslate"><span class="pre">AuditLog.username</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="#models.Employee"><code class="docutils literal notranslate"><span class="pre">Employee</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#models.Employee.created_at"><code class="docutils literal notranslate"><span class="pre">Employee.created_at</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#models.Employee.full_name"><code class="docutils literal notranslate"><span class="pre">Employee.full_name</span></code></a></li>
@@ -65,10 +89,13 @@
 <li class="toctree-l4"><a class="reference internal" href="#models.FireExtinguisher.id"><code class="docutils literal notranslate"><span class="pre">FireExtinguisher.id</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#models.FireExtinguisher.inspections"><code class="docutils literal notranslate"><span class="pre">FireExtinguisher.inspections</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#models.FireExtinguisher.inventory_number"><code class="docutils literal notranslate"><span class="pre">FireExtinguisher.inventory_number</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.FireExtinguisher.last_recharge_date"><code class="docutils literal notranslate"><span class="pre">FireExtinguisher.last_recharge_date</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#models.FireExtinguisher.location"><code class="docutils literal notranslate"><span class="pre">FireExtinguisher.location</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#models.FireExtinguisher.location_id"><code class="docutils literal notranslate"><span class="pre">FireExtinguisher.location_id</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#models.FireExtinguisher.manufacture_date"><code class="docutils literal notranslate"><span class="pre">FireExtinguisher.manufacture_date</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#models.FireExtinguisher.manufacturer"><code class="docutils literal notranslate"><span class="pre">FireExtinguisher.manufacturer</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.FireExtinguisher.recharge_interval_months"><code class="docutils literal notranslate"><span class="pre">FireExtinguisher.recharge_interval_months</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.FireExtinguisher.service_life_years"><code class="docutils literal notranslate"><span class="pre">FireExtinguisher.service_life_years</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#models.FireExtinguisher.status"><code class="docutils literal notranslate"><span class="pre">FireExtinguisher.status</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#models.FireExtinguisher.status_id"><code class="docutils literal notranslate"><span class="pre">FireExtinguisher.status_id</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#models.FireExtinguisher.type"><code class="docutils literal notranslate"><span class="pre">FireExtinguisher.type</span></code></a></li>
@@ -116,14 +143,21 @@
 <li class="toctree-l4"><a class="reference internal" href="#models.User.hashed_password"><code class="docutils literal notranslate"><span class="pre">User.hashed_password</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#models.User.id"><code class="docutils literal notranslate"><span class="pre">User.id</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#models.User.is_active"><code class="docutils literal notranslate"><span class="pre">User.is_active</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.User.last_login_at"><code class="docutils literal notranslate"><span class="pre">User.last_login_at</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.User.must_change_password"><code class="docutils literal notranslate"><span class="pre">User.must_change_password</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#models.User.role"><code class="docutils literal notranslate"><span class="pre">User.role</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.User.token_version"><code class="docutils literal notranslate"><span class="pre">User.token_version</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#models.User.username"><code class="docutils literal notranslate"><span class="pre">User.username</span></code></a></li>
 </ul>
 </li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="report_data.html">report_data module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="routers.html">routers package</a></li>
 <li class="toctree-l2"><a class="reference internal" href="schemas.html">schemas module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="setup.html">setup module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="status_logic.html">status_logic module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="xlsx_export.html">xlsx_export module</a></li>
 </ul>
 </li>
 </ul>
@@ -156,7 +190,97 @@
   <section id="module-models">
 <span id="models-module"></span><h1>models module<a class="headerlink" href="#module-models" title="Ссылка на этот заголовок"></a></h1>
 <p>Модуль описания ORM-моделей системы FireTrack.
-Определяет таблицы для локаций, статусов, огнетушителей, сотрудников, проверок и пользователей.</p>
+Определяет таблицы для локаций, статусов, огнетушителей, сотрудников, проверок,
+пользователей, журнала действий и настроек.</p>
+<p>Схема базы меняется только через миграции Alembic (папка <code class="docutils literal notranslate"><span class="pre">migrations</span></code>).
+Если добавляете колонку здесь, создайте для нее новую ревизию.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="models.AppSetting">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">models.</span></span><span class="sig-name descname"><span class="pre">AppSetting</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/models.html#AppSetting"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#models.AppSetting" title="Ссылка на это определение"></a></dt>
+<dd><p>Базовые классы: <a class="reference internal" href="db.html#db.Base" title="db.Base"><code class="xref py py-class docutils literal notranslate"><span class="pre">Base</span></code></a></p>
+<p>Настройка приложения в виде пары «ключ — значение» (строкой).</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.AppSetting.key">
+<span class="sig-name descname"><span class="pre">key</span></span><a class="headerlink" href="#models.AppSetting.key" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.AppSetting.updated_at">
+<span class="sig-name descname"><span class="pre">updated_at</span></span><a class="headerlink" href="#models.AppSetting.updated_at" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.AppSetting.value">
+<span class="sig-name descname"><span class="pre">value</span></span><a class="headerlink" href="#models.AppSetting.value" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="models.AuditLog">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">models.</span></span><span class="sig-name descname"><span class="pre">AuditLog</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/models.html#AuditLog"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#models.AuditLog" title="Ссылка на это определение"></a></dt>
+<dd><p>Базовые классы: <a class="reference internal" href="db.html#db.Base" title="db.Base"><code class="xref py py-class docutils literal notranslate"><span class="pre">Base</span></code></a></p>
+<p>Запись журнала действий пользователей.</p>
+<p>Логин хранится строкой, поэтому запись остается понятной, даже если
+пользователя потом переименуют или удалят. Пароли и хеши сюда
+никогда не попадают.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.AuditLog.action">
+<span class="sig-name descname"><span class="pre">action</span></span><a class="headerlink" href="#models.AuditLog.action" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.AuditLog.changes">
+<span class="sig-name descname"><span class="pre">changes</span></span><a class="headerlink" href="#models.AuditLog.changes" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.AuditLog.created_at">
+<span class="sig-name descname"><span class="pre">created_at</span></span><a class="headerlink" href="#models.AuditLog.created_at" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.AuditLog.entity_id">
+<span class="sig-name descname"><span class="pre">entity_id</span></span><a class="headerlink" href="#models.AuditLog.entity_id" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.AuditLog.entity_type">
+<span class="sig-name descname"><span class="pre">entity_type</span></span><a class="headerlink" href="#models.AuditLog.entity_type" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.AuditLog.id">
+<span class="sig-name descname"><span class="pre">id</span></span><a class="headerlink" href="#models.AuditLog.id" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.AuditLog.ip">
+<span class="sig-name descname"><span class="pre">ip</span></span><a class="headerlink" href="#models.AuditLog.ip" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.AuditLog.summary">
+<span class="sig-name descname"><span class="pre">summary</span></span><a class="headerlink" href="#models.AuditLog.summary" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.AuditLog.user_agent">
+<span class="sig-name descname"><span class="pre">user_agent</span></span><a class="headerlink" href="#models.AuditLog.user_agent" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.AuditLog.user_id">
+<span class="sig-name descname"><span class="pre">user_id</span></span><a class="headerlink" href="#models.AuditLog.user_id" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.AuditLog.username">
+<span class="sig-name descname"><span class="pre">username</span></span><a class="headerlink" href="#models.AuditLog.username" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
 <dl class="py class">
 <dt class="sig sig-object py" id="models.Employee">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">models.</span></span><span class="sig-name descname"><span class="pre">Employee</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/models.html#Employee"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#models.Employee" title="Ссылка на это определение"></a></dt>
@@ -194,6 +318,11 @@
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">models.</span></span><span class="sig-name descname"><span class="pre">FireExtinguisher</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/models.html#FireExtinguisher"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#models.FireExtinguisher" title="Ссылка на это определение"></a></dt>
 <dd><p>Базовые классы: <a class="reference internal" href="db.html#db.Base" title="db.Base"><code class="xref py py-class docutils literal notranslate"><span class="pre">Base</span></code></a></p>
 <p>Модель единицы противопожарного оборудования (огнетушителя).</p>
+<p>Кроме плановых осмотров у огнетушителя есть сроки перезарядки и срок
+службы. Интервалы по умолчанию зависят от вида огнетушащего вещества
+и задаются в настройках (модуль <code class="docutils literal notranslate"><span class="pre">deadlines</span></code>). Колонки
+<code class="docutils literal notranslate"><span class="pre">recharge_interval_months</span></code> и <code class="docutils literal notranslate"><span class="pre">service_life_years</span></code> позволяют
+переопределить их для конкретного экземпляра (например, по паспорту).</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="models.FireExtinguisher.capacity">
 <span class="sig-name descname"><span class="pre">capacity</span></span><a class="headerlink" href="#models.FireExtinguisher.capacity" title="Ссылка на это определение"></a></dt>
@@ -225,6 +354,11 @@
 <dd></dd></dl>
 
 <dl class="py attribute">
+<dt class="sig sig-object py" id="models.FireExtinguisher.last_recharge_date">
+<span class="sig-name descname"><span class="pre">last_recharge_date</span></span><a class="headerlink" href="#models.FireExtinguisher.last_recharge_date" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
 <dt class="sig sig-object py" id="models.FireExtinguisher.location">
 <span class="sig-name descname"><span class="pre">location</span></span><a class="headerlink" href="#models.FireExtinguisher.location" title="Ссылка на это определение"></a></dt>
 <dd></dd></dl>
@@ -242,6 +376,16 @@
 <dl class="py attribute">
 <dt class="sig sig-object py" id="models.FireExtinguisher.manufacturer">
 <span class="sig-name descname"><span class="pre">manufacturer</span></span><a class="headerlink" href="#models.FireExtinguisher.manufacturer" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.FireExtinguisher.recharge_interval_months">
+<span class="sig-name descname"><span class="pre">recharge_interval_months</span></span><a class="headerlink" href="#models.FireExtinguisher.recharge_interval_months" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.FireExtinguisher.service_life_years">
+<span class="sig-name descname"><span class="pre">service_life_years</span></span><a class="headerlink" href="#models.FireExtinguisher.service_life_years" title="Ссылка на это определение"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
@@ -417,6 +561,9 @@
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">models.</span></span><span class="sig-name descname"><span class="pre">User</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/models.html#User"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#models.User" title="Ссылка на это определение"></a></dt>
 <dd><p>Базовые классы: <a class="reference internal" href="db.html#db.Base" title="db.Base"><code class="xref py py-class docutils literal notranslate"><span class="pre">Base</span></code></a></p>
 <p>Модель пользователя системы для авторизации и управления правами доступа.</p>
+<p><code class="docutils literal notranslate"><span class="pre">token_version</span></code> входит в каждый выданный JWT. Смена или сброс пароля
+и блокировка увеличивают его, и все старые токены пользователя
+сразу перестают работать.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="models.User.created_at">
 <span class="sig-name descname"><span class="pre">created_at</span></span><a class="headerlink" href="#models.User.created_at" title="Ссылка на это определение"></a></dt>
@@ -448,8 +595,23 @@
 <dd></dd></dl>
 
 <dl class="py attribute">
+<dt class="sig sig-object py" id="models.User.last_login_at">
+<span class="sig-name descname"><span class="pre">last_login_at</span></span><a class="headerlink" href="#models.User.last_login_at" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.User.must_change_password">
+<span class="sig-name descname"><span class="pre">must_change_password</span></span><a class="headerlink" href="#models.User.must_change_password" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
 <dt class="sig sig-object py" id="models.User.role">
 <span class="sig-name descname"><span class="pre">role</span></span><a class="headerlink" href="#models.User.role" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.User.token_version">
+<span class="sig-name descname"><span class="pre">token_version</span></span><a class="headerlink" href="#models.User.token_version" title="Ссылка на это определение"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
@@ -465,8 +627,8 @@
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Нижняя область">
-        <a href="main.html" class="btn btn-neutral float-left" title="main module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Предыдущая</a>
-        <a href="schemas.html" class="btn btn-neutral float-right" title="schemas module" accesskey="n" rel="next">Следующая <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="migrate.html" class="btn btn-neutral float-left" title="migrate module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Предыдущая</a>
+        <a href="report_data.html" class="btn btn-neutral float-right" title="report_data module" accesskey="n" rel="next">Следующая <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

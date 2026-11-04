@@ -1,0 +1,257 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="ru" data-content_root="../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>deadlines &mdash; документация FireTrack 1</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=47a0e12c"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../_static/translations.js?v=cd1d70c9"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Алфавитный указатель" href="../genindex.html" />
+    <link rel="search" title="Поиск" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            FireTrack
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Поиск в документации" aria-label="Поиск в документации" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Меню навигации">
+              <p class="caption" role="heading"><span class="caption-text">Содержание:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">FireExtinguishers</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Меню навигации для мобильных устройств" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">FireTrack</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Навигация по страницам">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Код модуля</a></li>
+      <li class="breadcrumb-item active">deadlines</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Исходный код deadlines</h1><div class="highlight"><pre>
+<span></span><span class="c1"># deadlines.py (v1.0)</span>
+<span class="sd">"""</span>
+<span class="sd">Сроки перезарядки и срок службы огнетушителей.</span>
+
+<span class="sd">Плановые осмотры считаются по журналу проверок (``status_logic``), а здесь</span>
+<span class="sd">считаются два других срока:</span>
+
+<span class="sd">1. **Перезарядка.** Интервал зависит от вида огнетушащего вещества (ОТВ),</span>
+<span class="sd">   который определяется по префиксу типа: ОВ и ОВЭ (вода), ОВП (пена),</span>
+<span class="sd">   ОП (порошок), ОУ (углекислота), ОХ (хладон). Интервалы по умолчанию</span>
+<span class="sd">   берутся из настроек (таблица 1 СП 9.13130.2009) и могут быть</span>
+<span class="sd">   переопределены в карточке огнетушителя. Отсчет ведется от даты</span>
+<span class="sd">   последней перезарядки, а если ее нет, от даты изготовления</span>
+<span class="sd">   (новый огнетушитель заряжен на заводе) или ввода в эксплуатацию.</span>
+<span class="sd">2. **Срок службы.** По умолчанию 10 лет (п. 5.53 ГОСТ Р 51057-2001),</span>
+<span class="sd">   отсчитывается от даты изготовления. После него огнетушитель списывают</span>
+<span class="sd">   или продлевают срок по решению организации, проводящей ТО.</span>
+<span class="sd">"""</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">calendar</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">date</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span>
+
+<span class="c1"># Состояния срока</span>
+<span class="n">STATE_OK</span> <span class="o">=</span> <span class="s2">"ok"</span>
+<span class="n">STATE_SOON</span> <span class="o">=</span> <span class="s2">"soon"</span>
+<span class="n">STATE_OVERDUE</span> <span class="o">=</span> <span class="s2">"overdue"</span>
+<span class="n">STATE_UNKNOWN</span> <span class="o">=</span> <span class="s2">"unknown"</span>
+
+<span class="c1"># Вид ОТВ: (ключ настройки, подпись). Порядок важен: длинные префиксы раньше.</span>
+<span class="n">AGENT_KINDS</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="p">(</span><span class="s2">"ОВП"</span><span class="p">,</span> <span class="s2">"foam"</span><span class="p">,</span> <span class="s2">"Пена"</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">"ОВЭ"</span><span class="p">,</span> <span class="s2">"water"</span><span class="p">,</span> <span class="s2">"Вода с добавками"</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">"ОВ"</span><span class="p">,</span> <span class="s2">"water"</span><span class="p">,</span> <span class="s2">"Вода"</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">"ОП"</span><span class="p">,</span> <span class="s2">"powder"</span><span class="p">,</span> <span class="s2">"Порошок"</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">"ОУ"</span><span class="p">,</span> <span class="s2">"co2"</span><span class="p">,</span> <span class="s2">"Углекислота"</span><span class="p">),</span>
+    <span class="p">(</span><span class="s2">"ОХ"</span><span class="p">,</span> <span class="s2">"halon"</span><span class="p">,</span> <span class="s2">"Хладон"</span><span class="p">),</span>
+<span class="p">]</span>
+
+<span class="c1"># Латинские буквы, которые вводят вместо кириллических в маркировке</span>
+<span class="c1"># (OP-5 вместо ОП-5, OY вместо ОУ и т.п.)</span>
+<span class="n">_LATIN_TO_CYR</span> <span class="o">=</span> <span class="nb">str</span><span class="o">.</span><span class="n">maketrans</span><span class="p">({</span><span class="s2">"O"</span><span class="p">:</span> <span class="s2">"О"</span><span class="p">,</span> <span class="s2">"P"</span><span class="p">:</span> <span class="s2">"П"</span><span class="p">,</span> <span class="s2">"B"</span><span class="p">:</span> <span class="s2">"В"</span><span class="p">,</span> <span class="s2">"X"</span><span class="p">:</span> <span class="s2">"Х"</span><span class="p">,</span> <span class="s2">"Y"</span><span class="p">:</span> <span class="s2">"У"</span><span class="p">,</span> <span class="s2">"E"</span><span class="p">:</span> <span class="s2">"Э"</span><span class="p">})</span>
+
+<span class="n">_BASIS_LABELS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"last_recharge_date"</span><span class="p">:</span> <span class="s2">"последняя перезарядка"</span><span class="p">,</span>
+    <span class="s2">"manufacture_date"</span><span class="p">:</span> <span class="s2">"дата изготовления"</span><span class="p">,</span>
+    <span class="s2">"commissioning_date"</span><span class="p">:</span> <span class="s2">"ввод в эксплуатацию"</span><span class="p">,</span>
+<span class="p">}</span>
+
+
+<div class="viewcode-block" id="agent_kind">
+<a class="viewcode-back" href="../deadlines.html#deadlines.agent_kind">[документация]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">agent_kind</span><span class="p">(</span><span class="n">extinguisher_type</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Определяет вид огнетушащего вещества по типу огнетушителя.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        extinguisher_type (Optional[str]): Тип, например «ОП-5» или «ОУ-3».</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Optional[Dict[str, str]]: ``{"kind": ..., "label": ...}`` или None,</span>
+<span class="sd">        если вид определить не удалось.</span>
+<span class="sd">    """</span>
+    <span class="n">text</span> <span class="o">=</span> <span class="p">(</span><span class="n">extinguisher_type</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="n">_LATIN_TO_CYR</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">prefix</span><span class="p">,</span> <span class="n">kind</span><span class="p">,</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">AGENT_KINDS</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">text</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">prefix</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">{</span><span class="s2">"kind"</span><span class="p">:</span> <span class="n">kind</span><span class="p">,</span> <span class="s2">"label"</span><span class="p">:</span> <span class="n">label</span><span class="p">}</span>
+    <span class="k">return</span> <span class="kc">None</span></div>
+
+
+
+<div class="viewcode-block" id="add_months">
+<a class="viewcode-back" href="../deadlines.html#deadlines.add_months">[документация]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">add_months</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">date</span><span class="p">,</span> <span class="n">months</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">date</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Прибавляет к дате месяцы. Если такого дня в месяце нет, берется последний.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        value (date): Исходная дата.</span>
+<span class="sd">        months (int): Число месяцев.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        date: Новая дата.</span>
+<span class="sd">    """</span>
+    <span class="n">month_index</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">month</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">months</span>
+    <span class="n">year</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">year</span> <span class="o">+</span> <span class="n">month_index</span> <span class="o">//</span> <span class="mi">12</span>
+    <span class="n">month</span> <span class="o">=</span> <span class="n">month_index</span> <span class="o">%</span> <span class="mi">12</span> <span class="o">+</span> <span class="mi">1</span>
+    <span class="n">day</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">day</span><span class="p">,</span> <span class="n">calendar</span><span class="o">.</span><span class="n">monthrange</span><span class="p">(</span><span class="n">year</span><span class="p">,</span> <span class="n">month</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">date</span><span class="p">(</span><span class="n">year</span><span class="p">,</span> <span class="n">month</span><span class="p">,</span> <span class="n">day</span><span class="p">)</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_state</span><span class="p">(</span><span class="n">deadline</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">date</span><span class="p">],</span> <span class="n">today</span><span class="p">:</span> <span class="n">date</span><span class="p">,</span> <span class="n">warning_days</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Состояние срока относительно сегодняшней даты."""</span>
+    <span class="k">if</span> <span class="n">deadline</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">STATE_UNKNOWN</span>
+    <span class="k">if</span> <span class="n">deadline</span> <span class="o">&lt;</span> <span class="n">today</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">STATE_OVERDUE</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">deadline</span> <span class="o">-</span> <span class="n">today</span><span class="p">)</span><span class="o">.</span><span class="n">days</span> <span class="o">&lt;=</span> <span class="n">warning_days</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">STATE_SOON</span>
+    <span class="k">return</span> <span class="n">STATE_OK</span>
+
+
+<div class="viewcode-block" id="compute_deadlines">
+<a class="viewcode-back" href="../deadlines.html#deadlines.compute_deadlines">[документация]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">compute_deadlines</span><span class="p">(</span><span class="n">fe</span><span class="p">,</span> <span class="n">settings</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">today</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">date</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Считает сроки перезарядки и службы одного огнетушителя.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        fe (FireExtinguisher): Огнетушитель.</span>
+<span class="sd">        settings (Dict[str, Any]): Настройки из ``app_settings.get_settings``.</span>
+<span class="sd">        today (Optional[date]): Текущая дата (для тестов).</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Dict[str, Any]: Вид ОТВ, интервал, база отсчета, дата следующей</span>
+<span class="sd">        перезарядки, конец срока службы, их состояния и остаток в днях.</span>
+<span class="sd">    """</span>
+    <span class="n">today</span> <span class="o">=</span> <span class="n">today</span> <span class="ow">or</span> <span class="n">date</span><span class="o">.</span><span class="n">today</span><span class="p">()</span>
+    <span class="n">warning_days</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">settings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"recharge_warning_days"</span><span class="p">,</span> <span class="mi">60</span><span class="p">))</span>
+    <span class="n">kind</span> <span class="o">=</span> <span class="n">agent_kind</span><span class="p">(</span><span class="n">fe</span><span class="o">.</span><span class="n">type</span><span class="p">)</span>
+
+    <span class="n">interval</span> <span class="o">=</span> <span class="n">fe</span><span class="o">.</span><span class="n">recharge_interval_months</span>
+    <span class="n">interval_source</span> <span class="o">=</span> <span class="s2">"карточка"</span> <span class="k">if</span> <span class="n">interval</span> <span class="k">else</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">interval</span> <span class="ow">and</span> <span class="n">kind</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">interval</span> <span class="o">=</span> <span class="n">settings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">f</span><span class="s2">"recharge_months_</span><span class="si">{</span><span class="n">kind</span><span class="p">[</span><span class="s1">'kind'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+        <span class="n">interval_source</span> <span class="o">=</span> <span class="s2">"настройки"</span> <span class="k">if</span> <span class="n">interval</span> <span class="k">else</span> <span class="kc">None</span>
+
+    <span class="n">basis_field</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">f</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"last_recharge_date"</span><span class="p">,</span> <span class="s2">"manufacture_date"</span><span class="p">,</span> <span class="s2">"commissioning_date"</span><span class="p">)</span>
+         <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">fe</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="kc">None</span><span class="p">)),</span>
+        <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">basis_date</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">fe</span><span class="p">,</span> <span class="n">basis_field</span><span class="p">)</span> <span class="k">if</span> <span class="n">basis_field</span> <span class="k">else</span> <span class="kc">None</span>
+    <span class="n">next_recharge</span> <span class="o">=</span> <span class="n">add_months</span><span class="p">(</span><span class="n">basis_date</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">interval</span><span class="p">))</span> <span class="k">if</span> <span class="n">basis_date</span> <span class="ow">and</span> <span class="n">interval</span> <span class="k">else</span> <span class="kc">None</span>
+
+    <span class="n">life_years</span> <span class="o">=</span> <span class="n">fe</span><span class="o">.</span><span class="n">service_life_years</span> <span class="ow">or</span> <span class="n">settings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"service_life_years"</span><span class="p">)</span>
+    <span class="n">life_basis</span> <span class="o">=</span> <span class="n">fe</span><span class="o">.</span><span class="n">manufacture_date</span> <span class="ow">or</span> <span class="n">fe</span><span class="o">.</span><span class="n">commissioning_date</span>
+    <span class="n">service_end</span> <span class="o">=</span> <span class="n">add_months</span><span class="p">(</span><span class="n">life_basis</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">life_years</span><span class="p">)</span> <span class="o">*</span> <span class="mi">12</span><span class="p">)</span> <span class="k">if</span> <span class="n">life_basis</span> <span class="ow">and</span> <span class="n">life_years</span> <span class="k">else</span> <span class="kc">None</span>
+
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s2">"agent_kind"</span><span class="p">:</span> <span class="n">kind</span><span class="p">[</span><span class="s2">"kind"</span><span class="p">]</span> <span class="k">if</span> <span class="n">kind</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s2">"agent_label"</span><span class="p">:</span> <span class="n">kind</span><span class="p">[</span><span class="s2">"label"</span><span class="p">]</span> <span class="k">if</span> <span class="n">kind</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s2">"recharge_interval_months"</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">interval</span><span class="p">)</span> <span class="k">if</span> <span class="n">interval</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s2">"recharge_interval_source"</span><span class="p">:</span> <span class="n">interval_source</span><span class="p">,</span>
+        <span class="s2">"recharge_basis"</span><span class="p">:</span> <span class="n">_BASIS_LABELS</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">basis_field</span><span class="p">)</span> <span class="k">if</span> <span class="n">basis_field</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s2">"recharge_basis_date"</span><span class="p">:</span> <span class="n">basis_date</span><span class="p">,</span>
+        <span class="s2">"next_recharge_date"</span><span class="p">:</span> <span class="n">next_recharge</span><span class="p">,</span>
+        <span class="s2">"recharge_days_left"</span><span class="p">:</span> <span class="p">(</span><span class="n">next_recharge</span> <span class="o">-</span> <span class="n">today</span><span class="p">)</span><span class="o">.</span><span class="n">days</span> <span class="k">if</span> <span class="n">next_recharge</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s2">"recharge_state"</span><span class="p">:</span> <span class="n">_state</span><span class="p">(</span><span class="n">next_recharge</span><span class="p">,</span> <span class="n">today</span><span class="p">,</span> <span class="n">warning_days</span><span class="p">),</span>
+        <span class="s2">"service_life_years"</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">life_years</span><span class="p">)</span> <span class="k">if</span> <span class="n">life_years</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s2">"service_end_date"</span><span class="p">:</span> <span class="n">service_end</span><span class="p">,</span>
+        <span class="s2">"service_days_left"</span><span class="p">:</span> <span class="p">(</span><span class="n">service_end</span> <span class="o">-</span> <span class="n">today</span><span class="p">)</span><span class="o">.</span><span class="n">days</span> <span class="k">if</span> <span class="n">service_end</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s2">"service_state"</span><span class="p">:</span> <span class="n">_state</span><span class="p">(</span><span class="n">service_end</span><span class="p">,</span> <span class="n">today</span><span class="p">,</span> <span class="n">warning_days</span><span class="p">),</span>
+    <span class="p">}</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Авторские права 2026, Ralka. </p>
+  </div>
+
+  Собрано при помощи <a href="https://www.sphinx-doc.org/">Sphinx</a> с использованием
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">темы,</a>
+    предоставленной <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

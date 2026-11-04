@@ -70,15 +70,23 @@
            <div itemprop="articleBody">
              
   <h1>Исходный код schemas</h1><div class="highlight"><pre>
-<span></span><span class="c1"># schemas.py (v1.2)</span>
-<span class="sd">&quot;&quot;&quot;</span>
+<span></span><span class="c1"># schemas.py (v1.4)</span>
+<span class="sd">"""</span>
 <span class="sd">Модуль схем Pydantic для валидации данных, сериализации и десериализации.</span>
 <span class="sd">Определяет структуру данных для входящих API-запросов и исходящих ответов.</span>
-<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">"""</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">date</span><span class="p">,</span> <span class="n">datetime</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">Field</span><span class="p">,</span> <span class="n">field_validator</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span><span class="p">,</span> <span class="n">ConfigDict</span><span class="p">,</span> <span class="n">Field</span><span class="p">,</span> <span class="n">field_validator</span><span class="p">,</span> <span class="n">model_validator</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_date_not_in_future</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">date</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">date</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""Проверяет, что дата не позже сегодняшнего дня."""</span>
+    <span class="k">if</span> <span class="n">value</span> <span class="ow">and</span> <span class="n">value</span> <span class="o">&gt;</span> <span class="n">date</span><span class="o">.</span><span class="n">today</span><span class="p">():</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Дата не может быть из будущего"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">value</span>
 
 
 <span class="c1"># ---------- Health ----------</span>
@@ -86,7 +94,7 @@
 <div class="viewcode-block" id="HealthResponse">
 <a class="viewcode-back" href="../schemas.html#schemas.HealthResponse">[документация]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">HealthResponse</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Схема ответа для эндпоинта проверки работоспособности (Health Check).&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Схема ответа для эндпоинта проверки работоспособности (Health Check)."""</span>
     <span class="n">status</span><span class="p">:</span> <span class="nb">str</span></div>
 
 
@@ -96,16 +104,16 @@
 <div class="viewcode-block" id="LocationBase">
 <a class="viewcode-back" href="../schemas.html#schemas.LocationBase">[документация]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">LocationBase</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Базовая схема местоположения оборудования.&quot;&quot;&quot;</span>
-    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Название места (кабинет, этаж)&quot;</span><span class="p">)</span>
-    <span class="n">description</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Описание места&quot;</span><span class="p">)</span></div>
+<span class="w">    </span><span class="sd">"""Базовая схема местоположения оборудования."""</span>
+    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">min_length</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"Название места (кабинет, этаж)"</span><span class="p">)</span>
+    <span class="n">description</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"Описание места"</span><span class="p">)</span></div>
 
 
 
 <div class="viewcode-block" id="LocationCreate">
 <a class="viewcode-back" href="../schemas.html#schemas.LocationCreate">[документация]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">LocationCreate</span><span class="p">(</span><span class="n">LocationBase</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Схема для создания нового местоположения.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Схема для создания нового местоположения."""</span>
     <span class="k">pass</span></div>
 
 
@@ -113,15 +121,11 @@
 <div class="viewcode-block" id="LocationRead">
 <a class="viewcode-back" href="../schemas.html#schemas.LocationRead">[документация]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">LocationRead</span><span class="p">(</span><span class="n">LocationBase</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Схема для чтения данных о местоположении (возвращается в API).&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Схема для чтения данных о местоположении (возвращается в API)."""</span>
     <span class="nb">id</span><span class="p">:</span> <span class="nb">int</span>
     <span class="n">created_at</span><span class="p">:</span> <span class="n">datetime</span>
 
-<div class="viewcode-block" id="LocationRead.Config">
-<a class="viewcode-back" href="../schemas.html#schemas.LocationRead.Config">[документация]</a>
-    <span class="k">class</span><span class="w"> </span><span class="nc">Config</span><span class="p">:</span>
-        <span class="n">from_attributes</span> <span class="o">=</span> <span class="kc">True</span></div>
-</div>
+    <span class="n">model_config</span> <span class="o">=</span> <span class="n">ConfigDict</span><span class="p">(</span><span class="n">from_attributes</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
 
 
 
@@ -130,16 +134,16 @@
 <div class="viewcode-block" id="StatusBase">
 <a class="viewcode-back" href="../schemas.html#schemas.StatusBase">[документация]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">StatusBase</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Базовая схема технического статуса огнетушителя.&quot;&quot;&quot;</span>
-    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Название статуса&quot;</span><span class="p">)</span>
-    <span class="n">description</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Описание статуса&quot;</span><span class="p">)</span></div>
+<span class="w">    </span><span class="sd">"""Базовая схема технического статуса огнетушителя."""</span>
+    <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">min_length</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"Название статуса"</span><span class="p">)</span>
+    <span class="n">description</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"Описание статуса"</span><span class="p">)</span></div>
 
 
 
 <div class="viewcode-block" id="StatusCreate">
 <a class="viewcode-back" href="../schemas.html#schemas.StatusCreate">[документация]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">StatusCreate</span><span class="p">(</span><span class="n">StatusBase</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Схема для создания нового статуса.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Схема для создания нового статуса."""</span>
     <span class="k">pass</span></div>
 
 
@@ -147,15 +151,11 @@
 <div class="viewcode-block" id="StatusRead">
 <a class="viewcode-back" href="../schemas.html#schemas.StatusRead">[документация]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">StatusRead</span><span class="p">(</span><span class="n">StatusBase</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Схема для чтения данных о статусе (возвращается в API).&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Схема для чтения данных о статусе (возвращается в API)."""</span>
     <span class="nb">id</span><span class="p">:</span> <span class="nb">int</span>
     <span class="n">created_at</span><span class="p">:</span> <span class="n">datetime</span>
 
-<div class="viewcode-block" id="StatusRead.Config">
-<a class="viewcode-back" href="../schemas.html#schemas.StatusRead.Config">[документация]</a>
-    <span class="k">class</span><span class="w"> </span><span class="nc">Config</span><span class="p">:</span>
-        <span class="n">from_attributes</span> <span class="o">=</span> <span class="kc">True</span></div>
-</div>
+    <span class="n">model_config</span> <span class="o">=</span> <span class="n">ConfigDict</span><span class="p">(</span><span class="n">from_attributes</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
 
 
 
@@ -164,27 +164,33 @@
 <div class="viewcode-block" id="FireExtinguisherBase">
 <a class="viewcode-back" href="../schemas.html#schemas.FireExtinguisherBase">[документация]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">FireExtinguisherBase</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Базовая схема огнетушителя со всеми основными характеристиками.&quot;&quot;&quot;</span>
-    <span class="n">inventory_number</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Инвентарный номер&quot;</span><span class="p">)</span>
-    <span class="nb">type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Тип огнетушителя (ОУ-8 и т.п.)&quot;</span><span class="p">)</span>
-    <span class="n">capacity</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">gt</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Вместимость (л / кг)&quot;</span><span class="p">)</span>
-    <span class="n">manufacturer</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Производитель&quot;</span><span class="p">)</span>
+<span class="w">    </span><span class="sd">"""Базовая схема огнетушителя со всеми основными характеристиками."""</span>
+    <span class="n">inventory_number</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">min_length</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"Инвентарный номер"</span><span class="p">)</span>
+    <span class="nb">type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">min_length</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"Тип огнетушителя (ОУ-8 и т.п.)"</span><span class="p">)</span>
+    <span class="n">capacity</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">gt</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"Вместимость (л / кг)"</span><span class="p">)</span>
+    <span class="n">manufacturer</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"Производитель"</span><span class="p">)</span>
     <span class="n">manufacture_date</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">date</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
-        <span class="kc">None</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Дата изготовления&quot;</span><span class="p">)</span>
+        <span class="kc">None</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"Дата изготовления"</span><span class="p">)</span>
     <span class="n">commissioning_date</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">date</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
-        <span class="kc">None</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Дата ввода в эксплуатацию&quot;</span><span class="p">)</span>
-    <span class="n">location_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;ID места (Locations.id)&quot;</span><span class="p">)</span>
-    <span class="n">status_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;ID статуса (Statuses.id)&quot;</span><span class="p">)</span>
+        <span class="kc">None</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"Дата ввода в эксплуатацию"</span><span class="p">)</span>
+    <span class="n">location_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"ID места (Locations.id)"</span><span class="p">)</span>
+    <span class="n">status_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"ID статуса (Statuses.id)"</span><span class="p">)</span>
+    <span class="n">last_recharge_date</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">date</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="kc">None</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"Дата последней перезарядки"</span><span class="p">)</span>
+    <span class="n">recharge_interval_months</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="kc">None</span><span class="p">,</span> <span class="n">ge</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">le</span><span class="o">=</span><span class="mi">240</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">"Интервал перезарядки, мес. Пусто: по виду ОТВ из настроек"</span><span class="p">)</span>
+    <span class="n">service_life_years</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="kc">None</span><span class="p">,</span> <span class="n">ge</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">le</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">"Срок службы, лет. Пусто: значение из настроек"</span><span class="p">)</span>
 
 <div class="viewcode-block" id="FireExtinguisherBase.not_in_future">
 <a class="viewcode-back" href="../schemas.html#schemas.FireExtinguisherBase.not_in_future">[документация]</a>
-    <span class="nd">@field_validator</span><span class="p">(</span><span class="s1">&#39;manufacture_date&#39;</span><span class="p">,</span> <span class="s1">&#39;commissioning_date&#39;</span><span class="p">)</span>
+    <span class="nd">@field_validator</span><span class="p">(</span><span class="s1">'manufacture_date'</span><span class="p">,</span> <span class="s1">'commissioning_date'</span><span class="p">,</span> <span class="s1">'last_recharge_date'</span><span class="p">)</span>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">not_in_future</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Валидатор: проверяет, что дата изготовления и ввода не больше текущей.&quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="n">v</span> <span class="ow">and</span> <span class="n">v</span> <span class="o">&gt;</span> <span class="n">date</span><span class="o">.</span><span class="n">today</span><span class="p">():</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Дата не может быть из будущего&#39;</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">v</span></div>
+<span class="w">        </span><span class="sd">"""Валидатор: даты изготовления, ввода и перезарядки не больше текущей."""</span>
+        <span class="k">return</span> <span class="n">_date_not_in_future</span><span class="p">(</span><span class="n">v</span><span class="p">)</span></div>
 </div>
 
 
@@ -192,7 +198,7 @@
 <div class="viewcode-block" id="FireExtinguisherCreate">
 <a class="viewcode-back" href="../schemas.html#schemas.FireExtinguisherCreate">[документация]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">FireExtinguisherCreate</span><span class="p">(</span><span class="n">FireExtinguisherBase</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Схема для создания новой карточки огнетушителя.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Схема для создания новой карточки огнетушителя."""</span>
     <span class="k">pass</span></div>
 
 
@@ -200,31 +206,52 @@
 <div class="viewcode-block" id="FireExtinguisherUpdate">
 <a class="viewcode-back" href="../schemas.html#schemas.FireExtinguisherUpdate">[документация]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">FireExtinguisherUpdate</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Схема для частичного обновления данных огнетушителя.&quot;&quot;&quot;</span>
-    <span class="n">inventory_number</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="nb">type</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="w">    </span><span class="sd">"""Схема для частичного обновления данных огнетушителя."""</span>
+    <span class="n">inventory_number</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">min_length</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="nb">type</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">min_length</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
     <span class="n">capacity</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">gt</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
     <span class="n">manufacturer</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">manufacture_date</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">date</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">commissioning_date</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">date</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">location_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="n">status_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span></div>
+    <span class="n">status_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">last_recharge_date</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">date</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">recharge_interval_months</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">ge</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">le</span><span class="o">=</span><span class="mi">240</span><span class="p">)</span>
+    <span class="n">service_life_years</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">ge</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">le</span><span class="o">=</span><span class="mi">50</span><span class="p">)</span>
+
+<div class="viewcode-block" id="FireExtinguisherUpdate.not_in_future">
+<a class="viewcode-back" href="../schemas.html#schemas.FireExtinguisherUpdate.not_in_future">[документация]</a>
+    <span class="nd">@field_validator</span><span class="p">(</span><span class="s1">'manufacture_date'</span><span class="p">,</span> <span class="s1">'commissioning_date'</span><span class="p">,</span> <span class="s1">'last_recharge_date'</span><span class="p">)</span>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">not_in_future</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Валидатор: даты изготовления, ввода и перезарядки не могут быть из будущего."""</span>
+        <span class="k">return</span> <span class="n">_date_not_in_future</span><span class="p">(</span><span class="n">v</span><span class="p">)</span></div>
+</div>
 
 
 
 <div class="viewcode-block" id="FireExtinguisherRead">
 <a class="viewcode-back" href="../schemas.html#schemas.FireExtinguisherRead">[документация]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">FireExtinguisherRead</span><span class="p">(</span><span class="n">FireExtinguisherBase</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Схема для чтения данных об огнетушителе (возвращается в API).&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Схема для чтения данных об огнетушителе (возвращается в API).</span>
+
+<span class="sd">    Поля сроков (вид ОТВ, следующая перезарядка, конец срока службы)</span>
+<span class="sd">    вычисляются сервером, хранить их не нужно.</span>
+<span class="sd">    """</span>
     <span class="nb">id</span><span class="p">:</span> <span class="nb">int</span>
     <span class="n">created_at</span><span class="p">:</span> <span class="n">datetime</span>
     <span class="n">updated_at</span><span class="p">:</span> <span class="n">datetime</span>
+    <span class="n">agent_label</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"Вид ОТВ по типу"</span><span class="p">)</span>
+    <span class="n">effective_recharge_interval_months</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">next_recharge_date</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">date</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">recharge_days_left</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">recharge_state</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"ok, soon, overdue, unknown"</span><span class="p">)</span>
+    <span class="n">effective_service_life_years</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">service_end_date</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">date</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">service_state</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"ok, soon, overdue, unknown"</span><span class="p">)</span>
 
-<div class="viewcode-block" id="FireExtinguisherRead.Config">
-<a class="viewcode-back" href="../schemas.html#schemas.FireExtinguisherRead.Config">[документация]</a>
-    <span class="k">class</span><span class="w"> </span><span class="nc">Config</span><span class="p">:</span>
-        <span class="n">from_attributes</span> <span class="o">=</span> <span class="kc">True</span></div>
-</div>
+    <span class="n">model_config</span> <span class="o">=</span> <span class="n">ConfigDict</span><span class="p">(</span><span class="n">from_attributes</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
 
 
 
@@ -233,16 +260,16 @@
 <div class="viewcode-block" id="EmployeeBase">
 <a class="viewcode-back" href="../schemas.html#schemas.EmployeeBase">[документация]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">EmployeeBase</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Базовая схема сотрудника компании.&quot;&quot;&quot;</span>
-    <span class="n">full_name</span><span class="p">:</span> <span class="nb">str</span>
-    <span class="n">position</span><span class="p">:</span> <span class="nb">str</span></div>
+<span class="w">    </span><span class="sd">"""Базовая схема сотрудника компании."""</span>
+    <span class="n">full_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">min_length</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">position</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">min_length</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span></div>
 
 
 
 <div class="viewcode-block" id="EmployeeCreate">
 <a class="viewcode-back" href="../schemas.html#schemas.EmployeeCreate">[документация]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">EmployeeCreate</span><span class="p">(</span><span class="n">EmployeeBase</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Схема для создания нового сотрудника.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Схема для создания нового сотрудника."""</span>
     <span class="k">pass</span></div>
 
 
@@ -250,15 +277,11 @@
 <div class="viewcode-block" id="EmployeeRead">
 <a class="viewcode-back" href="../schemas.html#schemas.EmployeeRead">[документация]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">EmployeeRead</span><span class="p">(</span><span class="n">EmployeeBase</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Схема для чтения данных о сотруднике (возвращается в API).&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Схема для чтения данных о сотруднике (возвращается в API)."""</span>
     <span class="nb">id</span><span class="p">:</span> <span class="nb">int</span>
     <span class="n">created_at</span><span class="p">:</span> <span class="n">datetime</span>
 
-<div class="viewcode-block" id="EmployeeRead.Config">
-<a class="viewcode-back" href="../schemas.html#schemas.EmployeeRead.Config">[документация]</a>
-    <span class="k">class</span><span class="w"> </span><span class="nc">Config</span><span class="p">:</span>
-        <span class="n">from_attributes</span> <span class="o">=</span> <span class="kc">True</span></div>
-</div>
+    <span class="n">model_config</span> <span class="o">=</span> <span class="n">ConfigDict</span><span class="p">(</span><span class="n">from_attributes</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
 
 
 
@@ -267,7 +290,7 @@
 <div class="viewcode-block" id="InspectionBase">
 <a class="viewcode-back" href="../schemas.html#schemas.InspectionBase">[документация]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">InspectionBase</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Базовая схема записи о проведенной проверке (ТО).&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Базовая схема записи о проведенной проверке (ТО)."""</span>
     <span class="n">fire_extinguisher_id</span><span class="p">:</span> <span class="nb">int</span>
     <span class="n">inspection_date</span><span class="p">:</span> <span class="n">date</span>
     <span class="n">employee_id</span><span class="p">:</span> <span class="nb">int</span>
@@ -278,84 +301,327 @@
     <span class="n">safety_pin_condition</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">hose_condition</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">comments</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="n">next_inspection_date</span><span class="p">:</span> <span class="n">date</span></div>
+    <span class="n">next_inspection_date</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">date</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="kc">None</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">"Дата следующей проверки. Если не указана, "</span>
+                    <span class="s2">"рассчитывается автоматически (+6 месяцев)"</span><span class="p">,</span>
+    <span class="p">)</span></div>
 
 
 
 <div class="viewcode-block" id="InspectionCreate">
 <a class="viewcode-back" href="../schemas.html#schemas.InspectionCreate">[документация]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">InspectionCreate</span><span class="p">(</span><span class="n">InspectionBase</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Схема для создания новой записи о проверке.&quot;&quot;&quot;</span>
-    <span class="k">pass</span></div>
+<span class="w">    </span><span class="sd">"""Схема для создания новой записи о проверке."""</span>
+
+<div class="viewcode-block" id="InspectionCreate.inspection_not_in_future">
+<a class="viewcode-back" href="../schemas.html#schemas.InspectionCreate.inspection_not_in_future">[документация]</a>
+    <span class="nd">@field_validator</span><span class="p">(</span><span class="s1">'inspection_date'</span><span class="p">)</span>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">inspection_not_in_future</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Валидатор: дата проверки не может быть из будущего."""</span>
+        <span class="k">return</span> <span class="n">_date_not_in_future</span><span class="p">(</span><span class="n">v</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="InspectionCreate.next_after_inspection">
+<a class="viewcode-back" href="../schemas.html#schemas.InspectionCreate.next_after_inspection">[документация]</a>
+    <span class="nd">@model_validator</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s1">'after'</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">next_after_inspection</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Валидатор: следующая проверка не может быть раньше текущей."""</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">next_inspection_date</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">next_inspection_date</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">inspection_date</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">"Дата следующей проверки не может быть раньше даты проверки"</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+</div>
 
 
 
 <div class="viewcode-block" id="InspectionRead">
 <a class="viewcode-back" href="../schemas.html#schemas.InspectionRead">[документация]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">InspectionRead</span><span class="p">(</span><span class="n">InspectionBase</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Схема для чтения данных о проверке (возвращается в API).&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Схема для чтения данных о проверке (возвращается в API)."""</span>
     <span class="nb">id</span><span class="p">:</span> <span class="nb">int</span>
     <span class="n">created_at</span><span class="p">:</span> <span class="n">datetime</span>
 
-<div class="viewcode-block" id="InspectionRead.Config">
-<a class="viewcode-back" href="../schemas.html#schemas.InspectionRead.Config">[документация]</a>
-    <span class="k">class</span><span class="w"> </span><span class="nc">Config</span><span class="p">:</span>
-        <span class="n">from_attributes</span> <span class="o">=</span> <span class="kc">True</span></div>
-</div>
+    <span class="n">model_config</span> <span class="o">=</span> <span class="n">ConfigDict</span><span class="p">(</span><span class="n">from_attributes</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
 
 
 <span class="c1"># ---------- Users &amp; Auth ----------</span>
+
+<span class="n">ROLES</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"admin"</span><span class="p">,</span> <span class="s2">"engineer"</span><span class="p">,</span> <span class="s2">"viewer"</span><span class="p">)</span>
+<span class="n">USERNAME_RE</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"^[A-Za-z0-9_.-]{3,32}$"</span><span class="p">)</span>
+<span class="n">EMAIL_RE</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"^[^@\s]+@[^@\s]+\.[^@\s]+$"</span><span class="p">)</span>
+<span class="n">PASSWORD_MIN_LENGTH</span> <span class="o">=</span> <span class="mi">8</span>
+<span class="n">WEAK_PASSWORDS</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"admin123"</span><span class="p">,</span> <span class="s2">"password"</span><span class="p">,</span> <span class="s2">"12345678"</span><span class="p">,</span> <span class="s2">"123456789"</span><span class="p">,</span> <span class="s2">"qwerty123"</span><span class="p">,</span>
+                  <span class="s2">"11111111"</span><span class="p">,</span> <span class="s2">"password1"</span><span class="p">,</span> <span class="s2">"firetrack"</span><span class="p">,</span> <span class="s2">"qwertyui"</span><span class="p">}</span>
+
+
+<div class="viewcode-block" id="validate_password_strength">
+<a class="viewcode-back" href="../schemas.html#schemas.validate_password_strength">[документация]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">validate_password_strength</span><span class="p">(</span><span class="n">password</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">username</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Проверяет, что пароль достаточно надежный.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        password (str): Новый пароль.</span>
+<span class="sd">        username (Optional[str]): Логин (пароль не должен с ним совпадать).</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        str: Тот же пароль.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: Если пароль короче 8 символов, совпадает с логином</span>
+<span class="sd">            или входит в список самых частых паролей.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">password</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">PASSWORD_MIN_LENGTH</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Пароль должен быть не короче </span><span class="si">{</span><span class="n">PASSWORD_MIN_LENGTH</span><span class="si">}</span><span class="s2"> символов"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">password</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="n">WEAK_PASSWORDS</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Слишком простой пароль"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">username</span> <span class="ow">and</span> <span class="n">password</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="n">username</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Пароль не должен совпадать с логином"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">password</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_check_role</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Проверяет, что роль из списка ROLES."""</span>
+    <span class="k">if</span> <span class="n">value</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ROLES</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Роль должна быть одной из: "</span> <span class="o">+</span> <span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">ROLES</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">value</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_check_email</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Проверяет формат email."""</span>
+    <span class="n">value</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">EMAIL_RE</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Некорректный email"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">value</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_check_full_name</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""ФИО не может состоять из одних пробелов."""</span>
+    <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">value</span>
+    <span class="n">value</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">value</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Укажите ФИО"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">value</span>
 
 
 <div class="viewcode-block" id="UserBase">
 <a class="viewcode-back" href="../schemas.html#schemas.UserBase">[документация]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">UserBase</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Базовая схема данных пользователя системы.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Базовая схема данных пользователя системы."""</span>
     <span class="n">username</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">email</span><span class="p">:</span> <span class="nb">str</span>
     <span class="n">full_name</span><span class="p">:</span> <span class="nb">str</span>
-    <span class="n">role</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Роль: admin, engineer, viewer&quot;</span><span class="p">)</span></div>
+    <span class="n">role</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"Роль: admin, engineer, viewer"</span><span class="p">)</span></div>
 
 
 
 <div class="viewcode-block" id="UserCreate">
 <a class="viewcode-back" href="../schemas.html#schemas.UserCreate">[документация]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">UserCreate</span><span class="p">(</span><span class="n">UserBase</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Схема для регистрации нового пользователя.&quot;&quot;&quot;</span>
-    <span class="n">password</span><span class="p">:</span> <span class="nb">str</span></div>
+<span class="w">    </span><span class="sd">"""Схема создания пользователя администратором."""</span>
+    <span class="n">password</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">must_change_password</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="kc">True</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"Потребовать смену пароля при первом входе"</span><span class="p">)</span>
+
+<div class="viewcode-block" id="UserCreate.username_format">
+<a class="viewcode-back" href="../schemas.html#schemas.UserCreate.username_format">[документация]</a>
+    <span class="nd">@field_validator</span><span class="p">(</span><span class="s2">"username"</span><span class="p">)</span>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">username_format</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Логин: 3-32 символа, латиница, цифры и знаки _ . -"""</span>
+        <span class="n">v</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">USERNAME_RE</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Логин: от 3 до 32 символов, латиница, цифры, _ . -"</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">v</span></div>
+
+
+<div class="viewcode-block" id="UserCreate.full_name_required">
+<a class="viewcode-back" href="../schemas.html#schemas.UserCreate.full_name_required">[документация]</a>
+    <span class="nd">@field_validator</span><span class="p">(</span><span class="s2">"full_name"</span><span class="p">)</span>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">full_name_required</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""ФИО не может быть пустым."""</span>
+        <span class="k">return</span> <span class="n">_check_full_name</span><span class="p">(</span><span class="n">v</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="UserCreate.email_format">
+<a class="viewcode-back" href="../schemas.html#schemas.UserCreate.email_format">[документация]</a>
+    <span class="nd">@field_validator</span><span class="p">(</span><span class="s2">"email"</span><span class="p">)</span>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">email_format</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Проверка формата email."""</span>
+        <span class="k">return</span> <span class="n">_check_email</span><span class="p">(</span><span class="n">v</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="UserCreate.role_known">
+<a class="viewcode-back" href="../schemas.html#schemas.UserCreate.role_known">[документация]</a>
+    <span class="nd">@field_validator</span><span class="p">(</span><span class="s2">"role"</span><span class="p">)</span>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">role_known</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Роль должна быть из списка."""</span>
+        <span class="k">return</span> <span class="n">_check_role</span><span class="p">(</span><span class="n">v</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="UserCreate.strong_password">
+<a class="viewcode-back" href="../schemas.html#schemas.UserCreate.strong_password">[документация]</a>
+    <span class="nd">@model_validator</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s2">"after"</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">strong_password</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Проверка надежности пароля."""</span>
+        <span class="n">validate_password_strength</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">password</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">username</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="UserUpdate">
+<a class="viewcode-back" href="../schemas.html#schemas.UserUpdate">[документация]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">UserUpdate</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Схема изменения пользователя администратором (без пароля)."""</span>
+    <span class="n">full_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">email</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">role</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="UserUpdate.full_name_required">
+<a class="viewcode-back" href="../schemas.html#schemas.UserUpdate.full_name_required">[документация]</a>
+    <span class="nd">@field_validator</span><span class="p">(</span><span class="s2">"full_name"</span><span class="p">)</span>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">full_name_required</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""ФИО не может быть пустым."""</span>
+        <span class="k">return</span> <span class="n">_check_full_name</span><span class="p">(</span><span class="n">v</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="UserUpdate.email_format">
+<a class="viewcode-back" href="../schemas.html#schemas.UserUpdate.email_format">[документация]</a>
+    <span class="nd">@field_validator</span><span class="p">(</span><span class="s2">"email"</span><span class="p">)</span>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">email_format</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Проверка формата email."""</span>
+        <span class="k">return</span> <span class="n">_check_email</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">v</span></div>
+
+
+<div class="viewcode-block" id="UserUpdate.role_known">
+<a class="viewcode-back" href="../schemas.html#schemas.UserUpdate.role_known">[документация]</a>
+    <span class="nd">@field_validator</span><span class="p">(</span><span class="s2">"role"</span><span class="p">)</span>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">role_known</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Роль должна быть из списка."""</span>
+        <span class="k">return</span> <span class="n">_check_role</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">v</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="UserStatusUpdate">
+<a class="viewcode-back" href="../schemas.html#schemas.UserStatusUpdate">[документация]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">UserStatusUpdate</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Блокировка или разблокировка пользователя."""</span>
+    <span class="n">is_active</span><span class="p">:</span> <span class="nb">bool</span></div>
+
+
+
+<div class="viewcode-block" id="PasswordReset">
+<a class="viewcode-back" href="../schemas.html#schemas.PasswordReset">[документация]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">PasswordReset</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Сброс пароля администратором."""</span>
+    <span class="n">new_password</span><span class="p">:</span> <span class="nb">str</span></div>
+
+
+
+<div class="viewcode-block" id="PasswordChange">
+<a class="viewcode-back" href="../schemas.html#schemas.PasswordChange">[документация]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">PasswordChange</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Смена собственного пароля."""</span>
+    <span class="n">old_password</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">new_password</span><span class="p">:</span> <span class="nb">str</span></div>
 
 
 
 <div class="viewcode-block" id="UserRead">
 <a class="viewcode-back" href="../schemas.html#schemas.UserRead">[документация]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">UserRead</span><span class="p">(</span><span class="n">UserBase</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Схема для чтения данных пользователя (без пароля, возвращается в API).&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Схема для чтения данных пользователя (без пароля, возвращается в API)."""</span>
     <span class="nb">id</span><span class="p">:</span> <span class="nb">int</span>
     <span class="n">is_active</span><span class="p">:</span> <span class="nb">bool</span>
     <span class="n">created_at</span><span class="p">:</span> <span class="n">datetime</span>
+    <span class="n">must_change_password</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">last_login_at</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">datetime</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 
-<div class="viewcode-block" id="UserRead.Config">
-<a class="viewcode-back" href="../schemas.html#schemas.UserRead.Config">[документация]</a>
-    <span class="k">class</span><span class="w"> </span><span class="nc">Config</span><span class="p">:</span>
-        <span class="n">from_attributes</span> <span class="o">=</span> <span class="kc">True</span></div>
-</div>
+    <span class="n">model_config</span> <span class="o">=</span> <span class="n">ConfigDict</span><span class="p">(</span><span class="n">from_attributes</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
 
 
 
 <div class="viewcode-block" id="Token">
 <a class="viewcode-back" href="../schemas.html#schemas.Token">[документация]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">Token</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Схема JWT токена доступа.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Схема JWT токена доступа."""</span>
     <span class="n">access_token</span><span class="p">:</span> <span class="nb">str</span>
-    <span class="n">token_type</span><span class="p">:</span> <span class="nb">str</span></div>
+    <span class="n">token_type</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">expires_in</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"Время жизни токена, сек"</span><span class="p">)</span>
+    <span class="n">must_change_password</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span></div>
 
 
 
 <div class="viewcode-block" id="TokenData">
 <a class="viewcode-back" href="../schemas.html#schemas.TokenData">[документация]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">TokenData</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Схема полезной нагрузки (payload), извлеченной из JWT токена.&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""Схема полезной нагрузки (payload), извлеченной из JWT токена."""</span>
     <span class="n">username</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+
+
+<span class="c1"># ---------- Audit ----------</span>
+
+<div class="viewcode-block" id="AuditRead">
+<a class="viewcode-back" href="../schemas.html#schemas.AuditRead">[документация]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">AuditRead</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Запись журнала действий."""</span>
+    <span class="nb">id</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">created_at</span><span class="p">:</span> <span class="n">datetime</span>
+    <span class="n">user_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">username</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">action</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">entity_type</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">entity_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">summary</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">changes</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">ip</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">user_agent</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+
+
+<div class="viewcode-block" id="AuditPage">
+<a class="viewcode-back" href="../schemas.html#schemas.AuditPage">[документация]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">AuditPage</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Страница журнала действий."""</span>
+    <span class="n">items</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">AuditRead</span><span class="p">]</span>
+    <span class="n">total</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">page</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">page_size</span><span class="p">:</span> <span class="nb">int</span></div>
+
+
+
+<span class="c1"># ---------- Recharge ----------</span>
+
+<div class="viewcode-block" id="RechargeMark">
+<a class="viewcode-back" href="../schemas.html#schemas.RechargeMark">[документация]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">RechargeMark</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Отметка о перезарядке огнетушителя."""</span>
+    <span class="n">recharge_date</span><span class="p">:</span> <span class="n">date</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"Дата перезарядки"</span><span class="p">)</span>
+    <span class="n">recharge_interval_months</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+        <span class="kc">None</span><span class="p">,</span> <span class="n">ge</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">le</span><span class="o">=</span><span class="mi">240</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"Новый интервал по паспорту, мес. (если изменился)"</span><span class="p">)</span>
+    <span class="n">comment</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_length</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"Кто перезаряжал, номер акта"</span><span class="p">)</span>
+
+<div class="viewcode-block" id="RechargeMark.not_in_future">
+<a class="viewcode-back" href="../schemas.html#schemas.RechargeMark.not_in_future">[документация]</a>
+    <span class="nd">@field_validator</span><span class="p">(</span><span class="s2">"recharge_date"</span><span class="p">)</span>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">not_in_future</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Дата перезарядки не может быть из будущего."""</span>
+        <span class="k">return</span> <span class="n">_date_not_in_future</span><span class="p">(</span><span class="n">v</span><span class="p">)</span></div>
+</div>
 
 </pre></div>
 

@@ -1,0 +1,297 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="ru" data-content_root="../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>audit &mdash; документация FireTrack 1</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=47a0e12c"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../_static/translations.js?v=cd1d70c9"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Алфавитный указатель" href="../genindex.html" />
+    <link rel="search" title="Поиск" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            FireTrack
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Поиск в документации" aria-label="Поиск в документации" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Меню навигации">
+              <p class="caption" role="heading"><span class="caption-text">Содержание:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">FireExtinguishers</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Меню навигации для мобильных устройств" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">FireTrack</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Навигация по страницам">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Код модуля</a></li>
+      <li class="breadcrumb-item active">audit</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Исходный код audit</h1><div class="highlight"><pre>
+<span></span><span class="c1"># audit.py (v1.0)</span>
+<span class="sd">"""</span>
+<span class="sd">Журнал действий пользователей (аудит).</span>
+
+<span class="sd">Каждое изменяющее действие записывается в таблицу ``AuditLog``: кто, когда,</span>
+<span class="sd">откуда (IP и User-Agent), что сделал и над каким объектом, а для изменений</span>
+<span class="sd">дополнительно «было и стало» по каждому полю.</span>
+
+<span class="sd">Правила:</span>
+
+<span class="sd">1. Запись добавляется в ту же сессию, что и само изменение, и сохраняется</span>
+<span class="sd">   одним commit вместе с ним. Если изменение откатилось, записи тоже нет.</span>
+<span class="sd">   Для событий без изменений данных (неудачный вход) используйте</span>
+<span class="sd">   ``commit=True``.</span>
+<span class="sd">2. Пароли, хеши и токены в журнал не пишутся никогда: поля с такими</span>
+<span class="sd">   именами вырезаются из ``changes`` автоматически.</span>
+<span class="sd">"""</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">date</span><span class="p">,</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timezone</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Optional</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">fastapi</span><span class="w"> </span><span class="kn">import</span> <span class="n">Request</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sqlalchemy.orm</span><span class="w"> </span><span class="kn">import</span> <span class="n">Session</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">models</span><span class="w"> </span><span class="kn">import</span> <span class="n">AuditLog</span>
+
+<span class="c1"># Действия</span>
+<span class="n">ACTION_CREATE</span> <span class="o">=</span> <span class="s2">"create"</span>
+<span class="n">ACTION_UPDATE</span> <span class="o">=</span> <span class="s2">"update"</span>
+<span class="n">ACTION_DELETE</span> <span class="o">=</span> <span class="s2">"delete"</span>
+<span class="n">ACTION_IMPORT</span> <span class="o">=</span> <span class="s2">"import"</span>
+<span class="n">ACTION_LOGIN_SUCCESS</span> <span class="o">=</span> <span class="s2">"login_success"</span>
+<span class="n">ACTION_LOGIN_FAILED</span> <span class="o">=</span> <span class="s2">"login_failed"</span>
+<span class="n">ACTION_PASSWORD_CHANGE</span> <span class="o">=</span> <span class="s2">"password_change"</span>
+<span class="n">ACTION_PASSWORD_RESET</span> <span class="o">=</span> <span class="s2">"password_reset"</span>
+<span class="n">ACTION_BLOCK</span> <span class="o">=</span> <span class="s2">"block"</span>
+<span class="n">ACTION_UNBLOCK</span> <span class="o">=</span> <span class="s2">"unblock"</span>
+<span class="n">ACTION_RECALCULATE</span> <span class="o">=</span> <span class="s2">"recalculate"</span>
+<span class="n">ACTION_EXPORT</span> <span class="o">=</span> <span class="s2">"export"</span>
+
+<span class="n">ACTION_LABELS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="n">ACTION_CREATE</span><span class="p">:</span> <span class="s2">"Создание"</span><span class="p">,</span>
+    <span class="n">ACTION_UPDATE</span><span class="p">:</span> <span class="s2">"Изменение"</span><span class="p">,</span>
+    <span class="n">ACTION_DELETE</span><span class="p">:</span> <span class="s2">"Удаление"</span><span class="p">,</span>
+    <span class="n">ACTION_IMPORT</span><span class="p">:</span> <span class="s2">"Импорт"</span><span class="p">,</span>
+    <span class="n">ACTION_LOGIN_SUCCESS</span><span class="p">:</span> <span class="s2">"Вход"</span><span class="p">,</span>
+    <span class="n">ACTION_LOGIN_FAILED</span><span class="p">:</span> <span class="s2">"Неудачный вход"</span><span class="p">,</span>
+    <span class="n">ACTION_PASSWORD_CHANGE</span><span class="p">:</span> <span class="s2">"Смена пароля"</span><span class="p">,</span>
+    <span class="n">ACTION_PASSWORD_RESET</span><span class="p">:</span> <span class="s2">"Сброс пароля"</span><span class="p">,</span>
+    <span class="n">ACTION_BLOCK</span><span class="p">:</span> <span class="s2">"Блокировка"</span><span class="p">,</span>
+    <span class="n">ACTION_UNBLOCK</span><span class="p">:</span> <span class="s2">"Разблокировка"</span><span class="p">,</span>
+    <span class="n">ACTION_RECALCULATE</span><span class="p">:</span> <span class="s2">"Пересчет статусов"</span><span class="p">,</span>
+    <span class="n">ACTION_EXPORT</span><span class="p">:</span> <span class="s2">"Выгрузка"</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="n">ENTITY_LABELS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"extinguisher"</span><span class="p">:</span> <span class="s2">"Огнетушитель"</span><span class="p">,</span>
+    <span class="s2">"inspection"</span><span class="p">:</span> <span class="s2">"Проверка"</span><span class="p">,</span>
+    <span class="s2">"location"</span><span class="p">:</span> <span class="s2">"Место"</span><span class="p">,</span>
+    <span class="s2">"employee"</span><span class="p">:</span> <span class="s2">"Сотрудник"</span><span class="p">,</span>
+    <span class="s2">"status"</span><span class="p">:</span> <span class="s2">"Статус"</span><span class="p">,</span>
+    <span class="s2">"user"</span><span class="p">:</span> <span class="s2">"Пользователь"</span><span class="p">,</span>
+    <span class="s2">"settings"</span><span class="p">:</span> <span class="s2">"Настройки"</span><span class="p">,</span>
+    <span class="s2">"audit"</span><span class="p">:</span> <span class="s2">"Журнал действий"</span><span class="p">,</span>
+    <span class="s2">"report"</span><span class="p">:</span> <span class="s2">"Отчет"</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="n">_SECRET_MARKERS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"password"</span><span class="p">,</span> <span class="s2">"hash"</span><span class="p">,</span> <span class="s2">"token"</span><span class="p">,</span> <span class="s2">"secret"</span><span class="p">)</span>
+<span class="n">_MAX_UA</span> <span class="o">=</span> <span class="mi">300</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_jsonable</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Приводит значение к виду, пригодному для JSON."""</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="n">datetime</span><span class="p">,</span> <span class="n">date</span><span class="p">)):</span>
+        <span class="k">return</span> <span class="n">value</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">bool</span><span class="p">))</span> <span class="ow">or</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">value</span>
+    <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_is_secret</span><span class="p">(</span><span class="n">field</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Поле с паролем, хешем или токеном."""</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">field</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="k">return</span> <span class="nb">any</span><span class="p">(</span><span class="n">marker</span> <span class="ow">in</span> <span class="n">name</span> <span class="k">for</span> <span class="n">marker</span> <span class="ow">in</span> <span class="n">_SECRET_MARKERS</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="snapshot">
+<a class="viewcode-back" href="../audit.html#audit.snapshot">[документация]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">snapshot</span><span class="p">(</span><span class="n">obj</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">fields</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Снимок значений полей объекта (для сравнения до и после).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        obj (Any): ORM-объект.</span>
+<span class="sd">        fields (Iterable[str]): Имена полей.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Dict[str, Any]: Значения полей, приведенные к JSON-виду.</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="p">{</span><span class="n">f</span><span class="p">:</span> <span class="n">_jsonable</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">fields</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">_is_secret</span><span class="p">(</span><span class="n">f</span><span class="p">)}</span></div>
+
+
+
+<div class="viewcode-block" id="diff">
+<a class="viewcode-back" href="../audit.html#audit.diff">[документация]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">diff</span><span class="p">(</span><span class="n">before</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">after</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Разница двух снимков: только изменившиеся поля.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        before (Dict[str, Any]): Снимок до изменения.</span>
+<span class="sd">        after (Dict[str, Any]): Снимок после изменения.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Dict[str, Dict[str, Any]]: ``{поле: {"old": ..., "new": ...}}``.</span>
+<span class="sd">    """</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">before</span><span class="p">)</span> <span class="o">|</span> <span class="nb">set</span><span class="p">(</span><span class="n">after</span><span class="p">)):</span>
+        <span class="k">if</span> <span class="n">_is_secret</span><span class="p">(</span><span class="n">key</span><span class="p">):</span>
+            <span class="k">continue</span>
+        <span class="n">old</span><span class="p">,</span> <span class="n">new</span> <span class="o">=</span> <span class="n">_jsonable</span><span class="p">(</span><span class="n">before</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">)),</span> <span class="n">_jsonable</span><span class="p">(</span><span class="n">after</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">old</span> <span class="o">!=</span> <span class="n">new</span><span class="p">:</span>
+            <span class="n">result</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"old"</span><span class="p">:</span> <span class="n">old</span><span class="p">,</span> <span class="s2">"new"</span><span class="p">:</span> <span class="n">new</span><span class="p">}</span>
+    <span class="k">return</span> <span class="n">result</span></div>
+
+
+
+<div class="viewcode-block" id="client_ip">
+<a class="viewcode-back" href="../audit.html#audit.client_ip">[документация]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">client_ip</span><span class="p">(</span><span class="n">request</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Request</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    IP клиента. Заголовок X-Forwarded-For добавляется в скобках, потому что</span>
+<span class="sd">    его может подделать сам клиент, и для расследования важно видеть оба.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">request</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="n">ip</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">host</span> <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">client</span> <span class="k">else</span> <span class="kc">None</span>
+    <span class="n">forwarded</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"x-forwarded-for"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">forwarded</span><span class="p">:</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">ip</span><span class="si">}</span><span class="s2"> (XFF: </span><span class="si">{</span><span class="n">forwarded</span><span class="p">[:</span><span class="mi">100</span><span class="p">]</span><span class="si">}</span><span class="s2">)"</span>
+    <span class="k">return</span> <span class="n">ip</span></div>
+
+
+
+<div class="viewcode-block" id="log">
+<a class="viewcode-back" href="../audit.html#audit.log">[документация]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">log</span><span class="p">(</span>
+    <span class="n">db</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span>
+    <span class="n">request</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Request</span><span class="p">],</span>
+    <span class="n">user</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+    <span class="n">action</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">summary</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">entity_type</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">entity_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">changes</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">username</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">commit</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AuditLog</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Добавляет запись в журнал действий.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        db (Session): Сессия базы данных.</span>
+<span class="sd">        request (Optional[Request]): Запрос (для IP и User-Agent).</span>
+<span class="sd">        user (Any): Пользователь, выполнивший действие, или None.</span>
+<span class="sd">        action (str): Действие (константы ``ACTION_*``).</span>
+<span class="sd">        summary (str): Понятное человеку описание.</span>
+<span class="sd">        entity_type (Optional[str]): Тип объекта (ключи ``ENTITY_LABELS``).</span>
+<span class="sd">        entity_id (Optional[int]): ID объекта.</span>
+<span class="sd">        changes (Optional[Dict[str, Any]]): Подробности (для update: было и стало).</span>
+<span class="sd">        username (Optional[str]): Логин, если пользователя нет (неудачный вход).</span>
+<span class="sd">        commit (bool): Сразу сохранить запись.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        AuditLog: Добавленная запись.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="n">changes</span><span class="p">:</span>
+        <span class="n">changes</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">changes</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">_is_secret</span><span class="p">(</span><span class="n">k</span><span class="p">)}</span>
+    <span class="n">entry</span> <span class="o">=</span> <span class="n">AuditLog</span><span class="p">(</span>
+        <span class="n">created_at</span><span class="o">=</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">),</span>
+        <span class="n">user_id</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="s2">"id"</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+        <span class="n">username</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="s2">"username"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="n">username</span><span class="p">,</span>
+        <span class="n">action</span><span class="o">=</span><span class="n">action</span><span class="p">,</span>
+        <span class="n">entity_type</span><span class="o">=</span><span class="n">entity_type</span><span class="p">,</span>
+        <span class="n">entity_id</span><span class="o">=</span><span class="n">entity_id</span><span class="p">,</span>
+        <span class="n">summary</span><span class="o">=</span><span class="n">summary</span><span class="p">[:</span><span class="mi">500</span><span class="p">],</span>
+        <span class="n">changes</span><span class="o">=</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">changes</span><span class="p">,</span> <span class="n">ensure_ascii</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="nb">str</span><span class="p">)</span> <span class="k">if</span> <span class="n">changes</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">ip</span><span class="o">=</span><span class="n">client_ip</span><span class="p">(</span><span class="n">request</span><span class="p">),</span>
+        <span class="n">user_agent</span><span class="o">=</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"user-agent"</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">)[:</span><span class="n">_MAX_UA</span><span class="p">]</span> <span class="k">if</span> <span class="n">request</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">entry</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">commit</span><span class="p">:</span>
+        <span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">entry</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Авторские права 2026, Ralka. </p>
+  </div>
+
+  Собрано при помощи <a href="https://www.sphinx-doc.org/">Sphinx</a> с использованием
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">темы,</a>
+    предоставленной <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

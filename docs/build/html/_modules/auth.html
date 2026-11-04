@@ -70,48 +70,191 @@
            <div itemprop="articleBody">
              
   <h1>Исходный код auth</h1><div class="highlight"><pre>
-<span></span><span class="c1"># auth.py (v1.2)</span>
-<span class="sd">&quot;&quot;&quot;</span>
+<span></span><span class="c1"># auth.py (v1.4)</span>
+<span class="sd">"""</span>
 <span class="sd">Модуль аутентификации и авторизации пользователей.</span>
 <span class="sd">Обеспечивает хеширование паролей, генерацию и проверку токенов JWT,</span>
 <span class="sd">а также содержит зависимости FastAPI для защиты маршрутов по ролям (RBAC).</span>
-<span class="sd">&quot;&quot;&quot;</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timedelta</span><span class="p">,</span> <span class="n">timezone</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Optional</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">fastapi</span><span class="w"> </span><span class="kn">import</span> <span class="n">APIRouter</span><span class="p">,</span> <span class="n">Depends</span><span class="p">,</span> <span class="n">HTTPException</span><span class="p">,</span> <span class="n">status</span>
+<span class="sd">Настройки берутся из переменных окружения:</span>
+
+<span class="sd">* ``SECRET_KEY`` — ключ подписи JWT. Если не задан, ключ генерируется</span>
+<span class="sd">  один раз и сохраняется в файл ``.secret_key`` рядом с проектом, чтобы</span>
+<span class="sd">  токены не сбрасывались при каждом перезапуске сервера.</span>
+<span class="sd">* ``ACCESS_TOKEN_EXPIRE_MINUTES`` — время жизни токена (по умолчанию 480 минут).</span>
+<span class="sd">* ``LOGIN_MAX_FAILURES`` и ``LOGIN_LOCK_MINUTES`` — после стольких неудачных</span>
+<span class="sd">  попыток входа подряд (по паре «логин + IP») вход блокируется на столько</span>
+<span class="sd">  минут (по умолчанию 5 попыток и 10 минут).</span>
+
+<span class="sd">Безопасность сессий:</span>
+
+<span class="sd">* В токен записывается ``ver`` — версия токенов пользователя. Смена и сброс</span>
+<span class="sd">  пароля, блокировка и смена роли увеличивают ее, и все выданные ранее</span>
+<span class="sd">  токены этого пользователя сразу перестают приниматься.</span>
+<span class="sd">* Пока у пользователя стоит флаг ``must_change_password``, сервер отвечает</span>
+<span class="sd">  403 на все запросы, кроме ``/auth/me`` и ``/auth/change-password``.</span>
+<span class="sd">  В ответе есть заголовок ``X-Password-Change-Required: 1``, по нему</span>
+<span class="sd">  интерфейс открывает форму смены пароля.</span>
+<span class="sd">"""</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">secrets</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">threading</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">defaultdict</span><span class="p">,</span> <span class="n">deque</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timedelta</span><span class="p">,</span> <span class="n">timezone</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Deque</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">fastapi</span><span class="w"> </span><span class="kn">import</span> <span class="n">APIRouter</span><span class="p">,</span> <span class="n">Depends</span><span class="p">,</span> <span class="n">HTTPException</span><span class="p">,</span> <span class="n">Request</span><span class="p">,</span> <span class="n">status</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">fastapi.security</span><span class="w"> </span><span class="kn">import</span> <span class="n">OAuth2PasswordBearer</span><span class="p">,</span> <span class="n">OAuth2PasswordRequestForm</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">jose</span><span class="w"> </span><span class="kn">import</span> <span class="n">JWTError</span><span class="p">,</span> <span class="n">jwt</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">passlib.context</span><span class="w"> </span><span class="kn">import</span> <span class="n">CryptContext</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">sqlalchemy.orm</span><span class="w"> </span><span class="kn">import</span> <span class="n">Session</span>
 
+<span class="kn">import</span><span class="w"> </span><span class="nn">audit</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">db</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_db</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">models</span><span class="w"> </span><span class="kn">import</span> <span class="n">User</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">schemas</span><span class="w"> </span><span class="kn">import</span> <span class="n">TokenData</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">schemas</span><span class="w"> </span><span class="kn">import</span> <span class="n">PasswordChange</span><span class="p">,</span> <span class="n">Token</span><span class="p">,</span> <span class="n">TokenData</span><span class="p">,</span> <span class="n">UserRead</span><span class="p">,</span> <span class="n">validate_password_strength</span>
 
 <span class="n">router</span> <span class="o">=</span> <span class="n">APIRouter</span><span class="p">(</span>
-    <span class="n">prefix</span><span class="o">=</span><span class="s2">&quot;/auth&quot;</span><span class="p">,</span>
-    <span class="n">tags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Auth&quot;</span><span class="p">],</span>
+    <span class="n">prefix</span><span class="o">=</span><span class="s2">"/auth"</span><span class="p">,</span>
+    <span class="n">tags</span><span class="o">=</span><span class="p">[</span><span class="s2">"Auth"</span><span class="p">],</span>
 <span class="p">)</span>
 
+<span class="n">BASE_DIR</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span><span class="o">.</span><span class="n">parent</span>
+<span class="n">SECRET_KEY_FILE</span> <span class="o">=</span> <span class="n">BASE_DIR</span> <span class="o">/</span> <span class="s2">".secret_key"</span>
+
+<span class="c1"># Роли пользователей</span>
+<span class="n">ROLE_ADMIN</span> <span class="o">=</span> <span class="s2">"admin"</span>
+<span class="n">ROLE_ENGINEER</span> <span class="o">=</span> <span class="s2">"engineer"</span>
+<span class="n">ROLE_VIEWER</span> <span class="o">=</span> <span class="s2">"viewer"</span>
+<span class="n">EDITOR_ROLES</span> <span class="o">=</span> <span class="p">[</span><span class="n">ROLE_ADMIN</span><span class="p">,</span> <span class="n">ROLE_ENGINEER</span><span class="p">]</span>
+
+<span class="n">DEFAULT_ADMIN_PASSWORD</span> <span class="o">=</span> <span class="s2">"admin123"</span>
+<span class="n">PASSWORD_CHANGE_HEADER</span> <span class="o">=</span> <span class="s2">"X-Password-Change-Required"</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_load_secret_key</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Возвращает ключ подписи JWT.</span>
+
+<span class="sd">    Порядок поиска: переменная окружения ``SECRET_KEY``, затем файл</span>
+<span class="sd">    ``.secret_key``. Если ни то ни другое не найдено, генерирует новый</span>
+<span class="sd">    случайный ключ и сохраняет его в файл.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        str: Секретный ключ.</span>
+<span class="sd">    """</span>
+    <span class="n">env_key</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">"SECRET_KEY"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">env_key</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">env_key</span>
+
+    <span class="k">if</span> <span class="n">SECRET_KEY_FILE</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+        <span class="n">stored</span> <span class="o">=</span> <span class="n">SECRET_KEY_FILE</span><span class="o">.</span><span class="n">read_text</span><span class="p">(</span><span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">stored</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">stored</span>
+
+    <span class="n">new_key</span> <span class="o">=</span> <span class="n">secrets</span><span class="o">.</span><span class="n">token_urlsafe</span><span class="p">(</span><span class="mi">48</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">SECRET_KEY_FILE</span><span class="o">.</span><span class="n">write_text</span><span class="p">(</span><span class="n">new_key</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">OSError</span><span class="p">:</span>
+        <span class="c1"># Нет прав на запись: ключ будет жить до перезапуска процесса</span>
+        <span class="k">pass</span>
+    <span class="k">return</span> <span class="n">new_key</span>
+
+
 <span class="c1"># Настройки</span>
-<span class="n">SECRET_KEY</span> <span class="o">=</span> <span class="s2">&quot;your-secret-key-change-this-in-production&quot;</span>  <span class="c1"># замени в production</span>
-<span class="n">ALGORITHM</span> <span class="o">=</span> <span class="s2">&quot;HS256&quot;</span>
-<span class="n">ACCESS_TOKEN_EXPIRE_MINUTES</span> <span class="o">=</span> <span class="mi">30</span>
+<span class="n">SECRET_KEY</span> <span class="o">=</span> <span class="n">_load_secret_key</span><span class="p">()</span>
+<span class="n">ALGORITHM</span> <span class="o">=</span> <span class="s2">"HS256"</span>
+<span class="n">ACCESS_TOKEN_EXPIRE_MINUTES</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">"ACCESS_TOKEN_EXPIRE_MINUTES"</span><span class="p">,</span> <span class="s2">"480"</span><span class="p">))</span>
+<span class="n">LOGIN_MAX_FAILURES</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">"LOGIN_MAX_FAILURES"</span><span class="p">,</span> <span class="s2">"5"</span><span class="p">))</span>
+<span class="n">LOGIN_LOCK_MINUTES</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">"LOGIN_LOCK_MINUTES"</span><span class="p">,</span> <span class="s2">"10"</span><span class="p">))</span>
 
 <span class="c1"># Используем pbkdf2_sha256</span>
 <span class="n">pwd_context</span> <span class="o">=</span> <span class="n">CryptContext</span><span class="p">(</span>
-    <span class="n">schemes</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;pbkdf2_sha256&quot;</span><span class="p">],</span>
-    <span class="n">deprecated</span><span class="o">=</span><span class="s2">&quot;auto&quot;</span><span class="p">,</span>
+    <span class="n">schemes</span><span class="o">=</span><span class="p">[</span><span class="s2">"pbkdf2_sha256"</span><span class="p">],</span>
+    <span class="n">deprecated</span><span class="o">=</span><span class="s2">"auto"</span><span class="p">,</span>
 <span class="p">)</span>
 
-<span class="n">oauth2_scheme</span> <span class="o">=</span> <span class="n">OAuth2PasswordBearer</span><span class="p">(</span><span class="n">tokenUrl</span><span class="o">=</span><span class="s2">&quot;/auth/token&quot;</span><span class="p">)</span>
+<span class="n">oauth2_scheme</span> <span class="o">=</span> <span class="n">OAuth2PasswordBearer</span><span class="p">(</span><span class="n">tokenUrl</span><span class="o">=</span><span class="s2">"/auth/token"</span><span class="p">)</span>
 
+
+<span class="c1"># ---------- Ограничение попыток входа ----------</span>
+
+<div class="viewcode-block" id="LoginThrottle">
+<a class="viewcode-back" href="../auth.html#auth.LoginThrottle">[документация]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">LoginThrottle</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Простое ограничение перебора паролей в памяти процесса.</span>
+
+<span class="sd">    Считает неудачные попытки по паре (логин, IP) в скользящем окне.</span>
+<span class="sd">    После ``max_failures`` попыток вход для этой пары запрещен до тех пор,</span>
+<span class="sd">    пока самая старая попытка не выйдет из окна. Успешный вход сбрасывает</span>
+<span class="sd">    счетчик.</span>
+<span class="sd">    """</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">max_failures</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">window_seconds</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_failures</span> <span class="o">=</span> <span class="n">max_failures</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">window</span> <span class="o">=</span> <span class="n">window_seconds</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_failures</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="n">Deque</span><span class="p">[</span><span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="n">deque</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_lock</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Lock</span><span class="p">()</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_trim</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="n">now</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Deque</span><span class="p">[</span><span class="nb">float</span><span class="p">]:</span>
+        <span class="n">attempts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_failures</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+        <span class="k">while</span> <span class="n">attempts</span> <span class="ow">and</span> <span class="n">now</span> <span class="o">-</span> <span class="n">attempts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">window</span><span class="p">:</span>
+            <span class="n">attempts</span><span class="o">.</span><span class="n">popleft</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">attempts</span>
+
+<div class="viewcode-block" id="LoginThrottle.retry_after">
+<a class="viewcode-back" href="../auth.html#auth.LoginThrottle.retry_after">[документация]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">retry_after</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">username</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">ip</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Сколько секунд осталось до разблокировки (0, если вход разрешен)."""</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="p">(</span><span class="n">username</span><span class="o">.</span><span class="n">lower</span><span class="p">(),</span> <span class="n">ip</span><span class="p">)</span>
+        <span class="n">now</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">monotonic</span><span class="p">()</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lock</span><span class="p">:</span>
+            <span class="n">attempts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trim</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">now</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">attempts</span><span class="p">)</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_failures</span><span class="p">:</span>
+                <span class="k">return</span> <span class="mi">0</span>
+            <span class="k">return</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">window</span> <span class="o">-</span> <span class="p">(</span><span class="n">now</span> <span class="o">-</span> <span class="n">attempts</span><span class="p">[</span><span class="mi">0</span><span class="p">])))</span></div>
+
+
+<div class="viewcode-block" id="LoginThrottle.failure">
+<a class="viewcode-back" href="../auth.html#auth.LoginThrottle.failure">[документация]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">failure</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">username</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">ip</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Запоминает неудачную попытку."""</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="p">(</span><span class="n">username</span><span class="o">.</span><span class="n">lower</span><span class="p">(),</span> <span class="n">ip</span><span class="p">)</span>
+        <span class="n">now</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">monotonic</span><span class="p">()</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lock</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_trim</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">now</span><span class="p">)</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">now</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="LoginThrottle.success">
+<a class="viewcode-back" href="../auth.html#auth.LoginThrottle.success">[документация]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">success</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">username</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">ip</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Сбрасывает счетчик после успешного входа."""</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lock</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_failures</span><span class="o">.</span><span class="n">pop</span><span class="p">((</span><span class="n">username</span><span class="o">.</span><span class="n">lower</span><span class="p">(),</span> <span class="n">ip</span><span class="p">),</span> <span class="kc">None</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="LoginThrottle.reset">
+<a class="viewcode-back" href="../auth.html#auth.LoginThrottle.reset">[документация]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">"""Полностью очищает счетчики (для тестов)."""</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lock</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_failures</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span></div>
+</div>
+
+
+
+<span class="n">login_throttle</span> <span class="o">=</span> <span class="n">LoginThrottle</span><span class="p">(</span><span class="n">LOGIN_MAX_FAILURES</span><span class="p">,</span> <span class="n">LOGIN_LOCK_MINUTES</span> <span class="o">*</span> <span class="mi">60</span><span class="p">)</span>
+
+
+<span class="c1"># ---------- Пароли и токены ----------</span>
 
 <div class="viewcode-block" id="verify_password">
 <a class="viewcode-back" href="../auth.html#auth.verify_password">[документация]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">verify_password</span><span class="p">(</span><span class="n">plain_password</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">hashed_password</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Проверяет соответствие введенного пароля его хешу.</span>
 
 <span class="sd">    Args:</span>
@@ -120,15 +263,19 @@
 
 <span class="sd">    Returns:</span>
 <span class="sd">        bool: True, если пароль верен, иначе False.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">pwd_context</span><span class="o">.</span><span class="n">verify</span><span class="p">(</span><span class="n">plain_password</span><span class="p">,</span> <span class="n">hashed_password</span><span class="p">)</span></div>
+<span class="sd">    """</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">pwd_context</span><span class="o">.</span><span class="n">verify</span><span class="p">(</span><span class="n">plain_password</span><span class="p">,</span> <span class="n">hashed_password</span><span class="p">)</span>
+    <span class="k">except</span> <span class="p">(</span><span class="ne">ValueError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">):</span>
+        <span class="c1"># Неизвестный или испорченный формат хеша</span>
+        <span class="k">return</span> <span class="kc">False</span></div>
 
 
 
 <div class="viewcode-block" id="get_password_hash">
 <a class="viewcode-back" href="../auth.html#auth.get_password_hash">[документация]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">get_password_hash</span><span class="p">(</span><span class="n">password</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Генерирует криптографический хеш для заданного пароля.</span>
 
 <span class="sd">    Args:</span>
@@ -136,7 +283,7 @@
 
 <span class="sd">    Returns:</span>
 <span class="sd">        str: Захешированная строка.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">return</span> <span class="n">pwd_context</span><span class="o">.</span><span class="n">hash</span><span class="p">(</span><span class="n">password</span><span class="p">)</span></div>
 
 
@@ -147,7 +294,7 @@
     <span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
     <span class="n">expires_delta</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">timedelta</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Создает JWT токен доступа для пользователя.</span>
 
 <span class="sd">    Args:</span>
@@ -156,24 +303,50 @@
 
 <span class="sd">    Returns:</span>
 <span class="sd">        str: Закодированный JWT токен.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">to_encode</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-    <span class="k">if</span> <span class="n">expires_delta</span><span class="p">:</span>
-        <span class="n">expire</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span> <span class="o">+</span> <span class="n">expires_delta</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">expire</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span> <span class="o">+</span> <span class="n">timedelta</span><span class="p">(</span>
-            <span class="n">minutes</span><span class="o">=</span><span class="n">ACCESS_TOKEN_EXPIRE_MINUTES</span>
-        <span class="p">)</span>
-    <span class="n">to_encode</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;exp&quot;</span><span class="p">:</span> <span class="n">expire</span><span class="p">})</span>
-    <span class="n">encoded_jwt</span> <span class="o">=</span> <span class="n">jwt</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">to_encode</span><span class="p">,</span> <span class="n">SECRET_KEY</span><span class="p">,</span> <span class="n">algorithm</span><span class="o">=</span><span class="n">ALGORITHM</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">encoded_jwt</span></div>
+    <span class="k">if</span> <span class="n">expires_delta</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">expires_delta</span> <span class="o">=</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">minutes</span><span class="o">=</span><span class="n">ACCESS_TOKEN_EXPIRE_MINUTES</span><span class="p">)</span>
+    <span class="n">expire</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span> <span class="o">+</span> <span class="n">expires_delta</span>
+    <span class="n">to_encode</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">"exp"</span><span class="p">:</span> <span class="n">expire</span><span class="p">})</span>
+    <span class="k">return</span> <span class="n">jwt</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">to_encode</span><span class="p">,</span> <span class="n">SECRET_KEY</span><span class="p">,</span> <span class="n">algorithm</span><span class="o">=</span><span class="n">ALGORITHM</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="token_for">
+<a class="viewcode-back" href="../auth.html#auth.token_for">[документация]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">token_for</span><span class="p">(</span><span class="n">user</span><span class="p">:</span> <span class="n">User</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Выдает новый токен пользователю.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        user (User): Пользователь.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        dict: Ответ в формате схемы ``Token``.</span>
+<span class="sd">    """</span>
+    <span class="n">token</span> <span class="o">=</span> <span class="n">create_access_token</span><span class="p">({</span><span class="s2">"sub"</span><span class="p">:</span> <span class="n">user</span><span class="o">.</span><span class="n">username</span><span class="p">,</span> <span class="s2">"ver"</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">user</span><span class="o">.</span><span class="n">token_version</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)})</span>
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s2">"access_token"</span><span class="p">:</span> <span class="n">token</span><span class="p">,</span>
+        <span class="s2">"token_type"</span><span class="p">:</span> <span class="s2">"bearer"</span><span class="p">,</span>
+        <span class="s2">"expires_in"</span><span class="p">:</span> <span class="n">ACCESS_TOKEN_EXPIRE_MINUTES</span> <span class="o">*</span> <span class="mi">60</span><span class="p">,</span>
+        <span class="s2">"must_change_password"</span><span class="p">:</span> <span class="nb">bool</span><span class="p">(</span><span class="n">user</span><span class="o">.</span><span class="n">must_change_password</span><span class="p">),</span>
+    <span class="p">}</span></div>
+
+
+
+<div class="viewcode-block" id="revoke_tokens">
+<a class="viewcode-back" href="../auth.html#auth.revoke_tokens">[документация]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">revoke_tokens</span><span class="p">(</span><span class="n">user</span><span class="p">:</span> <span class="n">User</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Делает недействительными все выданные пользователю токены (без commit)."""</span>
+    <span class="n">user</span><span class="o">.</span><span class="n">token_version</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">user</span><span class="o">.</span><span class="n">token_version</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span></div>
 
 
 
 <div class="viewcode-block" id="authenticate_user">
 <a class="viewcode-back" href="../auth.html#auth.authenticate_user">[документация]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">authenticate_user</span><span class="p">(</span><span class="n">db</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span> <span class="n">username</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">password</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">User</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Аутентифицирует пользователя по логину и паролю.</span>
 
 <span class="sd">    Args:</span>
@@ -183,9 +356,12 @@
 
 <span class="sd">    Returns:</span>
 <span class="sd">        Optional[User]: Объект пользователя при успешной проверке, иначе None.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">user</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">User</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">User</span><span class="o">.</span><span class="n">username</span> <span class="o">==</span> <span class="n">username</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">user</span><span class="p">:</span>
+        <span class="c1"># Тратим время на хеширование, чтобы по скорости ответа нельзя было</span>
+        <span class="c1"># понять, существует ли логин</span>
+        <span class="n">pwd_context</span><span class="o">.</span><span class="n">dummy_verify</span><span class="p">()</span>
         <span class="k">return</span> <span class="kc">None</span>
 
     <span class="n">stored_hash</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">user</span><span class="o">.</span><span class="n">hashed_password</span>  <span class="c1"># type: ignore[assignment]</span>
@@ -196,13 +372,15 @@
 
 
 
+<span class="c1"># ---------- Зависимости FastAPI ----------</span>
+
 <div class="viewcode-block" id="get_current_user">
 <a class="viewcode-back" href="../auth.html#auth.get_current_user">[документация]</a>
 <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">get_current_user</span><span class="p">(</span>
     <span class="n">token</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">oauth2_scheme</span><span class="p">),</span>
     <span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">),</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">User</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Извлекает текущего пользователя из переданного JWT токена.</span>
 
 <span class="sd">    Args:</span>
@@ -213,36 +391,59 @@
 <span class="sd">        User: Объект пользователя.</span>
 
 <span class="sd">    Raises:</span>
-<span class="sd">        HTTPException: Если токен невалиден или пользователь не найден (401).</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">        HTTPException: Если токен невалиден, истек, отозван или пользователь</span>
+<span class="sd">            не найден (401).</span>
+<span class="sd">    """</span>
     <span class="n">credentials_exception</span> <span class="o">=</span> <span class="n">HTTPException</span><span class="p">(</span>
         <span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_401_UNAUTHORIZED</span><span class="p">,</span>
-        <span class="n">detail</span><span class="o">=</span><span class="s2">&quot;Could not validate credentials&quot;</span><span class="p">,</span>
-        <span class="n">headers</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;WWW-Authenticate&quot;</span><span class="p">:</span> <span class="s2">&quot;Bearer&quot;</span><span class="p">},</span>
+        <span class="n">detail</span><span class="o">=</span><span class="s2">"Сессия истекла или токен недействителен. Войдите заново."</span><span class="p">,</span>
+        <span class="n">headers</span><span class="o">=</span><span class="p">{</span><span class="s2">"WWW-Authenticate"</span><span class="p">:</span> <span class="s2">"Bearer"</span><span class="p">},</span>
     <span class="p">)</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="n">payload</span> <span class="o">=</span> <span class="n">jwt</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">token</span><span class="p">,</span> <span class="n">SECRET_KEY</span><span class="p">,</span> <span class="n">algorithms</span><span class="o">=</span><span class="p">[</span><span class="n">ALGORITHM</span><span class="p">])</span>
-        <span class="n">username_value</span> <span class="o">=</span> <span class="n">payload</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;sub&quot;</span><span class="p">)</span>
+        <span class="n">username_value</span> <span class="o">=</span> <span class="n">payload</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"sub"</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">username_value</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
             <span class="k">raise</span> <span class="n">credentials_exception</span>
         <span class="n">token_data</span> <span class="o">=</span> <span class="n">TokenData</span><span class="p">(</span><span class="n">username</span><span class="o">=</span><span class="n">username_value</span><span class="p">)</span>
-    <span class="k">except</span> <span class="n">JWTError</span><span class="p">:</span>
+        <span class="n">token_version</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">payload</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"ver"</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+    <span class="k">except</span> <span class="p">(</span><span class="n">JWTError</span><span class="p">,</span> <span class="ne">TypeError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
         <span class="k">raise</span> <span class="n">credentials_exception</span>
 
     <span class="n">user</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">User</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">User</span><span class="o">.</span><span class="n">username</span> <span class="o">==</span> <span class="n">token_data</span><span class="o">.</span><span class="n">username</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
-    <span class="k">if</span> <span class="n">user</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">user</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">token_version</span> <span class="o">!=</span> <span class="nb">int</span><span class="p">(</span><span class="n">user</span><span class="o">.</span><span class="n">token_version</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">):</span>
         <span class="k">raise</span> <span class="n">credentials_exception</span>
     <span class="k">return</span> <span class="n">user</span></div>
+
+
+
+<div class="viewcode-block" id="get_current_user_pending_password">
+<a class="viewcode-back" href="../auth.html#auth.get_current_user_pending_password">[документация]</a>
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">get_current_user_pending_password</span><span class="p">(</span>
+    <span class="n">current_user</span><span class="p">:</span> <span class="n">User</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_current_user</span><span class="p">),</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">User</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Активный пользователь, даже если ему нужно сменить пароль.</span>
+<span class="sd">    Используется только для ``/auth/me`` и ``/auth/change-password``.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        HTTPException: Если учетная запись заблокирована (403).</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">bool</span><span class="p">(</span><span class="n">current_user</span><span class="o">.</span><span class="n">is_active</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
+            <span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_403_FORBIDDEN</span><span class="p">,</span>
+            <span class="n">detail</span><span class="o">=</span><span class="s2">"Учетная запись заблокирована"</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">current_user</span></div>
 
 
 
 <div class="viewcode-block" id="get_current_active_user">
 <a class="viewcode-back" href="../auth.html#auth.get_current_active_user">[документация]</a>
 <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">get_current_active_user</span><span class="p">(</span>
-    <span class="n">current_user</span><span class="p">:</span> <span class="n">User</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_current_user</span><span class="p">),</span>
+    <span class="n">current_user</span><span class="p">:</span> <span class="n">User</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_current_user_pending_password</span><span class="p">),</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">User</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Проверяет, что текущий пользователь активен (не заблокирован).</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Проверяет, что текущий пользователь активен и не обязан сменить пароль.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        current_user (User): Пользователь, полученный из токена.</span>
@@ -251,11 +452,15 @@
 <span class="sd">        User: Активный пользователь.</span>
 
 <span class="sd">    Raises:</span>
-<span class="sd">        HTTPException: Если учетная запись деактивирована (400).</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">is_active</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">current_user</span><span class="o">.</span><span class="n">is_active</span><span class="p">)</span>  <span class="c1"># type: ignore[arg-type]</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">is_active</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="mi">400</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="s2">&quot;Inactive user&quot;</span><span class="p">)</span>
+<span class="sd">        HTTPException: Если учетная запись деактивирована или требуется</span>
+<span class="sd">            сменить пароль (403).</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="nb">bool</span><span class="p">(</span><span class="n">current_user</span><span class="o">.</span><span class="n">must_change_password</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
+            <span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_403_FORBIDDEN</span><span class="p">,</span>
+            <span class="n">detail</span><span class="o">=</span><span class="s2">"Требуется сменить пароль"</span><span class="p">,</span>
+            <span class="n">headers</span><span class="o">=</span><span class="p">{</span><span class="n">PASSWORD_CHANGE_HEADER</span><span class="p">:</span> <span class="s2">"1"</span><span class="p">},</span>
+        <span class="p">)</span>
     <span class="k">return</span> <span class="n">current_user</span></div>
 
 
@@ -263,21 +468,21 @@
 <div class="viewcode-block" id="require_role">
 <a class="viewcode-back" href="../auth.html#auth.require_role">[документация]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">require_role</span><span class="p">(</span><span class="n">allowed_roles</span><span class="p">:</span> <span class="nb">list</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Создает зависимость FastAPI для проверки роли пользователя (RBAC).</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        allowed_roles (list): Список допустимых ролей (например, [&quot;admin&quot;, &quot;engineer&quot;]).</span>
+<span class="sd">        allowed_roles (list): Список допустимых ролей (например, ["admin", "engineer"]).</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        Callable: Функция-проверщик для использования в Depends().</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">role_checker</span><span class="p">(</span><span class="n">current_user</span><span class="p">:</span> <span class="n">User</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_current_active_user</span><span class="p">))</span> <span class="o">-&gt;</span> <span class="n">User</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Внутренняя логика проверки роли.&quot;&quot;&quot;</span>
+<span class="w">        </span><span class="sd">"""Внутренняя логика проверки роли."""</span>
         <span class="k">if</span> <span class="n">current_user</span><span class="o">.</span><span class="n">role</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">allowed_roles</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
                 <span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_403_FORBIDDEN</span><span class="p">,</span>
-                <span class="n">detail</span><span class="o">=</span><span class="s2">&quot;Not enough permissions&quot;</span><span class="p">,</span>
+                <span class="n">detail</span><span class="o">=</span><span class="s2">"Недостаточно прав для этого действия"</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="k">return</span> <span class="n">current_user</span>
 
@@ -285,36 +490,143 @@
 
 
 
+<span class="c1"># ---------- Эндпоинты ----------</span>
+
 <div class="viewcode-block" id="login_for_access_token">
 <a class="viewcode-back" href="../auth.html#auth.login_for_access_token">[документация]</a>
-<span class="nd">@router</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s2">&quot;/token&quot;</span><span class="p">)</span>
+<span class="nd">@router</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s2">"/token"</span><span class="p">,</span> <span class="n">response_model</span><span class="o">=</span><span class="n">Token</span><span class="p">)</span>
 <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">login_for_access_token</span><span class="p">(</span>
+    <span class="n">request</span><span class="p">:</span> <span class="n">Request</span><span class="p">,</span>
     <span class="n">form_data</span><span class="p">:</span> <span class="n">OAuth2PasswordRequestForm</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(),</span>
     <span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">),</span>
 <span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Эндпоинт для входа в систему и генерации токена доступа.</span>
 
+<span class="sd">    Каждая попытка (успешная и неудачная) попадает в журнал действий.</span>
+<span class="sd">    После нескольких неудачных попыток подряд вход временно блокируется (429).</span>
+
 <span class="sd">    Args:</span>
+<span class="sd">        request (Request): Запрос (IP для журнала и ограничения попыток).</span>
 <span class="sd">        form_data (OAuth2PasswordRequestForm): Данные формы авторизации (логин/пароль).</span>
 <span class="sd">        db (Session): Сессия базы данных.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        dict: Токен доступа и его тип.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">user</span> <span class="o">=</span> <span class="n">authenticate_user</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">form_data</span><span class="o">.</span><span class="n">username</span><span class="p">,</span> <span class="n">form_data</span><span class="o">.</span><span class="n">password</span><span class="p">)</span>
+<span class="sd">        dict: Токен доступа, его тип, время жизни в секундах и флаг</span>
+<span class="sd">        обязательной смены пароля.</span>
+<span class="sd">    """</span>
+    <span class="n">username</span> <span class="o">=</span> <span class="n">form_data</span><span class="o">.</span><span class="n">username</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="n">ip</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">host</span> <span class="k">if</span> <span class="n">request</span><span class="o">.</span><span class="n">client</span> <span class="k">else</span> <span class="s2">"unknown"</span>
+
+    <span class="n">wait</span> <span class="o">=</span> <span class="n">login_throttle</span><span class="o">.</span><span class="n">retry_after</span><span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="n">ip</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">wait</span><span class="p">:</span>
+        <span class="n">audit</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">audit</span><span class="o">.</span><span class="n">ACTION_LOGIN_FAILED</span><span class="p">,</span>
+                  <span class="sa">f</span><span class="s2">"Вход отклонен: слишком много попыток для «</span><span class="si">{</span><span class="n">username</span><span class="si">}</span><span class="s2">»"</span><span class="p">,</span>
+                  <span class="n">entity_type</span><span class="o">=</span><span class="s2">"user"</span><span class="p">,</span> <span class="n">username</span><span class="o">=</span><span class="n">username</span><span class="p">,</span> <span class="n">commit</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
+            <span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_429_TOO_MANY_REQUESTS</span><span class="p">,</span>
+            <span class="n">detail</span><span class="o">=</span><span class="sa">f</span><span class="s2">"Слишком много неудачных попыток. Повторите через </span><span class="si">{</span><span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">wait</span><span class="w"> </span><span class="o">//</span><span class="w"> </span><span class="mi">60</span><span class="p">)</span><span class="si">}</span><span class="s2"> мин."</span><span class="p">,</span>
+            <span class="n">headers</span><span class="o">=</span><span class="p">{</span><span class="s2">"Retry-After"</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">wait</span><span class="p">)},</span>
+        <span class="p">)</span>
+
+    <span class="n">user</span> <span class="o">=</span> <span class="n">authenticate_user</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">username</span><span class="p">,</span> <span class="n">form_data</span><span class="o">.</span><span class="n">password</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">user</span><span class="p">:</span>
+        <span class="n">login_throttle</span><span class="o">.</span><span class="n">failure</span><span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="n">ip</span><span class="p">)</span>
+        <span class="n">audit</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">audit</span><span class="o">.</span><span class="n">ACTION_LOGIN_FAILED</span><span class="p">,</span>
+                  <span class="sa">f</span><span class="s2">"Неверный логин или пароль для «</span><span class="si">{</span><span class="n">username</span><span class="si">}</span><span class="s2">»"</span><span class="p">,</span>
+                  <span class="n">entity_type</span><span class="o">=</span><span class="s2">"user"</span><span class="p">,</span> <span class="n">username</span><span class="o">=</span><span class="n">username</span><span class="p">,</span> <span class="n">commit</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
             <span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_401_UNAUTHORIZED</span><span class="p">,</span>
-            <span class="n">detail</span><span class="o">=</span><span class="s2">&quot;Incorrect username or password&quot;</span><span class="p">,</span>
-            <span class="n">headers</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;WWW-Authenticate&quot;</span><span class="p">:</span> <span class="s2">&quot;Bearer&quot;</span><span class="p">},</span>
+            <span class="n">detail</span><span class="o">=</span><span class="s2">"Неверный логин или пароль"</span><span class="p">,</span>
+            <span class="n">headers</span><span class="o">=</span><span class="p">{</span><span class="s2">"WWW-Authenticate"</span><span class="p">:</span> <span class="s2">"Bearer"</span><span class="p">},</span>
         <span class="p">)</span>
-    <span class="n">access_token_expires</span> <span class="o">=</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">minutes</span><span class="o">=</span><span class="n">ACCESS_TOKEN_EXPIRE_MINUTES</span><span class="p">)</span>
-    <span class="n">access_token</span> <span class="o">=</span> <span class="n">create_access_token</span><span class="p">(</span>
-        <span class="n">data</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;sub&quot;</span><span class="p">:</span> <span class="n">user</span><span class="o">.</span><span class="n">username</span><span class="p">},</span>
-        <span class="n">expires_delta</span><span class="o">=</span><span class="n">access_token_expires</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;access_token&quot;</span><span class="p">:</span> <span class="n">access_token</span><span class="p">,</span> <span class="s2">&quot;token_type&quot;</span><span class="p">:</span> <span class="s2">&quot;bearer&quot;</span><span class="p">}</span></div>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">bool</span><span class="p">(</span><span class="n">user</span><span class="o">.</span><span class="n">is_active</span><span class="p">):</span>
+        <span class="n">audit</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">user</span><span class="p">,</span> <span class="n">audit</span><span class="o">.</span><span class="n">ACTION_LOGIN_FAILED</span><span class="p">,</span>
+                  <span class="sa">f</span><span class="s2">"Попытка входа в заблокированную учетную запись «</span><span class="si">{</span><span class="n">user</span><span class="o">.</span><span class="n">username</span><span class="si">}</span><span class="s2">»"</span><span class="p">,</span>
+                  <span class="n">entity_type</span><span class="o">=</span><span class="s2">"user"</span><span class="p">,</span> <span class="n">entity_id</span><span class="o">=</span><span class="n">user</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">commit</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
+            <span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_403_FORBIDDEN</span><span class="p">,</span>
+            <span class="n">detail</span><span class="o">=</span><span class="s2">"Учетная запись заблокирована"</span><span class="p">,</span>
+        <span class="p">)</span>
+
+    <span class="n">login_throttle</span><span class="o">.</span><span class="n">success</span><span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="n">ip</span><span class="p">)</span>
+    <span class="n">user</span><span class="o">.</span><span class="n">last_login_at</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span>
+    <span class="n">audit</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">user</span><span class="p">,</span> <span class="n">audit</span><span class="o">.</span><span class="n">ACTION_LOGIN_SUCCESS</span><span class="p">,</span>
+              <span class="sa">f</span><span class="s2">"Вход пользователя «</span><span class="si">{</span><span class="n">user</span><span class="o">.</span><span class="n">username</span><span class="si">}</span><span class="s2">»"</span><span class="p">,</span>
+              <span class="n">entity_type</span><span class="o">=</span><span class="s2">"user"</span><span class="p">,</span> <span class="n">entity_id</span><span class="o">=</span><span class="n">user</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">token_for</span><span class="p">(</span><span class="n">user</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="read_current_user">
+<a class="viewcode-back" href="../auth.html#auth.read_current_user">[документация]</a>
+<span class="nd">@router</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"/me"</span><span class="p">,</span> <span class="n">response_model</span><span class="o">=</span><span class="n">UserRead</span><span class="p">)</span>
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">read_current_user</span><span class="p">(</span><span class="n">current_user</span><span class="p">:</span> <span class="n">User</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_current_user_pending_password</span><span class="p">)):</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Возвращает данные текущего пользователя (логин, ФИО, роль, флаг смены пароля).</span>
+<span class="sd">    Используется интерфейсом для отображения пользователя и проверки сессии.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        current_user (User): Пользователь из токена.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        User: Текущий пользователь.</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="n">current_user</span></div>
+
+
+
+<div class="viewcode-block" id="change_password">
+<a class="viewcode-back" href="../auth.html#auth.change_password">[документация]</a>
+<span class="nd">@router</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s2">"/change-password"</span><span class="p">,</span> <span class="n">response_model</span><span class="o">=</span><span class="n">Token</span><span class="p">)</span>
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">change_password</span><span class="p">(</span>
+    <span class="n">data</span><span class="p">:</span> <span class="n">PasswordChange</span><span class="p">,</span>
+    <span class="n">request</span><span class="p">:</span> <span class="n">Request</span><span class="p">,</span>
+    <span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">),</span>
+    <span class="n">current_user</span><span class="p">:</span> <span class="n">User</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_current_user_pending_password</span><span class="p">),</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Смена собственного пароля.</span>
+
+<span class="sd">    Старые токены пользователя (в том числе на других устройствах) перестают</span>
+<span class="sd">    работать, в ответе приходит новый токен для текущей сессии.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        data (PasswordChange): Старый и новый пароль.</span>
+<span class="sd">        request (Request): Запрос (для журнала).</span>
+<span class="sd">        db (Session): Сессия базы данных.</span>
+<span class="sd">        current_user (User): Текущий пользователь.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        dict: Новый токен.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        HTTPException: Если старый пароль неверен (400) или новый пароль</span>
+<span class="sd">            слишком простой или совпадает со старым (422).</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">verify_password</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">old_password</span><span class="p">,</span> <span class="n">current_user</span><span class="o">.</span><span class="n">hashed_password</span><span class="p">):</span>
+        <span class="n">audit</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">current_user</span><span class="p">,</span> <span class="n">audit</span><span class="o">.</span><span class="n">ACTION_PASSWORD_CHANGE</span><span class="p">,</span>
+                  <span class="s2">"Неудачная смена пароля: неверный текущий пароль"</span><span class="p">,</span>
+                  <span class="n">entity_type</span><span class="o">=</span><span class="s2">"user"</span><span class="p">,</span> <span class="n">entity_id</span><span class="o">=</span><span class="n">current_user</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">commit</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_400_BAD_REQUEST</span><span class="p">,</span>
+                            <span class="n">detail</span><span class="o">=</span><span class="s2">"Текущий пароль указан неверно"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">old_password</span> <span class="o">==</span> <span class="n">data</span><span class="o">.</span><span class="n">new_password</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="mi">422</span><span class="p">,</span>
+                            <span class="n">detail</span><span class="o">=</span><span class="s2">"Новый пароль должен отличаться от текущего"</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">validate_password_strength</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">new_password</span><span class="p">,</span> <span class="n">current_user</span><span class="o">.</span><span class="n">username</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="mi">422</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">exc</span><span class="p">))</span>
+
+    <span class="n">current_user</span><span class="o">.</span><span class="n">hashed_password</span> <span class="o">=</span> <span class="n">get_password_hash</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">new_password</span><span class="p">)</span>
+    <span class="n">current_user</span><span class="o">.</span><span class="n">must_change_password</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">revoke_tokens</span><span class="p">(</span><span class="n">current_user</span><span class="p">)</span>
+    <span class="n">audit</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">current_user</span><span class="p">,</span> <span class="n">audit</span><span class="o">.</span><span class="n">ACTION_PASSWORD_CHANGE</span><span class="p">,</span>
+              <span class="sa">f</span><span class="s2">"Пользователь «</span><span class="si">{</span><span class="n">current_user</span><span class="o">.</span><span class="n">username</span><span class="si">}</span><span class="s2">» сменил пароль"</span><span class="p">,</span>
+              <span class="n">entity_type</span><span class="o">=</span><span class="s2">"user"</span><span class="p">,</span> <span class="n">entity_id</span><span class="o">=</span><span class="n">current_user</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">token_for</span><span class="p">(</span><span class="n">current_user</span><span class="p">)</span></div>
 
 </pre></div>
 

@@ -1,0 +1,287 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="ru" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>status_logic module &mdash; документация FireTrack 1</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=47a0e12c"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="_static/translations.js?v=cd1d70c9"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Алфавитный указатель" href="genindex.html" />
+    <link rel="search" title="Поиск" href="search.html" />
+    <link rel="next" title="xlsx_export module" href="xlsx_export.html" />
+    <link rel="prev" title="setup module" href="setup.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            FireTrack
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Поиск в документации" aria-label="Поиск в документации" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Меню навигации">
+              <p class="caption" role="heading"><span class="caption-text">Содержание:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">FireExtinguishers</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="app_settings.html">app_settings module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="audit.html">audit module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auth.html">auth module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="db.html">db module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deadlines.html">deadlines module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="main.html">main module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="migrate.html">migrate module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="models.html">models module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="report_data.html">report_data module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="routers.html">routers package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="schemas.html">schemas module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="setup.html">setup module</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">status_logic module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#status_logic.compute_status_name"><code class="docutils literal notranslate"><span class="pre">compute_status_name()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#status_logic.ensure_default_statuses"><code class="docutils literal notranslate"><span class="pre">ensure_default_statuses()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#status_logic.get_latest_inspection"><code class="docutils literal notranslate"><span class="pre">get_latest_inspection()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#status_logic.has_defects"><code class="docutils literal notranslate"><span class="pre">has_defects()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#status_logic.latest_inspections_subquery"><code class="docutils literal notranslate"><span class="pre">latest_inspections_subquery()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#status_logic.recalculate_statuses"><code class="docutils literal notranslate"><span class="pre">recalculate_statuses()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#status_logic.status_ids_by_name"><code class="docutils literal notranslate"><span class="pre">status_ids_by_name()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="xlsx_export.html">xlsx_export module</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Меню навигации для мобильных устройств" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">FireTrack</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Навигация по страницам">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">FireExtinguishers</a></li>
+      <li class="breadcrumb-item active">status_logic module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/status_logic.rst.txt" rel="nofollow"> Просмотреть исходный код страницы</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-status_logic">
+<span id="status-logic-module"></span><h1>status_logic module<a class="headerlink" href="#module-status_logic" title="Ссылка на этот заголовок"></a></h1>
+<p>Бизнес-логика статусов огнетушителей.</p>
+<p>Здесь собраны правила, по которым определяется технический статус
+огнетушителя, и общие запросы, которые используют разные роутеры
+(последняя проверка каждого огнетушителя, массовый пересчет статусов).</p>
+<p>Правила расчета статуса:</p>
+<ol class="arabic simple">
+<li><p>Статусы «Списан» и «На техническом обслуживании» выставляются вручную
+и при массовом пересчете не меняются.</p></li>
+<li><p>Если проверок не было, огнетушитель считается просроченным.</p></li>
+<li><p>Если при последней проверке обнаружены дефекты, ставится
+«Требует обслуживания».</p></li>
+<li><p>Если просрочена перезарядка (см. модуль <code class="docutils literal notranslate"><span class="pre">deadlines</span></code>) и в настройках
+включено <code class="docutils literal notranslate"><span class="pre">recharge_overdue_needs_service</span></code>, ставится
+«Требует обслуживания».</p></li>
+<li><p>Если дата следующей проверки уже прошла, ставится «Просрочено».</p></li>
+<li><p>Иначе ставится «Актуально».</p></li>
+</ol>
+<dl class="py function">
+<dt class="sig sig-object py" id="status_logic.compute_status_name">
+<span class="sig-prename descclassname"><span class="pre">status_logic.</span></span><span class="sig-name descname"><span class="pre">compute_status_name</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">last_inspection</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="models.html#models.Inspection" title="models.Inspection"><span class="pre">Inspection</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">today</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">date</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">recharge_overdue</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/status_logic.html#compute_status_name"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#status_logic.compute_status_name" title="Ссылка на это определение"></a></dt>
+<dd><p>Определяет статус огнетушителя по его последней проверке и сроку перезарядки.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Параметры<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>last_inspection</strong> (<em>Optional</em><em>[</em><a class="reference internal" href="models.html#models.Inspection" title="models.Inspection"><em>Inspection</em></a><em>]</em>) – Последняя проверка или None.</p></li>
+<li><p><strong>today</strong> (<em>Optional</em><em>[</em><em>date</em><em>]</em>) – Текущая дата (для тестов).</p></li>
+<li><p><strong>recharge_overdue</strong> (<em>bool</em>) – Просрочена ли перезарядка (и учитывать ли это).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Результат<span class="colon">:</span></dt>
+<dd class="field-even"><p>Название статуса.</p>
+</dd>
+<dt class="field-odd">Тип результата<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="status_logic.ensure_default_statuses">
+<span class="sig-prename descclassname"><span class="pre">status_logic.</span></span><span class="sig-name descname"><span class="pre">ensure_default_statuses</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Session</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span></span></span><a class="reference internal" href="_modules/status_logic.html#ensure_default_statuses"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#status_logic.ensure_default_statuses" title="Ссылка на это определение"></a></dt>
+<dd><p>Создает системные статусы, если их еще нет в базе.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Параметры<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>db</strong> (<em>Session</em>) – Сессия базы данных.</p>
+</dd>
+<dt class="field-even">Результат<span class="colon">:</span></dt>
+<dd class="field-even"><p>Названия созданных статусов.</p>
+</dd>
+<dt class="field-odd">Тип результата<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="status_logic.get_latest_inspection">
+<span class="sig-prename descclassname"><span class="pre">status_logic.</span></span><span class="sig-name descname"><span class="pre">get_latest_inspection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Session</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extinguisher_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="models.html#models.Inspection" title="models.Inspection"><span class="pre">Inspection</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="reference internal" href="_modules/status_logic.html#get_latest_inspection"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#status_logic.get_latest_inspection" title="Ссылка на это определение"></a></dt>
+<dd><p>Возвращает последнюю проверку огнетушителя.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Параметры<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>db</strong> (<em>Session</em>) – Сессия базы данных.</p></li>
+<li><p><strong>extinguisher_id</strong> (<em>int</em>) – ID огнетушителя.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Результат<span class="colon">:</span></dt>
+<dd class="field-even"><p>Последняя проверка или None.</p>
+</dd>
+<dt class="field-odd">Тип результата<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[<a class="reference internal" href="models.html#models.Inspection" title="models.Inspection">Inspection</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="status_logic.has_defects">
+<span class="sig-prename descclassname"><span class="pre">status_logic.</span></span><span class="sig-name descname"><span class="pre">has_defects</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inspection</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="models.html#models.Inspection" title="models.Inspection"><span class="pre">Inspection</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="reference internal" href="_modules/status_logic.html#has_defects"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#status_logic.has_defects" title="Ссылка на это определение"></a></dt>
+<dd><p>Проверяет, были ли обнаружены дефекты при проверке.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Параметры<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>inspection</strong> (<a class="reference internal" href="models.html#models.Inspection" title="models.Inspection"><em>Inspection</em></a>) – Запись о проверке.</p>
+</dd>
+<dt class="field-even">Результат<span class="colon">:</span></dt>
+<dd class="field-even"><p>True, если хотя бы одно поле осмотра указывает на дефект.</p>
+</dd>
+<dt class="field-odd">Тип результата<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="status_logic.latest_inspections_subquery">
+<span class="sig-prename descclassname"><span class="pre">status_logic.</span></span><span class="sig-name descname"><span class="pre">latest_inspections_subquery</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Session</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/status_logic.html#latest_inspections_subquery"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#status_logic.latest_inspections_subquery" title="Ссылка на это определение"></a></dt>
+<dd><p>Подзапрос с одной (самой свежей) проверкой на каждый огнетушитель.</p>
+<p>Если в один день было несколько проверок, берется добавленная позже.
+Колонки: fire_extinguisher_id, inspection_id, inspection_date,
+next_inspection_date.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Параметры<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>db</strong> (<em>Session</em>) – Сессия базы данных.</p>
+</dd>
+<dt class="field-even">Результат<span class="colon">:</span></dt>
+<dd class="field-even"><p>Подзапрос SQLAlchemy.</p>
+</dd>
+<dt class="field-odd">Тип результата<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Subquery</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="status_logic.recalculate_statuses">
+<span class="sig-prename descclassname"><span class="pre">status_logic.</span></span><span class="sig-name descname"><span class="pre">recalculate_statuses</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Session</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extinguisher_ids</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_manual</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">('На</span> <span class="pre">техническом</span> <span class="pre">обслуживании',</span> <span class="pre">'Списан')</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="reference internal" href="_modules/status_logic.html#recalculate_statuses"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#status_logic.recalculate_statuses" title="Ссылка на это определение"></a></dt>
+<dd><p>Пересчитывает статусы огнетушителей и сохраняет изменения.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Параметры<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>db</strong> (<em>Session</em>) – Сессия базы данных.</p></li>
+<li><p><strong>extinguisher_ids</strong> (<em>Optional</em><em>[</em><em>Iterable</em><em>[</em><em>int</em><em>]</em><em>]</em>) – Ограничить пересчет этими ID.
+Если не указано, пересчитывается весь парк.</p></li>
+<li><p><strong>keep_manual</strong> (<em>Iterable</em><em>[</em><em>str</em><em>]</em>) – Статусы, которые нельзя менять.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Результат<span class="colon">:</span></dt>
+<dd class="field-even"><p>Количество огнетушителей, у которых изменился статус.</p>
+</dd>
+<dt class="field-odd">Тип результата<span class="colon">:</span></dt>
+<dd class="field-odd"><p>int</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="status_logic.status_ids_by_name">
+<span class="sig-prename descclassname"><span class="pre">status_logic.</span></span><span class="sig-name descname"><span class="pre">status_ids_by_name</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Session</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/status_logic.html#status_ids_by_name"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#status_logic.status_ids_by_name" title="Ссылка на это определение"></a></dt>
+<dd><p>Возвращает словарь «название статуса -&gt; id».</p>
+<dl class="field-list simple">
+<dt class="field-odd">Параметры<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>db</strong> (<em>Session</em>) – Сессия базы данных.</p>
+</dd>
+<dt class="field-even">Результат<span class="colon">:</span></dt>
+<dd class="field-even"><p>Соответствие названий и идентификаторов.</p>
+</dd>
+<dt class="field-odd">Тип результата<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Dict[str, int]</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Нижняя область">
+        <a href="setup.html" class="btn btn-neutral float-left" title="setup module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Предыдущая</a>
+        <a href="xlsx_export.html" class="btn btn-neutral float-right" title="xlsx_export module" accesskey="n" rel="next">Следующая <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Авторские права 2026, Ralka. </p>
+  </div>
+
+  Собрано при помощи <a href="https://www.sphinx-doc.org/">Sphinx</a> с использованием
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">темы,</a>
+    предоставленной <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

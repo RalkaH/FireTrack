@@ -1,0 +1,241 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="ru" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>report_data module &mdash; документация FireTrack 1</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=47a0e12c"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="_static/translations.js?v=cd1d70c9"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Алфавитный указатель" href="genindex.html" />
+    <link rel="search" title="Поиск" href="search.html" />
+    <link rel="next" title="routers package" href="routers.html" />
+    <link rel="prev" title="models module" href="models.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            FireTrack
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Поиск в документации" aria-label="Поиск в документации" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Меню навигации">
+              <p class="caption" role="heading"><span class="caption-text">Содержание:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">FireExtinguishers</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="app_settings.html">app_settings module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="audit.html">audit module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auth.html">auth module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="db.html">db module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deadlines.html">deadlines module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="main.html">main module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="migrate.html">migrate module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="models.html">models module</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">report_data module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#report_data.defects_text"><code class="docutils literal notranslate"><span class="pre">defects_text()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#report_data.fleet_summary"><code class="docutils literal notranslate"><span class="pre">fleet_summary()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#report_data.journal_rows"><code class="docutils literal notranslate"><span class="pre">journal_rows()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#report_data.maintenance_rows"><code class="docutils literal notranslate"><span class="pre">maintenance_rows()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#report_data.period_label"><code class="docutils literal notranslate"><span class="pre">period_label()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#report_data.report_header"><code class="docutils literal notranslate"><span class="pre">report_header()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="routers.html">routers package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="schemas.html">schemas module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="setup.html">setup module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="status_logic.html">status_logic module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="xlsx_export.html">xlsx_export module</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Меню навигации для мобильных устройств" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">FireTrack</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Навигация по страницам">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">FireExtinguishers</a></li>
+      <li class="breadcrumb-item active">report_data module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/report_data.rst.txt" rel="nofollow"> Просмотреть исходный код страницы</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-report_data">
+<span id="report-data-module"></span><h1>report_data module<a class="headerlink" href="#module-report_data" title="Ссылка на этот заголовок"></a></h1>
+<p>Данные для отчетов.</p>
+<p>Каждая функция возвращает готовые строки (словари), из которых потом
+строятся XLSX-файл (<code class="docutils literal notranslate"><span class="pre">xlsx_export</span></code>) и страница для печати
+(<code class="docutils literal notranslate"><span class="pre">static/print.html</span></code>). Так оба формата всегда показывают одно и то же.</p>
+<p>Отчеты:</p>
+<ol class="arabic simple">
+<li><p><a class="reference internal" href="#report_data.journal_rows" title="report_data.journal_rows"><code class="xref py py-func docutils literal notranslate"><span class="pre">journal_rows()</span></code></a> — журнал проверок за период.</p></li>
+<li><p><a class="reference internal" href="#report_data.maintenance_rows" title="report_data.maintenance_rows"><code class="xref py py-func docutils literal notranslate"><span class="pre">maintenance_rows()</span></code></a> — журнал технического обслуживания огнетушителей
+по рекомендуемой форме Г.2 приложения Г СП 9.13130.2009.</p></li>
+<li><p><a class="reference internal" href="#report_data.fleet_summary" title="report_data.fleet_summary"><code class="xref py py-func docutils literal notranslate"><span class="pre">fleet_summary()</span></code></a> — состояние парка: сводка по статусам и местам,
+проблемные огнетушители, ближайшие проверки, перезарядки и сроки службы.</p></li>
+</ol>
+<dl class="py function">
+<dt class="sig sig-object py" id="report_data.defects_text">
+<span class="sig-prename descclassname"><span class="pre">report_data.</span></span><span class="sig-name descname"><span class="pre">defects_text</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">insp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="models.html#models.Inspection" title="models.Inspection"><span class="pre">Inspection</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/report_data.html#defects_text"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#report_data.defects_text" title="Ссылка на это определение"></a></dt>
+<dd><p>Список найденных дефектов одной строкой.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="report_data.fleet_summary">
+<span class="sig-prename descclassname"><span class="pre">report_data.</span></span><span class="sig-name descname"><span class="pre">fleet_summary</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Session</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">today</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">date</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">horizon_days</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">30</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/report_data.html#fleet_summary"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#report_data.fleet_summary" title="Ссылка на это определение"></a></dt>
+<dd><p>Отчет «Состояние парка».</p>
+<dl class="field-list simple">
+<dt class="field-odd">Параметры<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>db</strong> (<em>Session</em>) – Сессия базы данных.</p></li>
+<li><p><strong>today</strong> (<em>Optional</em><em>[</em><em>date</em><em>]</em>) – Дата отчета.</p></li>
+<li><p><strong>horizon_days</strong> (<em>int</em>) – Горизонт для ближайших проверок, дней.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Результат<span class="colon">:</span></dt>
+<dd class="field-even"><p>Сводка и списки:
+<code class="docutils literal notranslate"><span class="pre">by_status</span></code>, <code class="docutils literal notranslate"><span class="pre">by_location</span></code>, <code class="docutils literal notranslate"><span class="pre">problems</span></code> (просрочено и требует
+обслуживания), <code class="docutils literal notranslate"><span class="pre">upcoming_inspections</span></code>, <code class="docutils literal notranslate"><span class="pre">recharge</span></code> (просрочено
+и скоро), <code class="docutils literal notranslate"><span class="pre">service_life</span></code> (истек и скоро истекает).</p>
+</dd>
+<dt class="field-odd">Тип результата<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Dict[str, Any]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="report_data.journal_rows">
+<span class="sig-prename descclassname"><span class="pre">report_data.</span></span><span class="sig-name descname"><span class="pre">journal_rows</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Session</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">date_from</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">date</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">date_to</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">date</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/report_data.html#journal_rows"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#report_data.journal_rows" title="Ссылка на это определение"></a></dt>
+<dd><p>Журнал проверок за период (старые сверху, как в бумажном журнале).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Параметры<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>db</strong> (<em>Session</em>) – Сессия базы данных.</p></li>
+<li><p><strong>date_from</strong> (<em>Optional</em><em>[</em><em>date</em><em>]</em>) – Начало периода.</p></li>
+<li><p><strong>date_to</strong> (<em>Optional</em><em>[</em><em>date</em><em>]</em>) – Конец периода.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Результат<span class="colon">:</span></dt>
+<dd class="field-even"><p>Строки журнала.</p>
+</dd>
+<dt class="field-odd">Тип результата<span class="colon">:</span></dt>
+<dd class="field-odd"><p>List[Dict[str, Any]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="report_data.maintenance_rows">
+<span class="sig-prename descclassname"><span class="pre">report_data.</span></span><span class="sig-name descname"><span class="pre">maintenance_rows</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Session</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">date_from</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">date</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">date_to</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">date</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/report_data.html#maintenance_rows"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#report_data.maintenance_rows" title="Ссылка на это определение"></a></dt>
+<dd><p>Журнал ТО огнетушителей по форме Г.2 СП 9.13130.2009.</p>
+<p>Колонки формы: «№ и марка огнетушителя», «Техническое обслуживание
+(вид и дата)» с подколонками «Проверка узлов огнетушителя», «Проверка
+качества ОТВ», «Проверка индикатора давления», «Перезарядка
+огнетушителя», «Испытание узлов огнетушителя», затем «Замечания
+о техническом состоянии», «Принятые меры» и «Должность, фамилия,
+инициалы и подпись ответственного лица».</p>
+<p>Каждая проверка из журнала дает строку: осмотр узлов (дата), масса
+в колонке качества ОТВ, давление в колонке индикатора. Перезарядки
+за период добавляются отдельными строками по дате последней
+перезарядки. «Принятые меры» и подпись заполняются от руки.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Параметры<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>db</strong> (<em>Session</em>) – Сессия базы данных.</p></li>
+<li><p><strong>date_from</strong> (<em>Optional</em><em>[</em><em>date</em><em>]</em>) – Начало периода.</p></li>
+<li><p><strong>date_to</strong> (<em>Optional</em><em>[</em><em>date</em><em>]</em>) – Конец периода.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Результат<span class="colon">:</span></dt>
+<dd class="field-even"><p>Строки журнала в порядке дат.</p>
+</dd>
+<dt class="field-odd">Тип результата<span class="colon">:</span></dt>
+<dd class="field-odd"><p>List[Dict[str, Any]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="report_data.period_label">
+<span class="sig-prename descclassname"><span class="pre">report_data.</span></span><span class="sig-name descname"><span class="pre">period_label</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">date_from</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">date</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">date_to</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">date</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/report_data.html#period_label"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#report_data.period_label" title="Ссылка на это определение"></a></dt>
+<dd><p>Подпись периода для шапки отчета.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="report_data.report_header">
+<span class="sig-prename descclassname"><span class="pre">report_data.</span></span><span class="sig-name descname"><span class="pre">report_header</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Session</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/report_data.html#report_header"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#report_data.report_header" title="Ссылка на это определение"></a></dt>
+<dd><p>Название организации и ответственный из настроек.</p>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Нижняя область">
+        <a href="models.html" class="btn btn-neutral float-left" title="models module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Предыдущая</a>
+        <a href="routers.html" class="btn btn-neutral float-right" title="routers package" accesskey="n" rel="next">Следующая <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Авторские права 2026, Ralka. </p>
+  </div>
+
+  Собрано при помощи <a href="https://www.sphinx-doc.org/">Sphinx</a> с использованием
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">темы,</a>
+    предоставленной <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

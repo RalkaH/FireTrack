@@ -1,0 +1,370 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="ru" data-content_root="../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>status_logic &mdash; документация FireTrack 1</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=47a0e12c"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../_static/translations.js?v=cd1d70c9"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Алфавитный указатель" href="../genindex.html" />
+    <link rel="search" title="Поиск" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            FireTrack
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Поиск в документации" aria-label="Поиск в документации" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Меню навигации">
+              <p class="caption" role="heading"><span class="caption-text">Содержание:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">FireExtinguishers</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Меню навигации для мобильных устройств" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">FireTrack</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Навигация по страницам">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Код модуля</a></li>
+      <li class="breadcrumb-item active">status_logic</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Исходный код status_logic</h1><div class="highlight"><pre>
+<span></span><span class="c1"># status_logic.py (v1.1)</span>
+<span class="sd">"""</span>
+<span class="sd">Бизнес-логика статусов огнетушителей.</span>
+
+<span class="sd">Здесь собраны правила, по которым определяется технический статус</span>
+<span class="sd">огнетушителя, и общие запросы, которые используют разные роутеры</span>
+<span class="sd">(последняя проверка каждого огнетушителя, массовый пересчет статусов).</span>
+
+<span class="sd">Правила расчета статуса:</span>
+
+<span class="sd">1. Статусы «Списан» и «На техническом обслуживании» выставляются вручную</span>
+<span class="sd">   и при массовом пересчете не меняются.</span>
+<span class="sd">2. Если проверок не было, огнетушитель считается просроченным.</span>
+<span class="sd">3. Если при последней проверке обнаружены дефекты, ставится</span>
+<span class="sd">   «Требует обслуживания».</span>
+<span class="sd">4. Если просрочена перезарядка (см. модуль ``deadlines``) и в настройках</span>
+<span class="sd">   включено ``recharge_overdue_needs_service``, ставится</span>
+<span class="sd">   «Требует обслуживания».</span>
+<span class="sd">5. Если дата следующей проверки уже прошла, ставится «Просрочено».</span>
+<span class="sd">6. Иначе ставится «Актуально».</span>
+<span class="sd">"""</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">date</span><span class="p">,</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timezone</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Optional</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">sqlalchemy</span><span class="w"> </span><span class="kn">import</span> <span class="n">func</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sqlalchemy.orm</span><span class="w"> </span><span class="kn">import</span> <span class="n">Session</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">app_settings</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_settings</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deadlines</span><span class="w"> </span><span class="kn">import</span> <span class="n">STATE_OVERDUE</span><span class="p">,</span> <span class="n">compute_deadlines</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">models</span><span class="w"> </span><span class="kn">import</span> <span class="n">FireExtinguisher</span><span class="p">,</span> <span class="n">Inspection</span><span class="p">,</span> <span class="n">Status</span>
+
+<span class="c1"># Названия системных статусов</span>
+<span class="n">STATUS_ACTUAL</span> <span class="o">=</span> <span class="s2">"Актуально"</span>
+<span class="n">STATUS_EXPIRED</span> <span class="o">=</span> <span class="s2">"Просрочено"</span>
+<span class="n">STATUS_NEEDS_SERVICE</span> <span class="o">=</span> <span class="s2">"Требует обслуживания"</span>
+<span class="n">STATUS_IN_SERVICE</span> <span class="o">=</span> <span class="s2">"На техническом обслуживании"</span>
+<span class="n">STATUS_DECOMMISSIONED</span> <span class="o">=</span> <span class="s2">"Списан"</span>
+
+<span class="n">DEFAULT_STATUSES</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="p">{</span><span class="s2">"name"</span><span class="p">:</span> <span class="n">STATUS_ACTUAL</span><span class="p">,</span>
+     <span class="s2">"description"</span><span class="p">:</span> <span class="s2">"Огнетушитель прошел проверку, срок не истек"</span><span class="p">},</span>
+    <span class="p">{</span><span class="s2">"name"</span><span class="p">:</span> <span class="n">STATUS_EXPIRED</span><span class="p">,</span>
+     <span class="s2">"description"</span><span class="p">:</span> <span class="s2">"Необходима проверка, срок истек"</span><span class="p">},</span>
+    <span class="p">{</span><span class="s2">"name"</span><span class="p">:</span> <span class="n">STATUS_NEEDS_SERVICE</span><span class="p">,</span>
+     <span class="s2">"description"</span><span class="p">:</span> <span class="s2">"Обнаружены дефекты при проверке"</span><span class="p">},</span>
+    <span class="p">{</span><span class="s2">"name"</span><span class="p">:</span> <span class="n">STATUS_IN_SERVICE</span><span class="p">,</span>
+     <span class="s2">"description"</span><span class="p">:</span> <span class="s2">"Огнетушитель на ТО"</span><span class="p">},</span>
+    <span class="p">{</span><span class="s2">"name"</span><span class="p">:</span> <span class="n">STATUS_DECOMMISSIONED</span><span class="p">,</span>
+     <span class="s2">"description"</span><span class="p">:</span> <span class="s2">"Огнетушитель выведен из эксплуатации"</span><span class="p">},</span>
+<span class="p">]</span>
+
+<span class="c1"># Статусы, которые выставляются вручную и не трогаются автоматикой</span>
+<span class="n">MANUAL_STATUSES</span> <span class="o">=</span> <span class="p">{</span><span class="n">STATUS_DECOMMISSIONED</span><span class="p">,</span> <span class="n">STATUS_IN_SERVICE</span><span class="p">}</span>
+
+<span class="c1"># Значения полей осмотра, означающие дефект</span>
+<span class="n">DEFECT_VALUES</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"Неисправен"</span><span class="p">,</span> <span class="s2">"Повреждена"</span><span class="p">,</span> <span class="s2">"Поврежден"</span><span class="p">,</span> <span class="s2">"Отсутствует"</span><span class="p">}</span>
+
+
+<div class="viewcode-block" id="ensure_default_statuses">
+<a class="viewcode-back" href="../status_logic.html#status_logic.ensure_default_statuses">[документация]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">ensure_default_statuses</span><span class="p">(</span><span class="n">db</span><span class="p">:</span> <span class="n">Session</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Создает системные статусы, если их еще нет в базе.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        db (Session): Сессия базы данных.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        list: Названия созданных статусов.</span>
+<span class="sd">    """</span>
+    <span class="n">created</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">DEFAULT_STATUSES</span><span class="p">:</span>
+        <span class="n">exists</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Status</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">Status</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">item</span><span class="p">[</span><span class="s2">"name"</span><span class="p">])</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">exists</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">db</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">Status</span><span class="p">(</span>
+                <span class="n">name</span><span class="o">=</span><span class="n">item</span><span class="p">[</span><span class="s2">"name"</span><span class="p">],</span>
+                <span class="n">description</span><span class="o">=</span><span class="n">item</span><span class="p">[</span><span class="s2">"description"</span><span class="p">],</span>
+                <span class="n">created_at</span><span class="o">=</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">),</span>
+            <span class="p">))</span>
+            <span class="n">created</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">item</span><span class="p">[</span><span class="s2">"name"</span><span class="p">])</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">created</span></div>
+
+
+
+<div class="viewcode-block" id="status_ids_by_name">
+<a class="viewcode-back" href="../status_logic.html#status_logic.status_ids_by_name">[документация]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">status_ids_by_name</span><span class="p">(</span><span class="n">db</span><span class="p">:</span> <span class="n">Session</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Возвращает словарь «название статуса -&gt; id».</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        db (Session): Сессия базы данных.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Dict[str, int]: Соответствие названий и идентификаторов.</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="p">{</span><span class="n">st</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">st</span><span class="o">.</span><span class="n">id</span> <span class="k">for</span> <span class="n">st</span> <span class="ow">in</span> <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Status</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()}</span></div>
+
+
+
+<div class="viewcode-block" id="latest_inspections_subquery">
+<a class="viewcode-back" href="../status_logic.html#status_logic.latest_inspections_subquery">[документация]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">latest_inspections_subquery</span><span class="p">(</span><span class="n">db</span><span class="p">:</span> <span class="n">Session</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Подзапрос с одной (самой свежей) проверкой на каждый огнетушитель.</span>
+
+<span class="sd">    Если в один день было несколько проверок, берется добавленная позже.</span>
+<span class="sd">    Колонки: fire_extinguisher_id, inspection_id, inspection_date,</span>
+<span class="sd">    next_inspection_date.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        db (Session): Сессия базы данных.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Subquery: Подзапрос SQLAlchemy.</span>
+<span class="sd">    """</span>
+    <span class="n">ranked</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
+            <span class="n">Inspection</span><span class="o">.</span><span class="n">fire_extinguisher_id</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="s2">"fire_extinguisher_id"</span><span class="p">),</span>
+            <span class="n">Inspection</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="s2">"inspection_id"</span><span class="p">),</span>
+            <span class="n">Inspection</span><span class="o">.</span><span class="n">inspection_date</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="s2">"inspection_date"</span><span class="p">),</span>
+            <span class="n">Inspection</span><span class="o">.</span><span class="n">next_inspection_date</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="s2">"next_inspection_date"</span><span class="p">),</span>
+            <span class="n">func</span><span class="o">.</span><span class="n">row_number</span><span class="p">()</span><span class="o">.</span><span class="n">over</span><span class="p">(</span>
+                <span class="n">partition_by</span><span class="o">=</span><span class="n">Inspection</span><span class="o">.</span><span class="n">fire_extinguisher_id</span><span class="p">,</span>
+                <span class="n">order_by</span><span class="o">=</span><span class="p">(</span><span class="n">Inspection</span><span class="o">.</span><span class="n">inspection_date</span><span class="o">.</span><span class="n">desc</span><span class="p">(),</span> <span class="n">Inspection</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">desc</span><span class="p">()),</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="s2">"rn"</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="o">.</span><span class="n">subquery</span><span class="p">()</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">ranked</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">ranked</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">rn</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">subquery</span><span class="p">()</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="get_latest_inspection">
+<a class="viewcode-back" href="../status_logic.html#status_logic.get_latest_inspection">[документация]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_latest_inspection</span><span class="p">(</span><span class="n">db</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span> <span class="n">extinguisher_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Inspection</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Возвращает последнюю проверку огнетушителя.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        db (Session): Сессия базы данных.</span>
+<span class="sd">        extinguisher_id (int): ID огнетушителя.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Optional[Inspection]: Последняя проверка или None.</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Inspection</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">Inspection</span><span class="o">.</span><span class="n">fire_extinguisher_id</span> <span class="o">==</span> <span class="n">extinguisher_id</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="n">Inspection</span><span class="o">.</span><span class="n">inspection_date</span><span class="o">.</span><span class="n">desc</span><span class="p">(),</span> <span class="n">Inspection</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">desc</span><span class="p">())</span>
+        <span class="o">.</span><span class="n">first</span><span class="p">()</span>
+    <span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="has_defects">
+<a class="viewcode-back" href="../status_logic.html#status_logic.has_defects">[документация]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">has_defects</span><span class="p">(</span><span class="n">inspection</span><span class="p">:</span> <span class="n">Inspection</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Проверяет, были ли обнаружены дефекты при проверке.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        inspection (Inspection): Запись о проверке.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        bool: True, если хотя бы одно поле осмотра указывает на дефект.</span>
+<span class="sd">    """</span>
+    <span class="n">values</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">inspection</span><span class="o">.</span><span class="n">visual_inspection</span><span class="p">,</span>
+        <span class="n">inspection</span><span class="o">.</span><span class="n">seal_condition</span><span class="p">,</span>
+        <span class="n">inspection</span><span class="o">.</span><span class="n">safety_pin_condition</span><span class="p">,</span>
+        <span class="n">inspection</span><span class="o">.</span><span class="n">hose_condition</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="nb">any</span><span class="p">((</span><span class="n">v</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="ow">in</span> <span class="n">DEFECT_VALUES</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">values</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="compute_status_name">
+<a class="viewcode-back" href="../status_logic.html#status_logic.compute_status_name">[документация]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">compute_status_name</span><span class="p">(</span>
+    <span class="n">last_inspection</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Inspection</span><span class="p">],</span>
+    <span class="n">today</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">date</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">recharge_overdue</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Определяет статус огнетушителя по его последней проверке и сроку перезарядки.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        last_inspection (Optional[Inspection]): Последняя проверка или None.</span>
+<span class="sd">        today (Optional[date]): Текущая дата (для тестов).</span>
+<span class="sd">        recharge_overdue (bool): Просрочена ли перезарядка (и учитывать ли это).</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        str: Название статуса.</span>
+<span class="sd">    """</span>
+    <span class="n">today</span> <span class="o">=</span> <span class="n">today</span> <span class="ow">or</span> <span class="n">date</span><span class="o">.</span><span class="n">today</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">last_inspection</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">STATUS_EXPIRED</span>
+    <span class="k">if</span> <span class="n">has_defects</span><span class="p">(</span><span class="n">last_inspection</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">STATUS_NEEDS_SERVICE</span>
+    <span class="k">if</span> <span class="n">recharge_overdue</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">STATUS_NEEDS_SERVICE</span>
+    <span class="k">if</span> <span class="n">last_inspection</span><span class="o">.</span><span class="n">next_inspection_date</span> <span class="o">&lt;</span> <span class="n">today</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">STATUS_EXPIRED</span>
+    <span class="k">return</span> <span class="n">STATUS_ACTUAL</span></div>
+
+
+
+<div class="viewcode-block" id="recalculate_statuses">
+<a class="viewcode-back" href="../status_logic.html#status_logic.recalculate_statuses">[документация]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">recalculate_statuses</span><span class="p">(</span>
+    <span class="n">db</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span>
+    <span class="n">extinguisher_ids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Iterable</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">keep_manual</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">MANUAL_STATUSES</span><span class="p">),</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Пересчитывает статусы огнетушителей и сохраняет изменения.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        db (Session): Сессия базы данных.</span>
+<span class="sd">        extinguisher_ids (Optional[Iterable[int]]): Ограничить пересчет этими ID.</span>
+<span class="sd">            Если не указано, пересчитывается весь парк.</span>
+<span class="sd">        keep_manual (Iterable[str]): Статусы, которые нельзя менять.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        int: Количество огнетушителей, у которых изменился статус.</span>
+<span class="sd">    """</span>
+    <span class="n">ids</span> <span class="o">=</span> <span class="n">status_ids_by_name</span><span class="p">(</span><span class="n">db</span><span class="p">)</span>
+    <span class="n">required</span> <span class="o">=</span> <span class="p">(</span><span class="n">STATUS_ACTUAL</span><span class="p">,</span> <span class="n">STATUS_EXPIRED</span><span class="p">,</span> <span class="n">STATUS_NEEDS_SERVICE</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ids</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">required</span><span class="p">):</span>
+        <span class="n">ensure_default_statuses</span><span class="p">(</span><span class="n">db</span><span class="p">)</span>
+        <span class="n">ids</span> <span class="o">=</span> <span class="n">status_ids_by_name</span><span class="p">(</span><span class="n">db</span><span class="p">)</span>
+
+    <span class="n">protected_ids</span> <span class="o">=</span> <span class="p">{</span><span class="n">ids</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">keep_manual</span> <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">ids</span><span class="p">}</span>
+
+    <span class="n">query</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">FireExtinguisher</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">extinguisher_ids</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">id_list</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">extinguisher_ids</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">id_list</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mi">0</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">FireExtinguisher</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">in_</span><span class="p">(</span><span class="n">id_list</span><span class="p">))</span>
+
+    <span class="n">today</span> <span class="o">=</span> <span class="n">date</span><span class="o">.</span><span class="n">today</span><span class="p">()</span>
+    <span class="n">settings</span> <span class="o">=</span> <span class="n">get_settings</span><span class="p">(</span><span class="n">db</span><span class="p">)</span>
+    <span class="n">check_recharge</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">settings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"recharge_overdue_needs_service"</span><span class="p">))</span>
+    <span class="n">changed</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">fe</span> <span class="ow">in</span> <span class="n">query</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">fe</span><span class="o">.</span><span class="n">status_id</span> <span class="ow">in</span> <span class="n">protected_ids</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">recharge_overdue</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">check_recharge</span>
+            <span class="ow">and</span> <span class="n">compute_deadlines</span><span class="p">(</span><span class="n">fe</span><span class="p">,</span> <span class="n">settings</span><span class="p">,</span> <span class="n">today</span><span class="p">)[</span><span class="s2">"recharge_state"</span><span class="p">]</span> <span class="o">==</span> <span class="n">STATE_OVERDUE</span>
+        <span class="p">)</span>
+        <span class="n">new_status_id</span> <span class="o">=</span> <span class="n">ids</span><span class="p">[</span><span class="n">compute_status_name</span><span class="p">(</span>
+            <span class="n">get_latest_inspection</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">fe</span><span class="o">.</span><span class="n">id</span><span class="p">),</span> <span class="n">today</span><span class="p">,</span> <span class="n">recharge_overdue</span><span class="p">)]</span>
+        <span class="k">if</span> <span class="n">fe</span><span class="o">.</span><span class="n">status_id</span> <span class="o">!=</span> <span class="n">new_status_id</span><span class="p">:</span>
+            <span class="n">fe</span><span class="o">.</span><span class="n">status_id</span> <span class="o">=</span> <span class="n">new_status_id</span>
+            <span class="n">fe</span><span class="o">.</span><span class="n">updated_at</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span>
+            <span class="n">changed</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">changed</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Авторские права 2026, Ralka. </p>
+  </div>
+
+  Собрано при помощи <a href="https://www.sphinx-doc.org/">Sphinx</a> с использованием
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">темы,</a>
+    предоставленной <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

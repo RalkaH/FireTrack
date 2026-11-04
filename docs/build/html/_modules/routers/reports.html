@@ -70,42 +70,149 @@
            <div itemprop="articleBody">
              
   <h1>Исходный код routers.reports</h1><div class="highlight"><pre>
-<span></span><span class="c1"># routers/reports.py (v1.2)</span>
-<span class="sd">&quot;&quot;&quot;</span>
+<span></span><span class="c1"># routers/reports.py (v1.4)</span>
+<span class="sd">"""</span>
 <span class="sd">Модуль генерации отчетов и аналитики.</span>
-<span class="sd">Обеспечивает формирование статистики для дашборда, списков просроченного оборудования, </span>
+<span class="sd">Обеспечивает формирование статистики для дашборда, списков просроченного оборудования,</span>
 <span class="sd">и выгрузку журналов проверок в форматах JSON и CSV.</span>
-<span class="sd">&quot;&quot;&quot;</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">date</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">io</span><span class="w"> </span><span class="kn">import</span> <span class="n">StringIO</span>
+
+<span class="sd">Все сроки считаются по ПОСЛЕДНЕЙ проверке каждого огнетушителя, поэтому</span>
+<span class="sd">старые записи журнала не попадают в «предстоящие» и не завышают счетчики.</span>
+<span class="sd">Списанные огнетушители в предстоящие проверки не попадают.</span>
+
+<span class="sd">Отчеты для печати (журнал проверок, журнал ТО по форме Г.2</span>
+<span class="sd">СП 9.13130.2009, состояние парка) отдаются в двух видах: XLSX-файлом</span>
+<span class="sd">и JSON для страницы печати ``/static/print.html``. Данные для обоих</span>
+<span class="sd">готовит модуль ``report_data``.</span>
+<span class="sd">"""</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">csv</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">date</span><span class="p">,</span> <span class="n">timedelta</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">io</span><span class="w"> </span><span class="kn">import</span> <span class="n">StringIO</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">fastapi</span><span class="w"> </span><span class="kn">import</span> <span class="n">APIRouter</span><span class="p">,</span> <span class="n">Depends</span><span class="p">,</span> <span class="n">HTTPException</span><span class="p">,</span> <span class="n">status</span><span class="p">,</span> <span class="n">Query</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">fastapi.responses</span><span class="w"> </span><span class="kn">import</span> <span class="n">StreamingResponse</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">sqlalchemy.orm</span><span class="w"> </span><span class="kn">import</span> <span class="n">Session</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fastapi</span><span class="w"> </span><span class="kn">import</span> <span class="n">APIRouter</span><span class="p">,</span> <span class="n">Depends</span><span class="p">,</span> <span class="n">HTTPException</span><span class="p">,</span> <span class="n">Request</span><span class="p">,</span> <span class="n">status</span><span class="p">,</span> <span class="n">Query</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fastapi.responses</span><span class="w"> </span><span class="kn">import</span> <span class="n">Response</span><span class="p">,</span> <span class="n">StreamingResponse</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">sqlalchemy</span><span class="w"> </span><span class="kn">import</span> <span class="n">func</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sqlalchemy.orm</span><span class="w"> </span><span class="kn">import</span> <span class="n">Session</span>
 
+<span class="kn">import</span><span class="w"> </span><span class="nn">audit</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">report_data</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">xlsx_export</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">app_settings</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_settings</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">auth</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_current_active_user</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">db</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_db</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">models</span><span class="w"> </span><span class="kn">import</span> <span class="n">FireExtinguisher</span><span class="p">,</span> <span class="n">Inspection</span><span class="p">,</span> <span class="n">Location</span><span class="p">,</span> <span class="n">Status</span><span class="p">,</span> <span class="n">Employee</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deadlines</span><span class="w"> </span><span class="kn">import</span> <span class="n">STATE_OVERDUE</span><span class="p">,</span> <span class="n">STATE_SOON</span><span class="p">,</span> <span class="n">compute_deadlines</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">models</span><span class="w"> </span><span class="kn">import</span> <span class="n">FireExtinguisher</span><span class="p">,</span> <span class="n">Inspection</span><span class="p">,</span> <span class="n">Location</span><span class="p">,</span> <span class="n">Status</span><span class="p">,</span> <span class="n">Employee</span><span class="p">,</span> <span class="n">User</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">schemas</span><span class="w"> </span><span class="kn">import</span> <span class="n">InspectionRead</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">status_logic</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">STATUS_DECOMMISSIONED</span><span class="p">,</span>
+    <span class="n">STATUS_EXPIRED</span><span class="p">,</span>
+    <span class="n">latest_inspections_subquery</span><span class="p">,</span>
+    <span class="n">status_ids_by_name</span><span class="p">,</span>
+<span class="p">)</span>
 
 
 <span class="n">router</span> <span class="o">=</span> <span class="n">APIRouter</span><span class="p">(</span>
-    <span class="n">prefix</span><span class="o">=</span><span class="s2">&quot;/reports&quot;</span><span class="p">,</span>
-    <span class="n">tags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Reports&quot;</span><span class="p">],</span>
+    <span class="n">prefix</span><span class="o">=</span><span class="s2">"/reports"</span><span class="p">,</span>
+    <span class="n">tags</span><span class="o">=</span><span class="p">[</span><span class="s2">"Reports"</span><span class="p">],</span>
+    <span class="n">dependencies</span><span class="o">=</span><span class="p">[</span><span class="n">Depends</span><span class="p">(</span><span class="n">get_current_active_user</span><span class="p">)],</span>
 <span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_filtered_journal</span><span class="p">(</span><span class="n">db</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span> <span class="n">date_from</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">date</span><span class="p">],</span> <span class="n">date_to</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">date</span><span class="p">]):</span>
+<span class="w">    </span><span class="sd">"""Общий запрос журнала проверок с фильтром по периоду."""</span>
+    <span class="n">query</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Inspection</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">date_from</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">Inspection</span><span class="o">.</span><span class="n">inspection_date</span> <span class="o">&gt;=</span> <span class="n">date_from</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">date_to</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">Inspection</span><span class="o">.</span><span class="n">inspection_date</span> <span class="o">&lt;=</span> <span class="n">date_to</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">query</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_upcoming_rows</span><span class="p">(</span><span class="n">db</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span> <span class="n">days</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Огнетушители, у которых плановая проверка наступает в ближайшие N дней.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        db (Session): Сессия базы данных.</span>
+<span class="sd">        days (int): Горизонт в днях.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        list: Кортежи (FireExtinguisher, Location, last_date, next_date).</span>
+<span class="sd">    """</span>
+    <span class="n">today</span> <span class="o">=</span> <span class="n">date</span><span class="o">.</span><span class="n">today</span><span class="p">()</span>
+    <span class="n">deadline</span> <span class="o">=</span> <span class="n">today</span> <span class="o">+</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="n">days</span><span class="p">)</span>
+    <span class="n">latest</span> <span class="o">=</span> <span class="n">latest_inspections_subquery</span><span class="p">(</span><span class="n">db</span><span class="p">)</span>
+
+    <span class="n">query</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
+            <span class="n">FireExtinguisher</span><span class="p">,</span>
+            <span class="n">Location</span><span class="p">,</span>
+            <span class="n">latest</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">inspection_date</span><span class="p">,</span>
+            <span class="n">latest</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">next_inspection_date</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">latest</span><span class="p">,</span> <span class="n">FireExtinguisher</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">latest</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">fire_extinguisher_id</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">Location</span><span class="p">,</span> <span class="n">FireExtinguisher</span><span class="o">.</span><span class="n">location_id</span> <span class="o">==</span> <span class="n">Location</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">latest</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">next_inspection_date</span><span class="o">.</span><span class="n">between</span><span class="p">(</span><span class="n">today</span><span class="p">,</span> <span class="n">deadline</span><span class="p">))</span>
+    <span class="p">)</span>
+
+    <span class="n">decommissioned_id</span> <span class="o">=</span> <span class="n">status_ids_by_name</span><span class="p">(</span><span class="n">db</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">STATUS_DECOMMISSIONED</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">decommissioned_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">FireExtinguisher</span><span class="o">.</span><span class="n">status_id</span> <span class="o">!=</span> <span class="n">decommissioned_id</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">query</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="n">latest</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">next_inspection_date</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_recharge_rows</span><span class="p">(</span><span class="n">db</span><span class="p">:</span> <span class="n">Session</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Огнетушители, у которых перезарядка просрочена или скоро (в пределах</span>
+<span class="sd">    ``recharge_warning_days`` из настроек). Списанные не учитываются.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        db (Session): Сессия базы данных.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        list: Словари с номером, местом, сроком и состоянием, просроченные сверху.</span>
+<span class="sd">    """</span>
+    <span class="n">settings</span> <span class="o">=</span> <span class="n">get_settings</span><span class="p">(</span><span class="n">db</span><span class="p">)</span>
+    <span class="n">today</span> <span class="o">=</span> <span class="n">date</span><span class="o">.</span><span class="n">today</span><span class="p">()</span>
+    <span class="n">decommissioned_id</span> <span class="o">=</span> <span class="n">status_ids_by_name</span><span class="p">(</span><span class="n">db</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">STATUS_DECOMMISSIONED</span><span class="p">)</span>
+    <span class="n">rows</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">FireExtinguisher</span><span class="p">,</span> <span class="n">Location</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">Location</span><span class="p">,</span> <span class="n">FireExtinguisher</span><span class="o">.</span><span class="n">location_id</span> <span class="o">==</span> <span class="n">Location</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">all</span><span class="p">()</span>
+    <span class="p">)</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">fe</span><span class="p">,</span> <span class="n">loc</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">fe</span><span class="o">.</span><span class="n">status_id</span> <span class="o">==</span> <span class="n">decommissioned_id</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="n">compute_deadlines</span><span class="p">(</span><span class="n">fe</span><span class="p">,</span> <span class="n">settings</span><span class="p">,</span> <span class="n">today</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">d</span><span class="p">[</span><span class="s2">"recharge_state"</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="n">STATE_OVERDUE</span><span class="p">,</span> <span class="n">STATE_SOON</span><span class="p">):</span>
+            <span class="k">continue</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+            <span class="s2">"extinguisher_id"</span><span class="p">:</span> <span class="n">fe</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+            <span class="s2">"inventory_number"</span><span class="p">:</span> <span class="n">fe</span><span class="o">.</span><span class="n">inventory_number</span><span class="p">,</span>
+            <span class="s2">"type"</span><span class="p">:</span> <span class="n">fe</span><span class="o">.</span><span class="n">type</span><span class="p">,</span>
+            <span class="s2">"agent"</span><span class="p">:</span> <span class="n">d</span><span class="p">[</span><span class="s2">"agent_label"</span><span class="p">],</span>
+            <span class="s2">"location"</span><span class="p">:</span> <span class="n">loc</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+            <span class="s2">"next_recharge"</span><span class="p">:</span> <span class="n">d</span><span class="p">[</span><span class="s2">"next_recharge_date"</span><span class="p">]</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(),</span>
+            <span class="s2">"days_left"</span><span class="p">:</span> <span class="n">d</span><span class="p">[</span><span class="s2">"recharge_days_left"</span><span class="p">],</span>
+            <span class="s2">"state"</span><span class="p">:</span> <span class="n">d</span><span class="p">[</span><span class="s2">"recharge_state"</span><span class="p">],</span>
+            <span class="s2">"basis"</span><span class="p">:</span> <span class="n">d</span><span class="p">[</span><span class="s2">"recharge_basis"</span><span class="p">],</span>
+        <span class="p">})</span>
+    <span class="n">result</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">r</span><span class="p">:</span> <span class="n">r</span><span class="p">[</span><span class="s2">"next_recharge"</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">result</span>
 
 
 <div class="viewcode-block" id="journal_json">
 <a class="viewcode-back" href="../../routers.html#routers.reports.journal_json">[документация]</a>
-<span class="nd">@router</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;/journal&quot;</span><span class="p">,</span> <span class="n">response_model</span><span class="o">=</span><span class="n">List</span><span class="p">[</span><span class="n">InspectionRead</span><span class="p">])</span>
+<span class="nd">@router</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"/journal"</span><span class="p">,</span> <span class="n">response_model</span><span class="o">=</span><span class="n">List</span><span class="p">[</span><span class="n">InspectionRead</span><span class="p">])</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">journal_json</span><span class="p">(</span>
     <span class="n">date_from</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">date</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">date_to</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">date</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">),</span>
 <span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Получить электронный журнал проверок за выбранный период в формате JSON.</span>
 <span class="sd">    Если даты не указаны, возвращается история всех проверок.</span>
 
@@ -116,29 +223,23 @@
 
 <span class="sd">    Returns:</span>
 <span class="sd">        List[Inspection]: Список записей журнала.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">query</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Inspection</span><span class="p">)</span>
-
-    <span class="k">if</span> <span class="n">date_from</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">Inspection</span><span class="o">.</span><span class="n">inspection_date</span> <span class="o">&gt;=</span> <span class="n">date_from</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">date_to</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">Inspection</span><span class="o">.</span><span class="n">inspection_date</span> <span class="o">&lt;=</span> <span class="n">date_to</span><span class="p">)</span>
-
-    <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="n">Inspection</span><span class="o">.</span><span class="n">inspection_date</span><span class="o">.</span><span class="n">desc</span><span class="p">())</span>
-    <span class="k">return</span> <span class="n">query</span><span class="o">.</span><span class="n">all</span><span class="p">()</span></div>
+<span class="sd">    """</span>
+    <span class="n">query</span> <span class="o">=</span> <span class="n">_filtered_journal</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">date_from</span><span class="p">,</span> <span class="n">date_to</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">query</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="n">Inspection</span><span class="o">.</span><span class="n">inspection_date</span><span class="o">.</span><span class="n">desc</span><span class="p">(),</span> <span class="n">Inspection</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">desc</span><span class="p">())</span><span class="o">.</span><span class="n">all</span><span class="p">()</span></div>
 
 
 
 <div class="viewcode-block" id="journal_csv">
 <a class="viewcode-back" href="../../routers.html#routers.reports.journal_csv">[документация]</a>
-<span class="nd">@router</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;/journal.csv&quot;</span><span class="p">)</span>
+<span class="nd">@router</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"/journal.csv"</span><span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">journal_csv</span><span class="p">(</span>
     <span class="n">date_from</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">date</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">date_to</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">date</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">),</span>
 <span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Сгенерировать и скачать журнал проверок за период в формате CSV (совместимо с Excel).</span>
+<span class="sd">    Файл сохраняется в UTF-8 с BOM, поэтому Excel корректно открывает кириллицу.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        date_from (Optional[date]): Начальная дата фильтра.</span>
@@ -147,7 +248,7 @@
 
 <span class="sd">    Returns:</span>
 <span class="sd">        StreamingResponse: Файл CSV, готовый для скачивания браузером.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">query</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Inspection</span><span class="p">,</span> <span class="n">FireExtinguisher</span><span class="p">,</span> <span class="n">Location</span><span class="p">,</span> <span class="n">Status</span><span class="p">,</span> <span class="n">Employee</span><span class="p">)</span>
         <span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">FireExtinguisher</span><span class="p">,</span> <span class="n">Inspection</span><span class="o">.</span><span class="n">fire_extinguisher_id</span> <span class="o">==</span> <span class="n">FireExtinguisher</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
@@ -161,30 +262,30 @@
     <span class="k">if</span> <span class="n">date_to</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">Inspection</span><span class="o">.</span><span class="n">inspection_date</span> <span class="o">&lt;=</span> <span class="n">date_to</span><span class="p">)</span>
 
-    <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="n">Inspection</span><span class="o">.</span><span class="n">inspection_date</span><span class="o">.</span><span class="n">desc</span><span class="p">())</span>
+    <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="n">Inspection</span><span class="o">.</span><span class="n">inspection_date</span><span class="o">.</span><span class="n">desc</span><span class="p">(),</span> <span class="n">Inspection</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">desc</span><span class="p">())</span>
 
-    <span class="c1"># Собираем CSV в памяти</span>
     <span class="n">output</span> <span class="o">=</span> <span class="n">StringIO</span><span class="p">()</span>
-    <span class="n">writer</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">writer</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="s2">&quot;;&quot;</span><span class="p">)</span>
+    <span class="n">output</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">"﻿"</span><span class="p">)</span>  <span class="c1"># BOM для Excel</span>
+    <span class="n">writer</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">writer</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="s2">";"</span><span class="p">)</span>
 
-    <span class="c1"># Заголовок как в журнале</span>
+    <span class="c1"># Заголовок совпадает с форматом импорта журнала</span>
     <span class="n">writer</span><span class="o">.</span><span class="n">writerow</span><span class="p">(</span>
         <span class="p">[</span>
-            <span class="s2">&quot;Дата проверки&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;Инвентарный номер&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;Тип&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;Место расположения&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;Статус&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;ФИО проверяющего&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;Должность&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;Давление&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;Вес&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;Визуальный осмотр&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;Состояние пломбы&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;Состояние чеки&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;Состояние шланга&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;Комментарии&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;Дата следующей проверки&quot;</span><span class="p">,</span>
+            <span class="s2">"Дата проверки"</span><span class="p">,</span>
+            <span class="s2">"Инвентарный номер"</span><span class="p">,</span>
+            <span class="s2">"Тип"</span><span class="p">,</span>
+            <span class="s2">"Место расположения"</span><span class="p">,</span>
+            <span class="s2">"Статус"</span><span class="p">,</span>
+            <span class="s2">"ФИО проверяющего"</span><span class="p">,</span>
+            <span class="s2">"Должность"</span><span class="p">,</span>
+            <span class="s2">"Давление"</span><span class="p">,</span>
+            <span class="s2">"Вес"</span><span class="p">,</span>
+            <span class="s2">"Визуальный осмотр"</span><span class="p">,</span>
+            <span class="s2">"Состояние пломбы"</span><span class="p">,</span>
+            <span class="s2">"Состояние чеки"</span><span class="p">,</span>
+            <span class="s2">"Состояние шланга"</span><span class="p">,</span>
+            <span class="s2">"Комментарии"</span><span class="p">,</span>
+            <span class="s2">"Дата следующей проверки"</span><span class="p">,</span>
         <span class="p">]</span>
     <span class="p">)</span>
 
@@ -210,21 +311,23 @@
         <span class="p">)</span>
 
     <span class="n">output</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-    <span class="n">filename</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;journal_</span><span class="si">{</span><span class="n">date</span><span class="o">.</span><span class="n">today</span><span class="p">()</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()</span><span class="si">}</span><span class="s2">.csv&quot;</span>
+    <span class="n">filename</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"journal_</span><span class="si">{</span><span class="n">date</span><span class="o">.</span><span class="n">today</span><span class="p">()</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()</span><span class="si">}</span><span class="s2">.csv"</span>
     <span class="k">return</span> <span class="n">StreamingResponse</span><span class="p">(</span>
         <span class="n">output</span><span class="p">,</span>
-        <span class="n">media_type</span><span class="o">=</span><span class="s2">&quot;text/csv&quot;</span><span class="p">,</span>
-        <span class="n">headers</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;Content-Disposition&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s1">&#39;attachment; filename=&quot;</span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="s1">&quot;&#39;</span><span class="p">},</span>
+        <span class="n">media_type</span><span class="o">=</span><span class="s2">"text/csv; charset=utf-8"</span><span class="p">,</span>
+        <span class="n">headers</span><span class="o">=</span><span class="p">{</span><span class="s2">"Content-Disposition"</span><span class="p">:</span> <span class="sa">f</span><span class="s1">'attachment; filename="</span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="s1">"'</span><span class="p">},</span>
     <span class="p">)</span></div>
 
 
 
 <div class="viewcode-block" id="expired_list">
 <a class="viewcode-back" href="../../routers.html#routers.reports.expired_list">[документация]</a>
-<span class="nd">@router</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;/expired&quot;</span><span class="p">)</span>
+<span class="nd">@router</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"/expired"</span><span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">expired_list</span><span class="p">(</span><span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">)):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Получить сводный список просроченных огнетушителей (находящихся в статусе &#39;Просрочено&#39;).</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Получить сводный список просроченных огнетушителей (в статусе 'Просрочено').</span>
+<span class="sd">    Для каждого указывается дата, когда должна была пройти проверка,</span>
+<span class="sd">    и количество дней просрочки (если проверки вообще были).</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        db (Session): Сессия базы данных.</span>
@@ -233,113 +336,94 @@
 <span class="sd">        list: Список словарей с краткой информацией о просроченном оборудовании.</span>
 
 <span class="sd">    Raises:</span>
-<span class="sd">        HTTPException: Если системный статус &quot;Просрочено&quot; не заведен в базу.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">expired_status</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Status</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
-        <span class="n">Status</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;Просрочено&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
-    <span class="k">if</span> <span class="n">expired_status</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<span class="sd">        HTTPException: Если системный статус "Просрочено" не заведен в базу.</span>
+<span class="sd">    """</span>
+    <span class="n">expired_status_id</span> <span class="o">=</span> <span class="n">status_ids_by_name</span><span class="p">(</span><span class="n">db</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">STATUS_EXPIRED</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">expired_status_id</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
             <span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_400_BAD_REQUEST</span><span class="p">,</span>
-            <span class="n">detail</span><span class="o">=</span><span class="s2">&quot;Статус &#39;Просрочено&#39; не найден&quot;</span><span class="p">,</span>
+            <span class="n">detail</span><span class="o">=</span><span class="s2">"Статус 'Просрочено' не найден"</span><span class="p">,</span>
         <span class="p">)</span>
 
-    <span class="n">extinguishers</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">FireExtinguisher</span><span class="p">,</span> <span class="n">Location</span><span class="p">)</span>
+    <span class="n">latest</span> <span class="o">=</span> <span class="n">latest_inspections_subquery</span><span class="p">(</span><span class="n">db</span><span class="p">)</span>
+    <span class="n">rows</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">FireExtinguisher</span><span class="p">,</span> <span class="n">Location</span><span class="p">,</span> <span class="n">latest</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">next_inspection_date</span><span class="p">)</span>
         <span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">Location</span><span class="p">,</span> <span class="n">FireExtinguisher</span><span class="o">.</span><span class="n">location_id</span> <span class="o">==</span> <span class="n">Location</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
-        <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">FireExtinguisher</span><span class="o">.</span><span class="n">status_id</span> <span class="o">==</span> <span class="n">expired_status</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">outerjoin</span><span class="p">(</span><span class="n">latest</span><span class="p">,</span> <span class="n">FireExtinguisher</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">latest</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">fire_extinguisher_id</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">FireExtinguisher</span><span class="o">.</span><span class="n">status_id</span> <span class="o">==</span> <span class="n">expired_status_id</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="n">latest</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">next_inspection_date</span><span class="o">.</span><span class="n">asc</span><span class="p">()</span><span class="o">.</span><span class="n">nullsfirst</span><span class="p">())</span>
         <span class="o">.</span><span class="n">all</span><span class="p">()</span>
     <span class="p">)</span>
 
+    <span class="n">today</span> <span class="o">=</span> <span class="n">date</span><span class="o">.</span><span class="n">today</span><span class="p">()</span>
     <span class="k">return</span> <span class="p">[</span>
         <span class="p">{</span>
-            <span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="n">fe</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
-            <span class="s2">&quot;inventory_number&quot;</span><span class="p">:</span> <span class="n">fe</span><span class="o">.</span><span class="n">inventory_number</span><span class="p">,</span>
-            <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="n">fe</span><span class="o">.</span><span class="n">type</span><span class="p">,</span>
-            <span class="s2">&quot;location&quot;</span><span class="p">:</span> <span class="n">loc</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+            <span class="s2">"id"</span><span class="p">:</span> <span class="n">fe</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+            <span class="s2">"inventory_number"</span><span class="p">:</span> <span class="n">fe</span><span class="o">.</span><span class="n">inventory_number</span><span class="p">,</span>
+            <span class="s2">"type"</span><span class="p">:</span> <span class="n">fe</span><span class="o">.</span><span class="n">type</span><span class="p">,</span>
+            <span class="s2">"location"</span><span class="p">:</span> <span class="n">loc</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+            <span class="s2">"due_date"</span><span class="p">:</span> <span class="n">next_date</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()</span> <span class="k">if</span> <span class="n">next_date</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">"days_overdue"</span><span class="p">:</span> <span class="p">(</span><span class="n">today</span> <span class="o">-</span> <span class="n">next_date</span><span class="p">)</span><span class="o">.</span><span class="n">days</span> <span class="k">if</span> <span class="n">next_date</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
         <span class="p">}</span>
-        <span class="k">for</span> <span class="n">fe</span><span class="p">,</span> <span class="n">loc</span> <span class="ow">in</span> <span class="n">extinguishers</span>
+        <span class="k">for</span> <span class="n">fe</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">next_date</span> <span class="ow">in</span> <span class="n">rows</span>
     <span class="p">]</span></div>
 
 
 
 <div class="viewcode-block" id="dashboard_statistics">
 <a class="viewcode-back" href="../../routers.html#routers.reports.dashboard_statistics">[документация]</a>
-<span class="nd">@router</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;/dashboard&quot;</span><span class="p">)</span>
+<span class="nd">@router</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"/dashboard"</span><span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">dashboard_statistics</span><span class="p">(</span><span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">)):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Сформировать агрегированную статистику для вывода на главной панели (Dashboard).</span>
 
 <span class="sd">    Аналитика включает:</span>
 <span class="sd">    - Общее количество инвентаря</span>
 <span class="sd">    - Разбивка по текущим статусам</span>
-<span class="sd">    - Количество требующих проверки в ближайшие 30 дней</span>
+<span class="sd">    - Количество огнетушителей, которым проверка нужна в ближайшие 30 дней</span>
 <span class="sd">    - Общее количество просроченного оборудования</span>
+<span class="sd">    - Количество огнетушителей с просроченной и подходящей перезарядкой</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        db (Session): Сессия базы данных.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        dict: Набор метрик для дашборда.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">timedelta</span>
-
+<span class="sd">    """</span>
     <span class="n">total</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">FireExtinguisher</span><span class="p">)</span><span class="o">.</span><span class="n">count</span><span class="p">()</span>
 
-    <span class="c1"># Статистика по статусам</span>
     <span class="n">status_stats</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Status</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">func</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="n">FireExtinguisher</span><span class="o">.</span><span class="n">id</span><span class="p">))</span>
         <span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">FireExtinguisher</span><span class="p">,</span> <span class="n">Status</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">FireExtinguisher</span><span class="o">.</span><span class="n">status_id</span><span class="p">)</span>
         <span class="o">.</span><span class="n">group_by</span><span class="p">(</span><span class="n">Status</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
         <span class="o">.</span><span class="n">all</span><span class="p">()</span>
     <span class="p">)</span>
-    <span class="c1"># Преобразуем в обычный словарь {status_name: count}</span>
     <span class="n">status_breakdown</span> <span class="o">=</span> <span class="p">{</span><span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span> <span class="nb">int</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">status_stats</span><span class="p">}</span>
-
-    <span class="c1"># Огнетушители, требующие проверки в течение 30 дней</span>
-    <span class="n">today</span> <span class="o">=</span> <span class="n">date</span><span class="o">.</span><span class="n">today</span><span class="p">()</span>
-    <span class="n">upcoming_deadline</span> <span class="o">=</span> <span class="n">today</span> <span class="o">+</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">30</span><span class="p">)</span>
-
-    <span class="n">upcoming_inspections</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">func</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="n">FireExtinguisher</span><span class="o">.</span><span class="n">id</span><span class="p">))</span>
-        <span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">Inspection</span><span class="p">,</span> <span class="n">FireExtinguisher</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">Inspection</span><span class="o">.</span><span class="n">fire_extinguisher_id</span><span class="p">)</span>
-        <span class="o">.</span><span class="n">filter</span><span class="p">(</span>
-            <span class="n">Inspection</span><span class="o">.</span><span class="n">next_inspection_date</span><span class="o">.</span><span class="n">between</span><span class="p">(</span><span class="n">today</span><span class="p">,</span> <span class="n">upcoming_deadline</span><span class="p">)</span>
-        <span class="p">)</span>
-        <span class="o">.</span><span class="n">scalar</span><span class="p">()</span>
-        <span class="ow">or</span> <span class="mi">0</span>
-    <span class="p">)</span>
-
-    <span class="c1"># Просроченные</span>
-    <span class="n">expired_status</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Status</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
-        <span class="n">Status</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;Просрочено&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
-    <span class="n">expired_count</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="k">if</span> <span class="n">expired_status</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">expired_count</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">FireExtinguisher</span><span class="p">)</span>
-            <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">FireExtinguisher</span><span class="o">.</span><span class="n">status_id</span> <span class="o">==</span> <span class="n">expired_status</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
-            <span class="o">.</span><span class="n">count</span><span class="p">()</span>
-        <span class="p">)</span>
+    <span class="n">recharge</span> <span class="o">=</span> <span class="n">_recharge_rows</span><span class="p">(</span><span class="n">db</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="p">{</span>
-        <span class="s2">&quot;total_extinguishers&quot;</span><span class="p">:</span> <span class="n">total</span><span class="p">,</span>
-        <span class="s2">&quot;status_breakdown&quot;</span><span class="p">:</span> <span class="n">status_breakdown</span><span class="p">,</span>
-        <span class="s2">&quot;expired_count&quot;</span><span class="p">:</span> <span class="n">expired_count</span><span class="p">,</span>
-        <span class="s2">&quot;upcoming_inspections_30_days&quot;</span><span class="p">:</span> <span class="n">upcoming_inspections</span><span class="p">,</span>
+        <span class="s2">"total_extinguishers"</span><span class="p">:</span> <span class="n">total</span><span class="p">,</span>
+        <span class="s2">"status_breakdown"</span><span class="p">:</span> <span class="n">status_breakdown</span><span class="p">,</span>
+        <span class="s2">"expired_count"</span><span class="p">:</span> <span class="n">status_breakdown</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">STATUS_EXPIRED</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+        <span class="s2">"upcoming_inspections_30_days"</span><span class="p">:</span> <span class="nb">len</span><span class="p">(</span><span class="n">_upcoming_rows</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="mi">30</span><span class="p">)),</span>
+        <span class="s2">"recharge_overdue_count"</span><span class="p">:</span> <span class="nb">sum</span><span class="p">(</span><span class="mi">1</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">recharge</span> <span class="k">if</span> <span class="n">r</span><span class="p">[</span><span class="s2">"state"</span><span class="p">]</span> <span class="o">==</span> <span class="n">STATE_OVERDUE</span><span class="p">),</span>
+        <span class="s2">"recharge_soon_count"</span><span class="p">:</span> <span class="nb">sum</span><span class="p">(</span><span class="mi">1</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">recharge</span> <span class="k">if</span> <span class="n">r</span><span class="p">[</span><span class="s2">"state"</span><span class="p">]</span> <span class="o">==</span> <span class="n">STATE_SOON</span><span class="p">),</span>
+        <span class="s2">"recharge_warning_days"</span><span class="p">:</span> <span class="n">get_settings</span><span class="p">(</span><span class="n">db</span><span class="p">)[</span><span class="s2">"recharge_warning_days"</span><span class="p">],</span>
     <span class="p">}</span></div>
 
 
 
 <div class="viewcode-block" id="upcoming_inspections_report">
 <a class="viewcode-back" href="../../routers.html#routers.reports.upcoming_inspections_report">[документация]</a>
-<span class="nd">@router</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;/upcoming-inspections&quot;</span><span class="p">)</span>
+<span class="nd">@router</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"/upcoming-inspections"</span><span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">upcoming_inspections_report</span><span class="p">(</span>
     <span class="n">days</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">Query</span><span class="p">(</span><span class="mi">30</span><span class="p">,</span> <span class="n">ge</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">le</span><span class="o">=</span><span class="mi">365</span><span class="p">,</span>
-                      <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Количество дней для прогноза&quot;</span><span class="p">),</span>
+                      <span class="n">description</span><span class="o">=</span><span class="s2">"Количество дней для прогноза"</span><span class="p">),</span>
     <span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">),</span>
 <span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Детальный список огнетушителей, для которых плановое обслуживание (ТО)</span>
-<span class="sd">    наступает в ближайшие N дней. Возвращает только актуальную последнюю проверку.</span>
+<span class="sd">    наступает в ближайшие N дней. Учитывается только последняя проверка.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        days (int): Горизонт прогнозирования в днях.</span>
@@ -347,67 +431,33 @@
 
 <span class="sd">    Returns:</span>
 <span class="sd">        list: Список оборудования, ожидающего проверку.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">timedelta</span>
-
+<span class="sd">    """</span>
     <span class="n">today</span> <span class="o">=</span> <span class="n">date</span><span class="o">.</span><span class="n">today</span><span class="p">()</span>
-    <span class="n">deadline</span> <span class="o">=</span> <span class="n">today</span> <span class="o">+</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="n">days</span><span class="p">)</span>
-
-    <span class="c1"># Подзапрос для получения последней проверки каждого огнетушителя</span>
-    <span class="n">latest_inspections</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
-            <span class="n">Inspection</span><span class="o">.</span><span class="n">fire_extinguisher_id</span><span class="p">,</span>
-            <span class="n">func</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">Inspection</span><span class="o">.</span><span class="n">inspection_date</span><span class="p">)</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="s2">&quot;last_date&quot;</span><span class="p">),</span>
-        <span class="p">)</span>
-        <span class="o">.</span><span class="n">group_by</span><span class="p">(</span><span class="n">Inspection</span><span class="o">.</span><span class="n">fire_extinguisher_id</span><span class="p">)</span>
-        <span class="o">.</span><span class="n">subquery</span><span class="p">()</span>
-    <span class="p">)</span>
-
-    <span class="c1"># Основной запрос</span>
-    <span class="n">results</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span>
-            <span class="n">FireExtinguisher</span><span class="p">,</span>
-            <span class="n">Inspection</span><span class="p">,</span>
-            <span class="n">Location</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="o">.</span><span class="n">join</span><span class="p">(</span>
-            <span class="n">latest_inspections</span><span class="p">,</span>
-            <span class="n">FireExtinguisher</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">latest_inspections</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">fire_extinguisher_id</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="o">.</span><span class="n">join</span><span class="p">(</span>
-            <span class="n">Inspection</span><span class="p">,</span>
-            <span class="p">(</span><span class="n">Inspection</span><span class="o">.</span><span class="n">fire_extinguisher_id</span> <span class="o">==</span> <span class="n">FireExtinguisher</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
-            <span class="o">&amp;</span> <span class="p">(</span><span class="n">Inspection</span><span class="o">.</span><span class="n">inspection_date</span> <span class="o">==</span> <span class="n">latest_inspections</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">last_date</span><span class="p">),</span>
-        <span class="p">)</span>
-        <span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">Location</span><span class="p">,</span> <span class="n">FireExtinguisher</span><span class="o">.</span><span class="n">location_id</span> <span class="o">==</span> <span class="n">Location</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
-        <span class="o">.</span><span class="n">filter</span><span class="p">(</span>
-            <span class="n">Inspection</span><span class="o">.</span><span class="n">next_inspection_date</span><span class="o">.</span><span class="n">between</span><span class="p">(</span><span class="n">today</span><span class="p">,</span> <span class="n">deadline</span><span class="p">)</span>
-        <span class="p">)</span>
-        <span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="n">Inspection</span><span class="o">.</span><span class="n">next_inspection_date</span><span class="p">)</span>
-        <span class="o">.</span><span class="n">all</span><span class="p">()</span>
-    <span class="p">)</span>
-
     <span class="k">return</span> <span class="p">[</span>
         <span class="p">{</span>
-            <span class="s2">&quot;extinguisher_id&quot;</span><span class="p">:</span> <span class="n">fe</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
-            <span class="s2">&quot;inventory_number&quot;</span><span class="p">:</span> <span class="n">fe</span><span class="o">.</span><span class="n">inventory_number</span><span class="p">,</span>
-            <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="n">fe</span><span class="o">.</span><span class="n">type</span><span class="p">,</span>
-            <span class="s2">&quot;location&quot;</span><span class="p">:</span> <span class="n">loc</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-            <span class="s2">&quot;last_inspection&quot;</span><span class="p">:</span> <span class="n">insp</span><span class="o">.</span><span class="n">inspection_date</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(),</span>
-            <span class="s2">&quot;next_inspection&quot;</span><span class="p">:</span> <span class="n">insp</span><span class="o">.</span><span class="n">next_inspection_date</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(),</span>
-            <span class="s2">&quot;days_until_inspection&quot;</span><span class="p">:</span> <span class="p">(</span><span class="n">insp</span><span class="o">.</span><span class="n">next_inspection_date</span> <span class="o">-</span> <span class="n">today</span><span class="p">)</span><span class="o">.</span><span class="n">days</span><span class="p">,</span>
+            <span class="s2">"extinguisher_id"</span><span class="p">:</span> <span class="n">fe</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+            <span class="s2">"inventory_number"</span><span class="p">:</span> <span class="n">fe</span><span class="o">.</span><span class="n">inventory_number</span><span class="p">,</span>
+            <span class="s2">"type"</span><span class="p">:</span> <span class="n">fe</span><span class="o">.</span><span class="n">type</span><span class="p">,</span>
+            <span class="s2">"location"</span><span class="p">:</span> <span class="n">loc</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+            <span class="s2">"last_inspection"</span><span class="p">:</span> <span class="n">last_date</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(),</span>
+            <span class="s2">"next_inspection"</span><span class="p">:</span> <span class="n">next_date</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(),</span>
+            <span class="s2">"days_until_inspection"</span><span class="p">:</span> <span class="p">(</span><span class="n">next_date</span> <span class="o">-</span> <span class="n">today</span><span class="p">)</span><span class="o">.</span><span class="n">days</span><span class="p">,</span>
         <span class="p">}</span>
-        <span class="k">for</span> <span class="n">fe</span><span class="p">,</span> <span class="n">insp</span><span class="p">,</span> <span class="n">loc</span> <span class="ow">in</span> <span class="n">results</span>
+        <span class="k">for</span> <span class="n">fe</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">last_date</span><span class="p">,</span> <span class="n">next_date</span> <span class="ow">in</span> <span class="n">_upcoming_rows</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">days</span><span class="p">)</span>
     <span class="p">]</span></div>
 
 
 
 <div class="viewcode-block" id="upcoming_inspections">
 <a class="viewcode-back" href="../../routers.html#routers.reports.upcoming_inspections">[документация]</a>
-<span class="nd">@router</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;/upcoming&quot;</span><span class="p">)</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">upcoming_inspections</span><span class="p">(</span><span class="n">days</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">30</span><span class="p">,</span> <span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">)):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Упрощенный список предстоящих проверок (legacy-метод).</span>
+<span class="nd">@router</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"/upcoming"</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">upcoming_inspections</span><span class="p">(</span>
+    <span class="n">days</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">Query</span><span class="p">(</span><span class="mi">30</span><span class="p">,</span> <span class="n">ge</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">le</span><span class="o">=</span><span class="mi">365</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"Количество дней"</span><span class="p">),</span>
+    <span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">),</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Упрощенный список предстоящих проверок (используется дашбордом).</span>
+<span class="sd">    Учитывается только последняя проверка каждого огнетушителя.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        days (int): Количество дней.</span>
@@ -415,62 +465,210 @@
 
 <span class="sd">    Returns:</span>
 <span class="sd">        list: Краткая информация о предстоящих проверках.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">date</span><span class="p">,</span> <span class="n">timedelta</span>
-
+<span class="sd">    """</span>
     <span class="n">today</span> <span class="o">=</span> <span class="n">date</span><span class="o">.</span><span class="n">today</span><span class="p">()</span>
-    <span class="n">limit_date</span> <span class="o">=</span> <span class="n">today</span> <span class="o">+</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="n">days</span><span class="p">)</span>
-
-    <span class="n">query</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Inspection</span><span class="p">,</span> <span class="n">FireExtinguisher</span><span class="p">,</span> <span class="n">Location</span><span class="p">)</span>
-        <span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">FireExtinguisher</span><span class="p">,</span> <span class="n">Inspection</span><span class="o">.</span><span class="n">fire_extinguisher_id</span> <span class="o">==</span> <span class="n">FireExtinguisher</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
-        <span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">Location</span><span class="p">,</span> <span class="n">FireExtinguisher</span><span class="o">.</span><span class="n">location_id</span> <span class="o">==</span> <span class="n">Location</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
-        <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">Inspection</span><span class="o">.</span><span class="n">next_inspection_date</span> <span class="o">&gt;=</span> <span class="n">today</span><span class="p">)</span>
-        <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">Inspection</span><span class="o">.</span><span class="n">next_inspection_date</span> <span class="o">&lt;=</span> <span class="n">limit_date</span><span class="p">)</span>
-        <span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="n">Inspection</span><span class="o">.</span><span class="n">next_inspection_date</span><span class="o">.</span><span class="n">asc</span><span class="p">())</span>
-    <span class="p">)</span>
-
-    <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">insp</span><span class="p">,</span> <span class="n">fe</span><span class="p">,</span> <span class="n">loc</span> <span class="ow">in</span> <span class="n">query</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
-        <span class="n">days_left</span> <span class="o">=</span> <span class="p">(</span><span class="n">insp</span><span class="o">.</span><span class="n">next_inspection_date</span> <span class="o">-</span> <span class="n">today</span><span class="p">)</span><span class="o">.</span><span class="n">days</span>
-        <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-            <span class="p">{</span>
-                <span class="s2">&quot;inventory_number&quot;</span><span class="p">:</span> <span class="n">fe</span><span class="o">.</span><span class="n">inventory_number</span><span class="p">,</span>
-                <span class="s2">&quot;location&quot;</span><span class="p">:</span> <span class="n">loc</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-                <span class="s2">&quot;next_inspection&quot;</span><span class="p">:</span> <span class="n">insp</span><span class="o">.</span><span class="n">next_inspection_date</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(),</span>
-                <span class="s2">&quot;days_until_inspection&quot;</span><span class="p">:</span> <span class="n">days_left</span><span class="p">,</span>
-            <span class="p">}</span>
-        <span class="p">)</span>
-
-    <span class="k">return</span> <span class="n">result</span></div>
+    <span class="k">return</span> <span class="p">[</span>
+        <span class="p">{</span>
+            <span class="s2">"extinguisher_id"</span><span class="p">:</span> <span class="n">fe</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+            <span class="s2">"inventory_number"</span><span class="p">:</span> <span class="n">fe</span><span class="o">.</span><span class="n">inventory_number</span><span class="p">,</span>
+            <span class="s2">"location"</span><span class="p">:</span> <span class="n">loc</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+            <span class="s2">"next_inspection"</span><span class="p">:</span> <span class="n">next_date</span><span class="o">.</span><span class="n">isoformat</span><span class="p">(),</span>
+            <span class="s2">"days_until_inspection"</span><span class="p">:</span> <span class="p">(</span><span class="n">next_date</span> <span class="o">-</span> <span class="n">today</span><span class="p">)</span><span class="o">.</span><span class="n">days</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="k">for</span> <span class="n">fe</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">_last_date</span><span class="p">,</span> <span class="n">next_date</span> <span class="ow">in</span> <span class="n">_upcoming_rows</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">days</span><span class="p">)</span>
+    <span class="p">]</span></div>
 
 
 
 <div class="viewcode-block" id="export_journal_json">
 <a class="viewcode-back" href="../../routers.html#routers.reports.export_journal_json">[документация]</a>
-<span class="nd">@router</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;/journal.json&quot;</span><span class="p">,</span> <span class="n">response_model</span><span class="o">=</span><span class="nb">list</span><span class="p">[</span><span class="n">InspectionRead</span><span class="p">])</span>
+<span class="nd">@router</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"/journal.json"</span><span class="p">,</span> <span class="n">response_model</span><span class="o">=</span><span class="n">List</span><span class="p">[</span><span class="n">InspectionRead</span><span class="p">])</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">export_journal_json</span><span class="p">(</span>
-    <span class="n">date_from</span><span class="p">:</span> <span class="n">date</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">date_to</span><span class="p">:</span> <span class="n">date</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">date_from</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">date</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">date_to</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">date</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">),</span>
 <span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Альтернативный эндпоинт для экспорта журнала проверок в формате JSON.</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Альтернативный эндпоинт для экспорта журнала проверок в формате JSON</span>
+<span class="sd">    (в хронологическом порядке).</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        date_from (date | None): Дата с.</span>
-<span class="sd">        date_to (date | None): Дата по.</span>
+<span class="sd">        date_from (Optional[date]): Дата с.</span>
+<span class="sd">        date_to (Optional[date]): Дата по.</span>
 <span class="sd">        db (Session): Сессия базы данных.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        list[Inspection]: Отфильтрованный журнал.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">q</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Inspection</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">date_from</span><span class="p">:</span>
-        <span class="n">q</span> <span class="o">=</span> <span class="n">q</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">Inspection</span><span class="o">.</span><span class="n">inspection_date</span> <span class="o">&gt;=</span> <span class="n">date_from</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">date_to</span><span class="p">:</span>
-        <span class="n">q</span> <span class="o">=</span> <span class="n">q</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">Inspection</span><span class="o">.</span><span class="n">inspection_date</span> <span class="o">&lt;=</span> <span class="n">date_to</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">q</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="n">Inspection</span><span class="o">.</span><span class="n">inspection_date</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span></div>
+<span class="sd">    """</span>
+    <span class="n">query</span> <span class="o">=</span> <span class="n">_filtered_journal</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">date_from</span><span class="p">,</span> <span class="n">date_to</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">query</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="n">Inspection</span><span class="o">.</span><span class="n">inspection_date</span><span class="p">,</span> <span class="n">Inspection</span><span class="o">.</span><span class="n">id</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="recharge_report">
+<a class="viewcode-back" href="../../routers.html#routers.reports.recharge_report">[документация]</a>
+<span class="nd">@router</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"/recharge"</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">recharge_report</span><span class="p">(</span><span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">)):</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Огнетушители с просроченной или подходящей перезарядкой (для дашборда).</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        list: Список с датой перезарядки, остатком дней и состоянием</span>
+<span class="sd">        (``overdue`` или ``soon``).</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="n">_recharge_rows</span><span class="p">(</span><span class="n">db</span><span class="p">)</span></div>
+
+
+
+<span class="c1"># ---------- Отчеты для печати ----------</span>
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_xlsx_response</span><span class="p">(</span><span class="n">content</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">,</span> <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Response</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Отдает XLSX-файл на скачивание."""</span>
+    <span class="k">return</span> <span class="n">Response</span><span class="p">(</span>
+        <span class="n">content</span><span class="o">=</span><span class="n">content</span><span class="p">,</span>
+        <span class="n">media_type</span><span class="o">=</span><span class="s2">"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"</span><span class="p">,</span>
+        <span class="n">headers</span><span class="o">=</span><span class="p">{</span><span class="s2">"Content-Disposition"</span><span class="p">:</span> <span class="sa">f</span><span class="s1">'attachment; filename="</span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="s1">"'</span><span class="p">},</span>
+    <span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_log_export</span><span class="p">(</span><span class="n">db</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span> <span class="n">request</span><span class="p">:</span> <span class="n">Request</span><span class="p">,</span> <span class="n">user</span><span class="p">:</span> <span class="n">User</span><span class="p">,</span> <span class="n">what</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Пишет выгрузку отчета в журнал действий."""</span>
+    <span class="n">audit</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">user</span><span class="p">,</span> <span class="n">audit</span><span class="o">.</span><span class="n">ACTION_EXPORT</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"Выгрузка отчета: </span><span class="si">{</span><span class="n">what</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
+              <span class="n">entity_type</span><span class="o">=</span><span class="s2">"report"</span><span class="p">,</span> <span class="n">commit</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_period_suffix</span><span class="p">(</span><span class="n">date_from</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">date</span><span class="p">],</span> <span class="n">date_to</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">date</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Часть имени файла с периодом."""</span>
+    <span class="k">if</span> <span class="n">date_from</span> <span class="ow">or</span> <span class="n">date_to</span><span class="p">:</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">date_from</span><span class="w"> </span><span class="ow">or</span><span class="w"> </span><span class="s1">'start'</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">date_to</span><span class="w"> </span><span class="ow">or</span><span class="w"> </span><span class="s1">'today'</span><span class="si">}</span><span class="s2">"</span>
+    <span class="k">return</span> <span class="n">date</span><span class="o">.</span><span class="n">today</span><span class="p">()</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="print_journal">
+<a class="viewcode-back" href="../../routers.html#routers.reports.print_journal">[документация]</a>
+<span class="nd">@router</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"/print/journal"</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">print_journal</span><span class="p">(</span>
+    <span class="n">date_from</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">date</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">date_to</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">date</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">),</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Журнал проверок за период для страницы печати.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        dict: ``header`` (организация, ответственный), ``period`` и ``rows``.</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s2">"header"</span><span class="p">:</span> <span class="n">report_data</span><span class="o">.</span><span class="n">report_header</span><span class="p">(</span><span class="n">db</span><span class="p">),</span>
+            <span class="s2">"period"</span><span class="p">:</span> <span class="n">report_data</span><span class="o">.</span><span class="n">period_label</span><span class="p">(</span><span class="n">date_from</span><span class="p">,</span> <span class="n">date_to</span><span class="p">),</span>
+            <span class="s2">"rows"</span><span class="p">:</span> <span class="n">report_data</span><span class="o">.</span><span class="n">journal_rows</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">date_from</span><span class="p">,</span> <span class="n">date_to</span><span class="p">)}</span></div>
+
+
+
+<div class="viewcode-block" id="print_maintenance">
+<a class="viewcode-back" href="../../routers.html#routers.reports.print_maintenance">[документация]</a>
+<span class="nd">@router</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"/print/maintenance"</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">print_maintenance</span><span class="p">(</span>
+    <span class="n">date_from</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">date</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">date_to</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">date</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">),</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Журнал ТО огнетушителей по форме Г.2 СП 9.13130.2009 для страницы печати.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        dict: ``header``, ``period`` и ``rows``.</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s2">"header"</span><span class="p">:</span> <span class="n">report_data</span><span class="o">.</span><span class="n">report_header</span><span class="p">(</span><span class="n">db</span><span class="p">),</span>
+            <span class="s2">"period"</span><span class="p">:</span> <span class="n">report_data</span><span class="o">.</span><span class="n">period_label</span><span class="p">(</span><span class="n">date_from</span><span class="p">,</span> <span class="n">date_to</span><span class="p">),</span>
+            <span class="s2">"rows"</span><span class="p">:</span> <span class="n">report_data</span><span class="o">.</span><span class="n">maintenance_rows</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">date_from</span><span class="p">,</span> <span class="n">date_to</span><span class="p">)}</span></div>
+
+
+
+<div class="viewcode-block" id="print_fleet">
+<a class="viewcode-back" href="../../routers.html#routers.reports.print_fleet">[документация]</a>
+<span class="nd">@router</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"/print/fleet"</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">print_fleet</span><span class="p">(</span>
+    <span class="n">days</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">Query</span><span class="p">(</span><span class="mi">30</span><span class="p">,</span> <span class="n">ge</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">le</span><span class="o">=</span><span class="mi">365</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"Горизонт ближайших проверок, дней"</span><span class="p">),</span>
+    <span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">),</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Отчет «Состояние парка» для страницы печати.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        dict: ``header`` и ``summary``.</span>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s2">"header"</span><span class="p">:</span> <span class="n">report_data</span><span class="o">.</span><span class="n">report_header</span><span class="p">(</span><span class="n">db</span><span class="p">),</span>
+            <span class="s2">"summary"</span><span class="p">:</span> <span class="n">report_data</span><span class="o">.</span><span class="n">fleet_summary</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">horizon_days</span><span class="o">=</span><span class="n">days</span><span class="p">)}</span></div>
+
+
+
+<div class="viewcode-block" id="journal_xlsx">
+<a class="viewcode-back" href="../../routers.html#routers.reports.journal_xlsx">[документация]</a>
+<span class="nd">@router</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"/journal.xlsx"</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">journal_xlsx</span><span class="p">(</span>
+    <span class="n">request</span><span class="p">:</span> <span class="n">Request</span><span class="p">,</span>
+    <span class="n">date_from</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">date</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">date_to</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">date</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">),</span>
+    <span class="n">current_user</span><span class="p">:</span> <span class="n">User</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_current_active_user</span><span class="p">),</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Журнал проверок за период в Excel (оформлен для печати).</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Response: Файл XLSX.</span>
+<span class="sd">    """</span>
+    <span class="n">period</span> <span class="o">=</span> <span class="n">report_data</span><span class="o">.</span><span class="n">period_label</span><span class="p">(</span><span class="n">date_from</span><span class="p">,</span> <span class="n">date_to</span><span class="p">)</span>
+    <span class="n">content</span> <span class="o">=</span> <span class="n">xlsx_export</span><span class="o">.</span><span class="n">journal_workbook</span><span class="p">(</span>
+        <span class="n">report_data</span><span class="o">.</span><span class="n">journal_rows</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">date_from</span><span class="p">,</span> <span class="n">date_to</span><span class="p">),</span> <span class="n">report_data</span><span class="o">.</span><span class="n">report_header</span><span class="p">(</span><span class="n">db</span><span class="p">),</span> <span class="n">period</span><span class="p">)</span>
+    <span class="n">_log_export</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">current_user</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"журнал проверок XLSX (</span><span class="si">{</span><span class="n">period</span><span class="si">}</span><span class="s2">)"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">_xlsx_response</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"journal_</span><span class="si">{</span><span class="n">_period_suffix</span><span class="p">(</span><span class="n">date_from</span><span class="p">,</span><span class="w"> </span><span class="n">date_to</span><span class="p">)</span><span class="si">}</span><span class="s2">.xlsx"</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="maintenance_xlsx">
+<a class="viewcode-back" href="../../routers.html#routers.reports.maintenance_xlsx">[документация]</a>
+<span class="nd">@router</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"/maintenance.xlsx"</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">maintenance_xlsx</span><span class="p">(</span>
+    <span class="n">request</span><span class="p">:</span> <span class="n">Request</span><span class="p">,</span>
+    <span class="n">date_from</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">date</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">date_to</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">date</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">),</span>
+    <span class="n">current_user</span><span class="p">:</span> <span class="n">User</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_current_active_user</span><span class="p">),</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Журнал ТО огнетушителей (форма Г.2 СП 9.13130.2009) в Excel.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Response: Файл XLSX.</span>
+<span class="sd">    """</span>
+    <span class="n">period</span> <span class="o">=</span> <span class="n">report_data</span><span class="o">.</span><span class="n">period_label</span><span class="p">(</span><span class="n">date_from</span><span class="p">,</span> <span class="n">date_to</span><span class="p">)</span>
+    <span class="n">content</span> <span class="o">=</span> <span class="n">xlsx_export</span><span class="o">.</span><span class="n">maintenance_workbook</span><span class="p">(</span>
+        <span class="n">report_data</span><span class="o">.</span><span class="n">maintenance_rows</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">date_from</span><span class="p">,</span> <span class="n">date_to</span><span class="p">),</span> <span class="n">report_data</span><span class="o">.</span><span class="n">report_header</span><span class="p">(</span><span class="n">db</span><span class="p">),</span> <span class="n">period</span><span class="p">)</span>
+    <span class="n">_log_export</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">current_user</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"журнал ТО XLSX (</span><span class="si">{</span><span class="n">period</span><span class="si">}</span><span class="s2">)"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">_xlsx_response</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"maintenance_</span><span class="si">{</span><span class="n">_period_suffix</span><span class="p">(</span><span class="n">date_from</span><span class="p">,</span><span class="w"> </span><span class="n">date_to</span><span class="p">)</span><span class="si">}</span><span class="s2">.xlsx"</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="fleet_xlsx">
+<a class="viewcode-back" href="../../routers.html#routers.reports.fleet_xlsx">[документация]</a>
+<span class="nd">@router</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"/fleet.xlsx"</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">fleet_xlsx</span><span class="p">(</span>
+    <span class="n">request</span><span class="p">:</span> <span class="n">Request</span><span class="p">,</span>
+    <span class="n">days</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">Query</span><span class="p">(</span><span class="mi">30</span><span class="p">,</span> <span class="n">ge</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">le</span><span class="o">=</span><span class="mi">365</span><span class="p">),</span>
+    <span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">),</span>
+    <span class="n">current_user</span><span class="p">:</span> <span class="n">User</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_current_active_user</span><span class="p">),</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Отчет «Состояние парка» в Excel (несколько листов).</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Response: Файл XLSX.</span>
+<span class="sd">    """</span>
+    <span class="n">content</span> <span class="o">=</span> <span class="n">xlsx_export</span><span class="o">.</span><span class="n">fleet_workbook</span><span class="p">(</span>
+        <span class="n">report_data</span><span class="o">.</span><span class="n">fleet_summary</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">horizon_days</span><span class="o">=</span><span class="n">days</span><span class="p">),</span> <span class="n">report_data</span><span class="o">.</span><span class="n">report_header</span><span class="p">(</span><span class="n">db</span><span class="p">))</span>
+    <span class="n">_log_export</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">current_user</span><span class="p">,</span> <span class="s2">"состояние парка XLSX"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">_xlsx_response</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"fleet_</span><span class="si">{</span><span class="n">date</span><span class="o">.</span><span class="n">today</span><span class="p">()</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()</span><span class="si">}</span><span class="s2">.xlsx"</span><span class="p">)</span></div>
 
 </pre></div>
 

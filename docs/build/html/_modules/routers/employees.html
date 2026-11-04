@@ -70,32 +70,35 @@
            <div itemprop="articleBody">
              
   <h1>Исходный код routers.employees</h1><div class="highlight"><pre>
-<span></span><span class="c1"># routers/employees.py (v1.1)</span>
-<span class="sd">&quot;&quot;&quot;</span>
+<span></span><span class="c1"># routers/employees.py (v1.2)</span>
+<span class="sd">"""</span>
 <span class="sd">Модуль для управления сотрудниками.</span>
 <span class="sd">Содержит маршруты для получения списка сотрудников и добавления новых.</span>
-<span class="sd">&quot;&quot;&quot;</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span>
+<span class="sd">"""</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timezone</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">fastapi</span><span class="w"> </span><span class="kn">import</span> <span class="n">APIRouter</span><span class="p">,</span> <span class="n">Depends</span><span class="p">,</span> <span class="n">HTTPException</span><span class="p">,</span> <span class="n">status</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fastapi</span><span class="w"> </span><span class="kn">import</span> <span class="n">APIRouter</span><span class="p">,</span> <span class="n">Depends</span><span class="p">,</span> <span class="n">Request</span><span class="p">,</span> <span class="n">status</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">sqlalchemy.orm</span><span class="w"> </span><span class="kn">import</span> <span class="n">Session</span>
 
+<span class="kn">import</span><span class="w"> </span><span class="nn">audit</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">auth</span><span class="w"> </span><span class="kn">import</span> <span class="n">EDITOR_ROLES</span><span class="p">,</span> <span class="n">get_current_active_user</span><span class="p">,</span> <span class="n">require_role</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">db</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_db</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Employee</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Employee</span><span class="p">,</span> <span class="n">User</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">schemas</span><span class="w"> </span><span class="kn">import</span> <span class="n">EmployeeCreate</span><span class="p">,</span> <span class="n">EmployeeRead</span>
 
 <span class="n">router</span> <span class="o">=</span> <span class="n">APIRouter</span><span class="p">(</span>
-    <span class="n">prefix</span><span class="o">=</span><span class="s2">&quot;/employees&quot;</span><span class="p">,</span>
-    <span class="n">tags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Employees&quot;</span><span class="p">],</span>
+    <span class="n">prefix</span><span class="o">=</span><span class="s2">"/employees"</span><span class="p">,</span>
+    <span class="n">tags</span><span class="o">=</span><span class="p">[</span><span class="s2">"Employees"</span><span class="p">],</span>
+    <span class="n">dependencies</span><span class="o">=</span><span class="p">[</span><span class="n">Depends</span><span class="p">(</span><span class="n">get_current_active_user</span><span class="p">)],</span>
 <span class="p">)</span>
 
 
 <div class="viewcode-block" id="list_employees">
 <a class="viewcode-back" href="../../routers.html#routers.employees.list_employees">[документация]</a>
-<span class="nd">@router</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">,</span> <span class="n">response_model</span><span class="o">=</span><span class="n">List</span><span class="p">[</span><span class="n">EmployeeRead</span><span class="p">])</span>
+<span class="nd">@router</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"/"</span><span class="p">,</span> <span class="n">response_model</span><span class="o">=</span><span class="n">List</span><span class="p">[</span><span class="n">EmployeeRead</span><span class="p">])</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">list_employees</span><span class="p">(</span><span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">)):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Получить полный список всех сотрудников.</span>
 
 <span class="sd">    Args:</span>
@@ -103,20 +106,25 @@
 
 <span class="sd">    Returns:</span>
 <span class="sd">        List[Employee]: Список объектов сотрудников.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Employee</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span></div>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Employee</span><span class="p">)</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="n">Employee</span><span class="o">.</span><span class="n">full_name</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span></div>
 
 
 
 <div class="viewcode-block" id="create_employee">
 <a class="viewcode-back" href="../../routers.html#routers.employees.create_employee">[документация]</a>
 <span class="nd">@router</span><span class="o">.</span><span class="n">post</span><span class="p">(</span>
-    <span class="s2">&quot;/&quot;</span><span class="p">,</span>
+    <span class="s2">"/"</span><span class="p">,</span>
     <span class="n">response_model</span><span class="o">=</span><span class="n">EmployeeRead</span><span class="p">,</span>
     <span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_201_CREATED</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">create_employee</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="n">EmployeeCreate</span><span class="p">,</span> <span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">)):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">create_employee</span><span class="p">(</span>
+    <span class="n">data</span><span class="p">:</span> <span class="n">EmployeeCreate</span><span class="p">,</span>
+    <span class="n">request</span><span class="p">:</span> <span class="n">Request</span><span class="p">,</span>
+    <span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">),</span>
+    <span class="n">current_user</span><span class="p">:</span> <span class="n">User</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">require_role</span><span class="p">(</span><span class="n">EDITOR_ROLES</span><span class="p">)),</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Создать новую карточку сотрудника.</span>
 
 <span class="sd">    Args:</span>
@@ -125,13 +133,18 @@
 
 <span class="sd">    Returns:</span>
 <span class="sd">        Employee: Созданный объект сотрудника с присвоенным ID и датой создания.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">    """</span>
     <span class="n">emp</span> <span class="o">=</span> <span class="n">Employee</span><span class="p">(</span>
-        <span class="n">full_name</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">full_name</span><span class="p">,</span>
-        <span class="n">position</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">position</span><span class="p">,</span>
-        <span class="n">created_at</span><span class="o">=</span><span class="n">datetime</span><span class="o">.</span><span class="n">utcnow</span><span class="p">(),</span>
+        <span class="n">full_name</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">full_name</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span>
+        <span class="n">position</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">position</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span>
+        <span class="n">created_at</span><span class="o">=</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">),</span>
     <span class="p">)</span>
     <span class="n">db</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">emp</span><span class="p">)</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+    <span class="n">audit</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">current_user</span><span class="p">,</span> <span class="n">audit</span><span class="o">.</span><span class="n">ACTION_CREATE</span><span class="p">,</span>
+              <span class="sa">f</span><span class="s2">"Добавлен сотрудник «</span><span class="si">{</span><span class="n">emp</span><span class="o">.</span><span class="n">full_name</span><span class="si">}</span><span class="s2">»"</span><span class="p">,</span>
+              <span class="n">entity_type</span><span class="o">=</span><span class="s2">"employee"</span><span class="p">,</span> <span class="n">entity_id</span><span class="o">=</span><span class="n">emp</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+              <span class="n">changes</span><span class="o">=</span><span class="n">audit</span><span class="o">.</span><span class="n">diff</span><span class="p">({},</span> <span class="n">audit</span><span class="o">.</span><span class="n">snapshot</span><span class="p">(</span><span class="n">emp</span><span class="p">,</span> <span class="p">(</span><span class="s2">"full_name"</span><span class="p">,</span> <span class="s2">"position"</span><span class="p">))))</span>
     <span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
     <span class="n">db</span><span class="o">.</span><span class="n">refresh</span><span class="p">(</span><span class="n">emp</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">emp</span></div>

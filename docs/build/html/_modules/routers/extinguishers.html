@@ -70,53 +70,119 @@
            <div itemprop="articleBody">
              
   <h1>Исходный код routers.extinguishers</h1><div class="highlight"><pre>
-<span></span><span class="c1"># routers/extinguishers.py (v1.1)</span>
-<span class="sd">&quot;&quot;&quot;</span>
+<span></span><span class="c1"># routers/extinguishers.py (v1.3)</span>
+<span class="sd">"""</span>
 <span class="sd">Модуль для управления огнетушителями (CRUD операции).</span>
-<span class="sd">Включает фильтрацию, поиск по инвентарному номеру, создание, обновление и удаление оборудования.</span>
-<span class="sd">&quot;&quot;&quot;</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timezone</span><span class="p">,</span> <span class="n">date</span> <span class="k">as</span> <span class="n">date_type</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">fastapi</span><span class="w"> </span><span class="kn">import</span> <span class="n">APIRouter</span><span class="p">,</span> <span class="n">Depends</span><span class="p">,</span> <span class="n">HTTPException</span><span class="p">,</span> <span class="n">status</span><span class="p">,</span> <span class="n">Query</span>
+<span class="sd">Включает фильтрацию, поиск по инвентарному номеру, создание, обновление,</span>
+<span class="sd">удаление оборудования и отметку о перезарядке.</span>
+
+<span class="sd">В каждом ответе есть вычисляемые сроки: вид ОТВ, дата следующей</span>
+<span class="sd">перезарядки и конец срока службы (см. модуль ``deadlines``).</span>
+<span class="sd">Все изменения пишутся в журнал действий.</span>
+<span class="sd">"""</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">date</span><span class="p">,</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timezone</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">fastapi</span><span class="w"> </span><span class="kn">import</span> <span class="n">APIRouter</span><span class="p">,</span> <span class="n">Depends</span><span class="p">,</span> <span class="n">HTTPException</span><span class="p">,</span> <span class="n">Query</span><span class="p">,</span> <span class="n">Request</span><span class="p">,</span> <span class="n">status</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">sqlalchemy.orm</span><span class="w"> </span><span class="kn">import</span> <span class="n">Session</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">auth</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_current_active_user</span><span class="p">,</span> <span class="n">require_role</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">audit</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">app_settings</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_settings</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">auth</span><span class="w"> </span><span class="kn">import</span> <span class="n">EDITOR_ROLES</span><span class="p">,</span> <span class="n">ROLE_ADMIN</span><span class="p">,</span> <span class="n">get_current_active_user</span><span class="p">,</span> <span class="n">require_role</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">db</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_db</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deadlines</span><span class="w"> </span><span class="kn">import</span> <span class="n">compute_deadlines</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">models</span><span class="w"> </span><span class="kn">import</span> <span class="n">User</span><span class="p">,</span> <span class="n">FireExtinguisher</span><span class="p">,</span> <span class="n">Location</span><span class="p">,</span> <span class="n">Status</span><span class="p">,</span> <span class="n">Inspection</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">schemas</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">FireExtinguisherCreate</span><span class="p">,</span>
     <span class="n">FireExtinguisherRead</span><span class="p">,</span>
     <span class="n">FireExtinguisherUpdate</span><span class="p">,</span>
+    <span class="n">RechargeMark</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">status_logic</span><span class="w"> </span><span class="kn">import</span> <span class="n">STATUS_DECOMMISSIONED</span><span class="p">,</span> <span class="n">recalculate_statuses</span>
+
+<span class="n">router</span> <span class="o">=</span> <span class="n">APIRouter</span><span class="p">(</span>
+    <span class="n">prefix</span><span class="o">=</span><span class="s2">"/extinguishers"</span><span class="p">,</span>
+    <span class="n">tags</span><span class="o">=</span><span class="p">[</span><span class="s2">"Fire Extinguishers"</span><span class="p">],</span>
+    <span class="n">dependencies</span><span class="o">=</span><span class="p">[</span><span class="n">Depends</span><span class="p">(</span><span class="n">get_current_active_user</span><span class="p">)],</span>
 <span class="p">)</span>
 
-<span class="c1"># ВАЖНО: router В САМОМ НАЧАЛЕ</span>
-<span class="n">router</span> <span class="o">=</span> <span class="n">APIRouter</span><span class="p">(</span>
-    <span class="n">prefix</span><span class="o">=</span><span class="s2">&quot;/extinguishers&quot;</span><span class="p">,</span>
-    <span class="n">tags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Fire Extinguishers&quot;</span><span class="p">],</span>
+<span class="n">AUDIT_FIELDS</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="s2">"inventory_number"</span><span class="p">,</span> <span class="s2">"type"</span><span class="p">,</span> <span class="s2">"capacity"</span><span class="p">,</span> <span class="s2">"manufacturer"</span><span class="p">,</span> <span class="s2">"manufacture_date"</span><span class="p">,</span>
+    <span class="s2">"commissioning_date"</span><span class="p">,</span> <span class="s2">"location_id"</span><span class="p">,</span> <span class="s2">"status_id"</span><span class="p">,</span> <span class="s2">"last_recharge_date"</span><span class="p">,</span>
+    <span class="s2">"recharge_interval_months"</span><span class="p">,</span> <span class="s2">"service_life_years"</span><span class="p">,</span>
 <span class="p">)</span>
+<span class="c1"># Поля, от которых зависят сроки перезарядки (и значит статус)</span>
+<span class="n">DEADLINE_FIELDS</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"type"</span><span class="p">,</span> <span class="s2">"manufacture_date"</span><span class="p">,</span> <span class="s2">"commissioning_date"</span><span class="p">,</span> <span class="s2">"last_recharge_date"</span><span class="p">,</span>
+                   <span class="s2">"recharge_interval_months"</span><span class="p">,</span> <span class="s2">"service_life_years"</span><span class="p">}</span>
+
+
+<div class="viewcode-block" id="serialize">
+<a class="viewcode-back" href="../../routers.html#routers.extinguishers.serialize">[документация]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">serialize</span><span class="p">(</span><span class="n">fe</span><span class="p">:</span> <span class="n">FireExtinguisher</span><span class="p">,</span> <span class="n">settings</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+              <span class="n">today</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">date</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Огнетушитель вместе с вычисленными сроками.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        fe (FireExtinguisher): Огнетушитель.</span>
+<span class="sd">        settings (Dict[str, Any]): Настройки приложения.</span>
+<span class="sd">        today (Optional[date]): Текущая дата.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Dict[str, Any]: Данные по схеме ``FireExtinguisherRead``.</span>
+<span class="sd">    """</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="n">FireExtinguisherRead</span><span class="o">.</span><span class="n">model_validate</span><span class="p">(</span><span class="n">fe</span><span class="p">)</span><span class="o">.</span><span class="n">model_dump</span><span class="p">()</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">compute_deadlines</span><span class="p">(</span><span class="n">fe</span><span class="p">,</span> <span class="n">settings</span><span class="p">,</span> <span class="n">today</span><span class="p">)</span>
+    <span class="n">data</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
+        <span class="s2">"agent_label"</span><span class="p">:</span> <span class="n">d</span><span class="p">[</span><span class="s2">"agent_label"</span><span class="p">],</span>
+        <span class="s2">"effective_recharge_interval_months"</span><span class="p">:</span> <span class="n">d</span><span class="p">[</span><span class="s2">"recharge_interval_months"</span><span class="p">],</span>
+        <span class="s2">"next_recharge_date"</span><span class="p">:</span> <span class="n">d</span><span class="p">[</span><span class="s2">"next_recharge_date"</span><span class="p">],</span>
+        <span class="s2">"recharge_days_left"</span><span class="p">:</span> <span class="n">d</span><span class="p">[</span><span class="s2">"recharge_days_left"</span><span class="p">],</span>
+        <span class="s2">"recharge_state"</span><span class="p">:</span> <span class="n">d</span><span class="p">[</span><span class="s2">"recharge_state"</span><span class="p">],</span>
+        <span class="s2">"effective_service_life_years"</span><span class="p">:</span> <span class="n">d</span><span class="p">[</span><span class="s2">"service_life_years"</span><span class="p">],</span>
+        <span class="s2">"service_end_date"</span><span class="p">:</span> <span class="n">d</span><span class="p">[</span><span class="s2">"service_end_date"</span><span class="p">],</span>
+        <span class="s2">"service_state"</span><span class="p">:</span> <span class="n">d</span><span class="p">[</span><span class="s2">"service_state"</span><span class="p">],</span>
+    <span class="p">})</span>
+    <span class="k">return</span> <span class="n">data</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_get_or_404</span><span class="p">(</span><span class="n">db</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span> <span class="n">extinguisher_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">FireExtinguisher</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Возвращает огнетушитель или 404."""</span>
+    <span class="n">extinguisher</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">FireExtinguisher</span><span class="p">,</span> <span class="n">extinguisher_id</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">extinguisher</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_404_NOT_FOUND</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="s2">"Огнетушитель не найден"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">extinguisher</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_check_relations</span><span class="p">(</span><span class="n">db</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span> <span class="n">location_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">status_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Проверяет существование места и статуса."""</span>
+    <span class="k">if</span> <span class="n">location_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">db</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">Location</span><span class="p">,</span> <span class="n">location_id</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_400_BAD_REQUEST</span><span class="p">,</span>
+                            <span class="n">detail</span><span class="o">=</span><span class="s2">"Место расположения не найдено"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">status_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">db</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">Status</span><span class="p">,</span> <span class="n">status_id</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_400_BAD_REQUEST</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="s2">"Статус не найден"</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="list_extinguishers">
 <a class="viewcode-back" href="../../routers.html#routers.extinguishers.list_extinguishers">[документация]</a>
-<span class="nd">@router</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">,</span> <span class="n">response_model</span><span class="o">=</span><span class="n">List</span><span class="p">[</span><span class="n">FireExtinguisherRead</span><span class="p">])</span>
+<span class="nd">@router</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"/"</span><span class="p">,</span> <span class="n">response_model</span><span class="o">=</span><span class="n">List</span><span class="p">[</span><span class="n">FireExtinguisherRead</span><span class="p">])</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">list_extinguishers</span><span class="p">(</span>
-    <span class="n">location_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="n">Query</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Фильтр по ID места&quot;</span><span class="p">),</span>
-    <span class="n">status_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="n">Query</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Фильтр по ID статуса&quot;</span><span class="p">),</span>
+    <span class="n">location_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="n">Query</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"Фильтр по ID места"</span><span class="p">),</span>
+    <span class="n">status_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="n">Query</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"Фильтр по ID статуса"</span><span class="p">),</span>
     <span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">),</span>
-    <span class="n">current_user</span><span class="p">:</span> <span class="n">User</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_current_active_user</span><span class="p">)</span>
 <span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Получить список всех огнетушителей с возможностью фильтрации.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        location_id (Optional[int]): ID местоположения для фильтрации.</span>
 <span class="sd">        status_id (Optional[int]): ID статуса для фильтрации.</span>
 <span class="sd">        db (Session): Сессия базы данных.</span>
-<span class="sd">        current_user (User): Авторизованный пользователь.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        List[FireExtinguisher]: Отфильтрованный список оборудования.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">        List[dict]: Отфильтрованный список оборудования со сроками.</span>
+<span class="sd">    """</span>
     <span class="n">query</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">FireExtinguisher</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">location_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -125,196 +191,152 @@
     <span class="k">if</span> <span class="n">status_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">FireExtinguisher</span><span class="o">.</span><span class="n">status_id</span> <span class="o">==</span> <span class="n">status_id</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">query</span><span class="o">.</span><span class="n">all</span><span class="p">()</span></div>
+    <span class="n">settings</span> <span class="o">=</span> <span class="n">get_settings</span><span class="p">(</span><span class="n">db</span><span class="p">)</span>
+    <span class="n">today</span> <span class="o">=</span> <span class="n">date</span><span class="o">.</span><span class="n">today</span><span class="p">()</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">serialize</span><span class="p">(</span><span class="n">fe</span><span class="p">,</span> <span class="n">settings</span><span class="p">,</span> <span class="n">today</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">fe</span> <span class="ow">in</span> <span class="n">query</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="n">FireExtinguisher</span><span class="o">.</span><span class="n">inventory_number</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()]</span></div>
 
 
 
 <div class="viewcode-block" id="search_by_inventory">
 <a class="viewcode-back" href="../../routers.html#routers.extinguishers.search_by_inventory">[документация]</a>
-<span class="nd">@router</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;/search/inventory&quot;</span><span class="p">,</span> <span class="n">response_model</span><span class="o">=</span><span class="n">List</span><span class="p">[</span><span class="n">FireExtinguisherRead</span><span class="p">])</span>
+<span class="nd">@router</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"/search/inventory"</span><span class="p">,</span> <span class="n">response_model</span><span class="o">=</span><span class="n">List</span><span class="p">[</span><span class="n">FireExtinguisherRead</span><span class="p">])</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">search_by_inventory</span><span class="p">(</span>
     <span class="n">query</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Query</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">min_length</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-                       <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Поисковый запрос по инвентарному номеру&quot;</span><span class="p">),</span>
+                       <span class="n">description</span><span class="o">=</span><span class="s2">"Поисковый запрос по инвентарному номеру"</span><span class="p">),</span>
     <span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">),</span>
-    <span class="n">current_user</span><span class="p">:</span> <span class="n">User</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_current_active_user</span><span class="p">)</span>
 <span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Поиск огнетушителей по инвентарному номеру (частичное совпадение).</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        query (str): Подстрока инвентарного номера для поиска.</span>
 <span class="sd">        db (Session): Сессия базы данных.</span>
-<span class="sd">        current_user (User): Авторизованный пользователь.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        List[FireExtinguisher]: Список найденного оборудования.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<span class="sd">        List[dict]: Список найденного оборудования.</span>
+<span class="sd">    """</span>
+    <span class="n">settings</span> <span class="o">=</span> <span class="n">get_settings</span><span class="p">(</span><span class="n">db</span><span class="p">)</span>
     <span class="n">results</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">FireExtinguisher</span><span class="p">)</span>
         <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">FireExtinguisher</span><span class="o">.</span><span class="n">inventory_number</span><span class="o">.</span><span class="n">contains</span><span class="p">(</span><span class="n">query</span><span class="p">))</span>
+        <span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="n">FireExtinguisher</span><span class="o">.</span><span class="n">inventory_number</span><span class="p">)</span>
         <span class="o">.</span><span class="n">all</span><span class="p">()</span>
     <span class="p">)</span>
-
-    <span class="k">return</span> <span class="n">results</span></div>
+    <span class="k">return</span> <span class="p">[</span><span class="n">serialize</span><span class="p">(</span><span class="n">fe</span><span class="p">,</span> <span class="n">settings</span><span class="p">)</span> <span class="k">for</span> <span class="n">fe</span> <span class="ow">in</span> <span class="n">results</span><span class="p">]</span></div>
 
 
 
 <div class="viewcode-block" id="get_extinguisher">
 <a class="viewcode-back" href="../../routers.html#routers.extinguishers.get_extinguisher">[документация]</a>
-<span class="nd">@router</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;/</span><span class="si">{extinguisher_id}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">response_model</span><span class="o">=</span><span class="n">FireExtinguisherRead</span><span class="p">)</span>
+<span class="nd">@router</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"/</span><span class="si">{extinguisher_id}</span><span class="s2">"</span><span class="p">,</span> <span class="n">response_model</span><span class="o">=</span><span class="n">FireExtinguisherRead</span><span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">get_extinguisher</span><span class="p">(</span>
     <span class="n">extinguisher_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">),</span>
-    <span class="n">current_user</span><span class="p">:</span> <span class="n">User</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_current_active_user</span><span class="p">)</span>
 <span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Получить детальную информацию об огнетушителе по его ID.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        extinguisher_id (int): Уникальный идентификатор огнетушителя.</span>
 <span class="sd">        db (Session): Сессия базы данных.</span>
-<span class="sd">        current_user (User): Авторизованный пользователь.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        FireExtinguisher: Объект огнетушителя.</span>
+<span class="sd">        dict: Огнетушитель со сроками.</span>
 
 <span class="sd">    Raises:</span>
 <span class="sd">        HTTPException: Если огнетушитель с указанным ID не найден (404).</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">extinguisher</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">FireExtinguisher</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">extinguisher_id</span><span class="p">)</span>
-
-    <span class="k">if</span> <span class="n">extinguisher</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
-            <span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_404_NOT_FOUND</span><span class="p">,</span>
-            <span class="n">detail</span><span class="o">=</span><span class="s2">&quot;Огнетушитель не найден&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
-
-    <span class="k">return</span> <span class="n">extinguisher</span></div>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="n">serialize</span><span class="p">(</span><span class="n">_get_or_404</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">extinguisher_id</span><span class="p">),</span> <span class="n">get_settings</span><span class="p">(</span><span class="n">db</span><span class="p">))</span></div>
 
 
 
 <div class="viewcode-block" id="create_extinguisher">
 <a class="viewcode-back" href="../../routers.html#routers.extinguishers.create_extinguisher">[документация]</a>
-<span class="nd">@router</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">,</span> <span class="n">response_model</span><span class="o">=</span><span class="n">FireExtinguisherRead</span><span class="p">,</span> <span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_201_CREATED</span><span class="p">)</span>
+<span class="nd">@router</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s2">"/"</span><span class="p">,</span> <span class="n">response_model</span><span class="o">=</span><span class="n">FireExtinguisherRead</span><span class="p">,</span> <span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_201_CREATED</span><span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">create_extinguisher</span><span class="p">(</span>
     <span class="n">data</span><span class="p">:</span> <span class="n">FireExtinguisherCreate</span><span class="p">,</span>
+    <span class="n">request</span><span class="p">:</span> <span class="n">Request</span><span class="p">,</span>
     <span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">),</span>
-    <span class="n">current_user</span><span class="p">:</span> <span class="n">User</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">require_role</span><span class="p">([</span><span class="s2">&quot;admin&quot;</span><span class="p">,</span> <span class="s2">&quot;engineer&quot;</span><span class="p">]))</span>
+    <span class="n">current_user</span><span class="p">:</span> <span class="n">User</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">require_role</span><span class="p">(</span><span class="n">EDITOR_ROLES</span><span class="p">))</span>
 <span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Добавить новый огнетушитель в систему. Доступно только администраторам и инженерам.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        data (FireExtinguisherCreate): Данные для создания.</span>
+<span class="sd">        request (Request): Запрос (для журнала).</span>
 <span class="sd">        db (Session): Сессия базы данных.</span>
 <span class="sd">        current_user (User): Авторизованный пользователь с соответствующей ролью.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        FireExtinguisher: Созданный объект огнетушителя.</span>
+<span class="sd">        dict: Созданный огнетушитель со сроками.</span>
 
 <span class="sd">    Raises:</span>
-<span class="sd">        HTTPException: В случае дубликата инвентарного номера, некорректных дат или отсутствия связанных объектов (локации/статуса).</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="c1"># Проверка уникальности инвентарного номера</span>
+<span class="sd">        HTTPException: В случае дубликата инвентарного номера или отсутствия</span>
+<span class="sd">            связанных объектов (локации/статуса).</span>
+<span class="sd">    """</span>
     <span class="n">existing</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">FireExtinguisher</span><span class="p">)</span>
         <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">FireExtinguisher</span><span class="o">.</span><span class="n">inventory_number</span> <span class="o">==</span> <span class="n">data</span><span class="o">.</span><span class="n">inventory_number</span><span class="p">)</span>
         <span class="o">.</span><span class="n">first</span><span class="p">()</span>
     <span class="p">)</span>
-
     <span class="k">if</span> <span class="n">existing</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
             <span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_400_BAD_REQUEST</span><span class="p">,</span>
-            <span class="n">detail</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Огнетушитель с инвентарным номером &#39;</span><span class="si">{</span><span class="n">data</span><span class="o">.</span><span class="n">inventory_number</span><span class="si">}</span><span class="s2">&#39; уже существует&quot;</span><span class="p">,</span>
+            <span class="n">detail</span><span class="o">=</span><span class="sa">f</span><span class="s2">"Огнетушитель с инвентарным номером '</span><span class="si">{</span><span class="n">data</span><span class="o">.</span><span class="n">inventory_number</span><span class="si">}</span><span class="s2">' уже существует"</span><span class="p">,</span>
         <span class="p">)</span>
 
-    <span class="c1"># Валидация дат (не из будущего)</span>
-    <span class="n">today</span> <span class="o">=</span> <span class="n">date_type</span><span class="o">.</span><span class="n">today</span><span class="p">()</span>
+    <span class="c1"># Даты из будущего отсекаются валидатором схемы</span>
+    <span class="n">_check_relations</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">location_id</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">status_id</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">manufacture_date</span> <span class="ow">and</span> <span class="n">data</span><span class="o">.</span><span class="n">manufacture_date</span> <span class="o">&gt;</span> <span class="n">today</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
-            <span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_400_BAD_REQUEST</span><span class="p">,</span>
-            <span class="n">detail</span><span class="o">=</span><span class="s2">&quot;Дата изготовления не может быть из будущего&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
-
-    <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">commissioning_date</span> <span class="ow">and</span> <span class="n">data</span><span class="o">.</span><span class="n">commissioning_date</span> <span class="o">&gt;</span> <span class="n">today</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
-            <span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_400_BAD_REQUEST</span><span class="p">,</span>
-            <span class="n">detail</span><span class="o">=</span><span class="s2">&quot;Дата ввода в эксплуатацию не может быть из будущего&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
-
-    <span class="c1"># Проверка существования связанных объектов</span>
-    <span class="n">location</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Location</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">location_id</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">location</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
-            <span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_400_BAD_REQUEST</span><span class="p">,</span>
-            <span class="n">detail</span><span class="o">=</span><span class="s2">&quot;Место расположения не найдено&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
-
-    <span class="n">status_obj</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Status</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">status_id</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">status_obj</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
-            <span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_400_BAD_REQUEST</span><span class="p">,</span>
-            <span class="n">detail</span><span class="o">=</span><span class="s2">&quot;Статус не найден&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
-
-    <span class="c1"># Создание огнетушителя</span>
     <span class="n">now</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span>
-
-    <span class="n">extinguisher</span> <span class="o">=</span> <span class="n">FireExtinguisher</span><span class="p">(</span>
-        <span class="n">inventory_number</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">inventory_number</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">type</span><span class="p">,</span>
-        <span class="n">capacity</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">capacity</span><span class="p">,</span>
-        <span class="n">manufacturer</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">manufacturer</span><span class="p">,</span>
-        <span class="n">manufacture_date</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">manufacture_date</span><span class="p">,</span>
-        <span class="n">commissioning_date</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">commissioning_date</span><span class="p">,</span>
-        <span class="n">location_id</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">location_id</span><span class="p">,</span>
-        <span class="n">status_id</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">status_id</span><span class="p">,</span>
-        <span class="n">created_at</span><span class="o">=</span><span class="n">now</span><span class="p">,</span>
-        <span class="n">updated_at</span><span class="o">=</span><span class="n">now</span><span class="p">,</span>
-    <span class="p">)</span>
-
+    <span class="n">extinguisher</span> <span class="o">=</span> <span class="n">FireExtinguisher</span><span class="p">(</span><span class="o">**</span><span class="n">data</span><span class="o">.</span><span class="n">model_dump</span><span class="p">(),</span> <span class="n">created_at</span><span class="o">=</span><span class="n">now</span><span class="p">,</span> <span class="n">updated_at</span><span class="o">=</span><span class="n">now</span><span class="p">)</span>
     <span class="n">db</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">extinguisher</span><span class="p">)</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+    <span class="n">audit</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">current_user</span><span class="p">,</span> <span class="n">audit</span><span class="o">.</span><span class="n">ACTION_CREATE</span><span class="p">,</span>
+              <span class="sa">f</span><span class="s2">"Добавлен огнетушитель </span><span class="si">{</span><span class="n">extinguisher</span><span class="o">.</span><span class="n">inventory_number</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
+              <span class="n">entity_type</span><span class="o">=</span><span class="s2">"extinguisher"</span><span class="p">,</span> <span class="n">entity_id</span><span class="o">=</span><span class="n">extinguisher</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+              <span class="n">changes</span><span class="o">=</span><span class="n">audit</span><span class="o">.</span><span class="n">diff</span><span class="p">({},</span> <span class="n">audit</span><span class="o">.</span><span class="n">snapshot</span><span class="p">(</span><span class="n">extinguisher</span><span class="p">,</span> <span class="n">AUDIT_FIELDS</span><span class="p">)))</span>
     <span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
     <span class="n">db</span><span class="o">.</span><span class="n">refresh</span><span class="p">(</span><span class="n">extinguisher</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">extinguisher</span></div>
+    <span class="k">return</span> <span class="n">serialize</span><span class="p">(</span><span class="n">extinguisher</span><span class="p">,</span> <span class="n">get_settings</span><span class="p">(</span><span class="n">db</span><span class="p">))</span></div>
 
 
 
 <div class="viewcode-block" id="update_extinguisher">
 <a class="viewcode-back" href="../../routers.html#routers.extinguishers.update_extinguisher">[документация]</a>
-<span class="nd">@router</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="s2">&quot;/</span><span class="si">{extinguisher_id}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">response_model</span><span class="o">=</span><span class="n">FireExtinguisherRead</span><span class="p">)</span>
+<span class="nd">@router</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="s2">"/</span><span class="si">{extinguisher_id}</span><span class="s2">"</span><span class="p">,</span> <span class="n">response_model</span><span class="o">=</span><span class="n">FireExtinguisherRead</span><span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">update_extinguisher</span><span class="p">(</span>
     <span class="n">extinguisher_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">data</span><span class="p">:</span> <span class="n">FireExtinguisherUpdate</span><span class="p">,</span>
+    <span class="n">request</span><span class="p">:</span> <span class="n">Request</span><span class="p">,</span>
     <span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">),</span>
-    <span class="n">current_user</span><span class="p">:</span> <span class="n">User</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">require_role</span><span class="p">([</span><span class="s2">&quot;admin&quot;</span><span class="p">,</span> <span class="s2">&quot;engineer&quot;</span><span class="p">]))</span>
+    <span class="n">current_user</span><span class="p">:</span> <span class="n">User</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">require_role</span><span class="p">(</span><span class="n">EDITOR_ROLES</span><span class="p">))</span>
 <span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Обновить данные существующего огнетушителя. Доступно только администраторам и инженерам.</span>
+
+<span class="sd">    Если изменились поля, от которых зависят сроки перезарядки, а статус</span>
+<span class="sd">    вручную не меняли, статус пересчитывается.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        extinguisher_id (int): Идентификатор обновляемого огнетушителя.</span>
 <span class="sd">        data (FireExtinguisherUpdate): Новые данные.</span>
+<span class="sd">        request (Request): Запрос (для журнала).</span>
 <span class="sd">        db (Session): Сессия базы данных.</span>
-<span class="sd">        current_user (User): Авторизованный пользователь.</span>
+<span class="sd">        current_user (User): Авторизованный пользователь с соответствующей ролью.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        FireExtinguisher: Обновленный объект.</span>
+<span class="sd">        dict: Обновленный огнетушитель со сроками.</span>
 
 <span class="sd">    Raises:</span>
-<span class="sd">        HTTPException: Если объект не найден, дублируется номер или указаны неверные связанные ключи.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">extinguisher</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">FireExtinguisher</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">extinguisher_id</span><span class="p">)</span>
+<span class="sd">        HTTPException: Если объект не найден, дублируется номер или указаны</span>
+<span class="sd">            неверные связанные ключи.</span>
+<span class="sd">    """</span>
+    <span class="n">extinguisher</span> <span class="o">=</span> <span class="n">_get_or_404</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">extinguisher_id</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">extinguisher</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
-            <span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_404_NOT_FOUND</span><span class="p">,</span>
-            <span class="n">detail</span><span class="o">=</span><span class="s2">&quot;Огнетушитель не найден&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
-
-    <span class="c1"># Проверка уникальности инвентарного номера при изменении</span>
     <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">inventory_number</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">existing</span> <span class="o">=</span> <span class="p">(</span>
             <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">FireExtinguisher</span><span class="p">)</span>
@@ -324,74 +346,111 @@
             <span class="p">)</span>
             <span class="o">.</span><span class="n">first</span><span class="p">()</span>
         <span class="p">)</span>
-
         <span class="k">if</span> <span class="n">existing</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
                 <span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_400_BAD_REQUEST</span><span class="p">,</span>
-                <span class="n">detail</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Огнетушитель с инвентарным номером &#39;</span><span class="si">{</span><span class="n">data</span><span class="o">.</span><span class="n">inventory_number</span><span class="si">}</span><span class="s2">&#39; уже существует&quot;</span><span class="p">,</span>
+                <span class="n">detail</span><span class="o">=</span><span class="sa">f</span><span class="s2">"Огнетушитель с инвентарным номером '</span><span class="si">{</span><span class="n">data</span><span class="o">.</span><span class="n">inventory_number</span><span class="si">}</span><span class="s2">' уже существует"</span><span class="p">,</span>
             <span class="p">)</span>
 
-    <span class="c1"># Валидация дат</span>
-    <span class="n">today</span> <span class="o">=</span> <span class="n">date_type</span><span class="o">.</span><span class="n">today</span><span class="p">()</span>
+    <span class="n">_check_relations</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">location_id</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">status_id</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">manufacture_date</span> <span class="ow">and</span> <span class="n">data</span><span class="o">.</span><span class="n">manufacture_date</span> <span class="o">&gt;</span> <span class="n">today</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
-            <span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_400_BAD_REQUEST</span><span class="p">,</span>
-            <span class="n">detail</span><span class="o">=</span><span class="s2">&quot;Дата изготовления не может быть из будущего&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
-
-    <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">commissioning_date</span> <span class="ow">and</span> <span class="n">data</span><span class="o">.</span><span class="n">commissioning_date</span> <span class="o">&gt;</span> <span class="n">today</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
-            <span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_400_BAD_REQUEST</span><span class="p">,</span>
-            <span class="n">detail</span><span class="o">=</span><span class="s2">&quot;Дата ввода в эксплуатацию не может быть из будущего&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
-
-    <span class="c1"># Проверка существования связанных объектов</span>
-    <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">location_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">location</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Location</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">location_id</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">location</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
-                <span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_400_BAD_REQUEST</span><span class="p">,</span>
-                <span class="n">detail</span><span class="o">=</span><span class="s2">&quot;Место расположения не найдено&quot;</span><span class="p">,</span>
-            <span class="p">)</span>
-
-    <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">status_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">status_obj</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Status</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">status_id</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">status_obj</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
-                <span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_400_BAD_REQUEST</span><span class="p">,</span>
-                <span class="n">detail</span><span class="o">=</span><span class="s2">&quot;Статус не найден&quot;</span><span class="p">,</span>
-            <span class="p">)</span>
-
-    <span class="c1"># Обновление полей</span>
     <span class="n">update_data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">model_dump</span><span class="p">(</span><span class="n">exclude_unset</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
+    <span class="c1"># Обязательные поля нельзя очистить</span>
+    <span class="k">for</span> <span class="n">required_field</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"inventory_number"</span><span class="p">,</span> <span class="s2">"type"</span><span class="p">,</span> <span class="s2">"capacity"</span><span class="p">,</span> <span class="s2">"location_id"</span><span class="p">,</span> <span class="s2">"status_id"</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">required_field</span> <span class="ow">in</span> <span class="n">update_data</span> <span class="ow">and</span> <span class="n">update_data</span><span class="p">[</span><span class="n">required_field</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
+                <span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_400_BAD_REQUEST</span><span class="p">,</span>
+                <span class="n">detail</span><span class="o">=</span><span class="sa">f</span><span class="s2">"Поле '</span><span class="si">{</span><span class="n">required_field</span><span class="si">}</span><span class="s2">' не может быть пустым"</span><span class="p">,</span>
+            <span class="p">)</span>
+
+    <span class="n">before</span> <span class="o">=</span> <span class="n">audit</span><span class="o">.</span><span class="n">snapshot</span><span class="p">(</span><span class="n">extinguisher</span><span class="p">,</span> <span class="n">AUDIT_FIELDS</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">field</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">update_data</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
         <span class="nb">setattr</span><span class="p">(</span><span class="n">extinguisher</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+    <span class="n">changes</span> <span class="o">=</span> <span class="n">audit</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">before</span><span class="p">,</span> <span class="n">audit</span><span class="o">.</span><span class="n">snapshot</span><span class="p">(</span><span class="n">extinguisher</span><span class="p">,</span> <span class="n">AUDIT_FIELDS</span><span class="p">))</span>
 
-    <span class="n">extinguisher</span><span class="o">.</span><span class="n">updated_at</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span>
-
+    <span class="k">if</span> <span class="n">changes</span><span class="p">:</span>
+        <span class="n">extinguisher</span><span class="o">.</span><span class="n">updated_at</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span>
+        <span class="n">audit</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">current_user</span><span class="p">,</span> <span class="n">audit</span><span class="o">.</span><span class="n">ACTION_UPDATE</span><span class="p">,</span>
+                  <span class="sa">f</span><span class="s2">"Изменен огнетушитель </span><span class="si">{</span><span class="n">extinguisher</span><span class="o">.</span><span class="n">inventory_number</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
+                  <span class="n">entity_type</span><span class="o">=</span><span class="s2">"extinguisher"</span><span class="p">,</span> <span class="n">entity_id</span><span class="o">=</span><span class="n">extinguisher</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">changes</span><span class="o">=</span><span class="n">changes</span><span class="p">)</span>
     <span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">DEADLINE_FIELDS</span> <span class="o">&amp;</span> <span class="nb">set</span><span class="p">(</span><span class="n">changes</span><span class="p">)</span> <span class="ow">and</span> <span class="s2">"status_id"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">changes</span><span class="p">:</span>
+        <span class="n">recalculate_statuses</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">extinguisher_ids</span><span class="o">=</span><span class="p">[</span><span class="n">extinguisher</span><span class="o">.</span><span class="n">id</span><span class="p">])</span>
     <span class="n">db</span><span class="o">.</span><span class="n">refresh</span><span class="p">(</span><span class="n">extinguisher</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">extinguisher</span></div>
+    <span class="k">return</span> <span class="n">serialize</span><span class="p">(</span><span class="n">extinguisher</span><span class="p">,</span> <span class="n">get_settings</span><span class="p">(</span><span class="n">db</span><span class="p">))</span></div>
+
+
+
+<div class="viewcode-block" id="mark_recharged">
+<a class="viewcode-back" href="../../routers.html#routers.extinguishers.mark_recharged">[документация]</a>
+<span class="nd">@router</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s2">"/</span><span class="si">{extinguisher_id}</span><span class="s2">/recharge"</span><span class="p">,</span> <span class="n">response_model</span><span class="o">=</span><span class="n">FireExtinguisherRead</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">mark_recharged</span><span class="p">(</span>
+    <span class="n">extinguisher_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">data</span><span class="p">:</span> <span class="n">RechargeMark</span><span class="p">,</span>
+    <span class="n">request</span><span class="p">:</span> <span class="n">Request</span><span class="p">,</span>
+    <span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">),</span>
+    <span class="n">current_user</span><span class="p">:</span> <span class="n">User</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">require_role</span><span class="p">(</span><span class="n">EDITOR_ROLES</span><span class="p">)),</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Отметить перезарядку огнетушителя.</span>
+
+<span class="sd">    Сохраняет дату перезарядки (и, если указан, новый интервал по паспорту),</span>
+<span class="sd">    пишет событие в журнал действий и пересчитывает статус</span>
+<span class="sd">    (кроме списанных огнетушителей).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        extinguisher_id (int): ID огнетушителя.</span>
+<span class="sd">        data (RechargeMark): Дата перезарядки, интервал и комментарий.</span>
+<span class="sd">        request (Request): Запрос (для журнала).</span>
+<span class="sd">        db (Session): Сессия базы данных.</span>
+<span class="sd">        current_user (User): Инженер или администратор.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        dict: Огнетушитель с новыми сроками.</span>
+<span class="sd">    """</span>
+    <span class="n">extinguisher</span> <span class="o">=</span> <span class="n">_get_or_404</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">extinguisher_id</span><span class="p">)</span>
+    <span class="n">before</span> <span class="o">=</span> <span class="n">audit</span><span class="o">.</span><span class="n">snapshot</span><span class="p">(</span><span class="n">extinguisher</span><span class="p">,</span> <span class="n">AUDIT_FIELDS</span><span class="p">)</span>
+    <span class="n">extinguisher</span><span class="o">.</span><span class="n">last_recharge_date</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">recharge_date</span>
+    <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">recharge_interval_months</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">extinguisher</span><span class="o">.</span><span class="n">recharge_interval_months</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">recharge_interval_months</span>
+    <span class="n">extinguisher</span><span class="o">.</span><span class="n">updated_at</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span>
+
+    <span class="n">summary</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"Отмечена перезарядка огнетушителя </span><span class="si">{</span><span class="n">extinguisher</span><span class="o">.</span><span class="n">inventory_number</span><span class="si">}</span><span class="s2"> от </span><span class="si">{</span><span class="n">data</span><span class="o">.</span><span class="n">recharge_date</span><span class="si">:</span><span class="s2">%d.%m.%Y</span><span class="si">}</span><span class="s2">"</span>
+    <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">comment</span><span class="p">:</span>
+        <span class="n">summary</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">" (</span><span class="si">{</span><span class="n">data</span><span class="o">.</span><span class="n">comment</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="si">}</span><span class="s2">)"</span>
+    <span class="n">audit</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">current_user</span><span class="p">,</span> <span class="n">audit</span><span class="o">.</span><span class="n">ACTION_UPDATE</span><span class="p">,</span> <span class="n">summary</span><span class="p">,</span>
+              <span class="n">entity_type</span><span class="o">=</span><span class="s2">"extinguisher"</span><span class="p">,</span> <span class="n">entity_id</span><span class="o">=</span><span class="n">extinguisher</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+              <span class="n">changes</span><span class="o">=</span><span class="n">audit</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">before</span><span class="p">,</span> <span class="n">audit</span><span class="o">.</span><span class="n">snapshot</span><span class="p">(</span><span class="n">extinguisher</span><span class="p">,</span> <span class="n">AUDIT_FIELDS</span><span class="p">)))</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+    <span class="n">recalculate_statuses</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">extinguisher_ids</span><span class="o">=</span><span class="p">[</span><span class="n">extinguisher</span><span class="o">.</span><span class="n">id</span><span class="p">],</span> <span class="n">keep_manual</span><span class="o">=</span><span class="p">[</span><span class="n">STATUS_DECOMMISSIONED</span><span class="p">])</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">refresh</span><span class="p">(</span><span class="n">extinguisher</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">serialize</span><span class="p">(</span><span class="n">extinguisher</span><span class="p">,</span> <span class="n">get_settings</span><span class="p">(</span><span class="n">db</span><span class="p">))</span></div>
 
 
 
 <div class="viewcode-block" id="delete_extinguisher">
 <a class="viewcode-back" href="../../routers.html#routers.extinguishers.delete_extinguisher">[документация]</a>
-<span class="nd">@router</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="s2">&quot;/</span><span class="si">{extinguisher_id}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_204_NO_CONTENT</span><span class="p">)</span>
+<span class="nd">@router</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="s2">"/</span><span class="si">{extinguisher_id}</span><span class="s2">"</span><span class="p">,</span> <span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_204_NO_CONTENT</span><span class="p">)</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">delete_extinguisher</span><span class="p">(</span>
     <span class="n">extinguisher_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">request</span><span class="p">:</span> <span class="n">Request</span><span class="p">,</span>
     <span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">),</span>
-    <span class="n">current_user</span><span class="p">:</span> <span class="n">User</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">require_role</span><span class="p">([</span><span class="s2">&quot;admin&quot;</span><span class="p">]))</span>
+    <span class="n">current_user</span><span class="p">:</span> <span class="n">User</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">require_role</span><span class="p">([</span><span class="n">ROLE_ADMIN</span><span class="p">]))</span>
 <span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Полностью удалить огнетушитель и всю историю его проверок (каскадное удаление).</span>
 <span class="sd">    Доступно ИСКЛЮЧИТЕЛЬНО администраторам.</span>
 
+<span class="sd">    В журнал действий сохраняется карточка огнетушителя и число удаленных</span>
+<span class="sd">    проверок, чтобы удаление можно было восстановить по журналу.</span>
+
 <span class="sd">    Args:</span>
 <span class="sd">        extinguisher_id (int): Идентификатор удаляемого оборудования.</span>
+<span class="sd">        request (Request): Запрос (для журнала).</span>
 <span class="sd">        db (Session): Сессия базы данных.</span>
 <span class="sd">        current_user (User): Текущий администратор.</span>
 
@@ -400,21 +459,18 @@
 
 <span class="sd">    Raises:</span>
 <span class="sd">        HTTPException: Если огнетушитель не найден.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">extinguisher</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">FireExtinguisher</span><span class="p">)</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">extinguisher_id</span><span class="p">)</span>
+<span class="sd">    """</span>
+    <span class="n">extinguisher</span> <span class="o">=</span> <span class="n">_get_or_404</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">extinguisher_id</span><span class="p">)</span>
+    <span class="n">card</span> <span class="o">=</span> <span class="n">audit</span><span class="o">.</span><span class="n">snapshot</span><span class="p">(</span><span class="n">extinguisher</span><span class="p">,</span> <span class="n">AUDIT_FIELDS</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">extinguisher</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
-            <span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_404_NOT_FOUND</span><span class="p">,</span>
-            <span class="n">detail</span><span class="o">=</span><span class="s2">&quot;Огнетушитель не найден&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
-
-    <span class="c1"># Каскадное удаление проверок</span>
-    <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Inspection</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+    <span class="n">removed</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Inspection</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
         <span class="n">Inspection</span><span class="o">.</span><span class="n">fire_extinguisher_id</span> <span class="o">==</span> <span class="n">extinguisher_id</span>
     <span class="p">)</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span>
 
-    <span class="c1"># Удаление огнетушителя</span>
+    <span class="n">audit</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">current_user</span><span class="p">,</span> <span class="n">audit</span><span class="o">.</span><span class="n">ACTION_DELETE</span><span class="p">,</span>
+              <span class="sa">f</span><span class="s2">"Удален огнетушитель </span><span class="si">{</span><span class="n">extinguisher</span><span class="o">.</span><span class="n">inventory_number</span><span class="si">}</span><span class="s2"> и </span><span class="si">{</span><span class="n">removed</span><span class="si">}</span><span class="s2"> проверок"</span><span class="p">,</span>
+              <span class="n">entity_type</span><span class="o">=</span><span class="s2">"extinguisher"</span><span class="p">,</span> <span class="n">entity_id</span><span class="o">=</span><span class="n">extinguisher</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+              <span class="n">changes</span><span class="o">=</span><span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="p">{</span><span class="s2">"old"</span><span class="p">:</span> <span class="n">v</span><span class="p">,</span> <span class="s2">"new"</span><span class="p">:</span> <span class="kc">None</span><span class="p">}</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">card</span><span class="o">.</span><span class="n">items</span><span class="p">()})</span>
     <span class="n">db</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">extinguisher</span><span class="p">)</span>
     <span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
 

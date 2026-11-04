@@ -20,6 +20,7 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Алфавитный указатель" href="genindex.html" />
     <link rel="search" title="Поиск" href="search.html" />
+    <link rel="next" title="status_logic module" href="status_logic.html" />
     <link rel="prev" title="schemas module" href="schemas.html" /> 
 </head>
 
@@ -45,12 +46,20 @@
               <p class="caption" role="heading"><span class="caption-text">Содержание:</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="modules.html">FireExtinguishers</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="app_settings.html">app_settings module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="audit.html">audit module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="auth.html">auth module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="db.html">db module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deadlines.html">deadlines module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="main.html">main module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="migrate.html">migrate module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="models.html">models module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="report_data.html">report_data module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="routers.html">routers package</a></li>
 <li class="toctree-l2"><a class="reference internal" href="schemas.html">schemas module</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">setup module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="status_logic.html">status_logic module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="xlsx_export.html">xlsx_export module</a></li>
 </ul>
 </li>
 </ul>
@@ -80,8 +89,13 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="setup-module">
-<h1>setup module<a class="headerlink" href="#setup-module" title="Ссылка на этот заголовок"></a></h1>
+  <section id="module-setup">
+<span id="setup-module"></span><h1>setup module<a class="headerlink" href="#module-setup" title="Ссылка на этот заголовок"></a></h1>
+<p>Конфигурационный файл системы сборки (Setuptools).
+Позволяет упаковать проект FireTrack как стандартный Python-пакет,
+устанавливать зависимости и регистрировать консольные команды (entry_points).</p>
+<p>Вызов <code class="docutils literal notranslate"><span class="pre">setup()</span></code> спрятан под <code class="docutils literal notranslate"><span class="pre">if</span> <span class="pre">__name__</span> <span class="pre">==</span> <span class="pre">&quot;__main__&quot;</span></code>, чтобы модуль
+можно было импортировать (например, Sphinx при сборке документации).</p>
 </section>
 
 
@@ -89,6 +103,7 @@
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Нижняя область">
         <a href="schemas.html" class="btn btn-neutral float-left" title="schemas module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Предыдущая</a>
+        <a href="status_logic.html" class="btn btn-neutral float-right" title="status_logic module" accesskey="n" rel="next">Следующая <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

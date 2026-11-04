@@ -4,6 +4,14 @@ routers package
 Submodules
 ----------
 
+routers.audit\_log module
+-------------------------
+
+.. automodule:: routers.audit_log
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
 routers.employees module
 ------------------------
 
@@ -52,10 +60,26 @@ routers.reports module
    :show-inheritance:
    :undoc-members:
 
+routers.settings module
+-----------------------
+
+.. automodule:: routers.settings
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
 routers.statuses module
 -----------------------
 
 .. automodule:: routers.statuses
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+routers.users module
+--------------------
+
+.. automodule:: routers.users
    :members:
    :show-inheritance:
    :undoc-members:

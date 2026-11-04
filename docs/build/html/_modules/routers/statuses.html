@@ -70,33 +70,38 @@
            <div itemprop="articleBody">
              
   <h1>Исходный код routers.statuses</h1><div class="highlight"><pre>
-<span></span><span class="c1"># routers/statuses.py (v1.1)</span>
-<span class="sd">&quot;&quot;&quot;</span>
+<span></span><span class="c1"># routers/statuses.py (v1.3)</span>
+<span class="sd">"""</span>
 <span class="sd">Модуль для управления техническими статусами оборудования.</span>
-<span class="sd">Включает инициализацию дефолтных системных статусов и фоновый пересчет актуальности.</span>
-<span class="sd">&quot;&quot;&quot;</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">date</span><span class="p">,</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timezone</span>
+<span class="sd">Включает инициализацию дефолтных системных статусов и пересчет актуальности.</span>
+<span class="sd">Сама логика расчета статусов находится в модуле status_logic.</span>
+<span class="sd">"""</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timezone</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">fastapi</span><span class="w"> </span><span class="kn">import</span> <span class="n">APIRouter</span><span class="p">,</span> <span class="n">Depends</span><span class="p">,</span> <span class="n">HTTPException</span><span class="p">,</span> <span class="n">status</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fastapi</span><span class="w"> </span><span class="kn">import</span> <span class="n">APIRouter</span><span class="p">,</span> <span class="n">Depends</span><span class="p">,</span> <span class="n">HTTPException</span><span class="p">,</span> <span class="n">Request</span><span class="p">,</span> <span class="n">status</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">sqlalchemy.orm</span><span class="w"> </span><span class="kn">import</span> <span class="n">Session</span>
 
+<span class="kn">import</span><span class="w"> </span><span class="nn">audit</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">auth</span><span class="w"> </span><span class="kn">import</span> <span class="n">EDITOR_ROLES</span><span class="p">,</span> <span class="n">ROLE_ADMIN</span><span class="p">,</span> <span class="n">get_current_active_user</span><span class="p">,</span> <span class="n">require_role</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">db</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_db</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Status</span><span class="p">,</span> <span class="n">FireExtinguisher</span><span class="p">,</span> <span class="n">Inspection</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Status</span><span class="p">,</span> <span class="n">User</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">schemas</span><span class="w"> </span><span class="kn">import</span> <span class="n">StatusCreate</span><span class="p">,</span> <span class="n">StatusRead</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">status_logic</span><span class="w"> </span><span class="kn">import</span> <span class="n">ensure_default_statuses</span><span class="p">,</span> <span class="n">recalculate_statuses</span>
 
 
 <span class="n">router</span> <span class="o">=</span> <span class="n">APIRouter</span><span class="p">(</span>
-    <span class="n">prefix</span><span class="o">=</span><span class="s2">&quot;/statuses&quot;</span><span class="p">,</span>
-    <span class="n">tags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Statuses&quot;</span><span class="p">],</span>
+    <span class="n">prefix</span><span class="o">=</span><span class="s2">"/statuses"</span><span class="p">,</span>
+    <span class="n">tags</span><span class="o">=</span><span class="p">[</span><span class="s2">"Statuses"</span><span class="p">],</span>
+    <span class="n">dependencies</span><span class="o">=</span><span class="p">[</span><span class="n">Depends</span><span class="p">(</span><span class="n">get_current_active_user</span><span class="p">)],</span>
 <span class="p">)</span>
 
 
 <div class="viewcode-block" id="list_statuses">
 <a class="viewcode-back" href="../../routers.html#routers.statuses.list_statuses">[документация]</a>
-<span class="nd">@router</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">,</span> <span class="n">response_model</span><span class="o">=</span><span class="n">List</span><span class="p">[</span><span class="n">StatusRead</span><span class="p">])</span>
+<span class="nd">@router</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"/"</span><span class="p">,</span> <span class="n">response_model</span><span class="o">=</span><span class="n">List</span><span class="p">[</span><span class="n">StatusRead</span><span class="p">])</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">list_statuses</span><span class="p">(</span><span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">)):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="w">    </span><span class="sd">"""</span>
 <span class="sd">    Получить справочник всех возможных статусов оборудования.</span>
 
 <span class="sd">    Args:</span>
@@ -104,46 +109,56 @@
 
 <span class="sd">    Returns:</span>
 <span class="sd">        List[Status]: Список статусов.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Status</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span></div>
+<span class="sd">    """</span>
+    <span class="k">return</span> <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Status</span><span class="p">)</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="n">Status</span><span class="o">.</span><span class="n">id</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span></div>
 
 
 
 <div class="viewcode-block" id="create_status">
 <a class="viewcode-back" href="../../routers.html#routers.statuses.create_status">[документация]</a>
 <span class="nd">@router</span><span class="o">.</span><span class="n">post</span><span class="p">(</span>
-    <span class="s2">&quot;/&quot;</span><span class="p">,</span>
+    <span class="s2">"/"</span><span class="p">,</span>
     <span class="n">response_model</span><span class="o">=</span><span class="n">StatusRead</span><span class="p">,</span>
     <span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_201_CREATED</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">create_status</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="n">StatusCreate</span><span class="p">,</span> <span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">)):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Зарегистрировать новый кастомный статус.</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">create_status</span><span class="p">(</span>
+    <span class="n">data</span><span class="p">:</span> <span class="n">StatusCreate</span><span class="p">,</span>
+    <span class="n">request</span><span class="p">:</span> <span class="n">Request</span><span class="p">,</span>
+    <span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">),</span>
+    <span class="n">current_user</span><span class="p">:</span> <span class="n">User</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">require_role</span><span class="p">([</span><span class="n">ROLE_ADMIN</span><span class="p">])),</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Зарегистрировать новый кастомный статус. Доступно только администраторам.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        data (StatusCreate): Наименование и описание статуса.</span>
 <span class="sd">        db (Session): Сессия БД.</span>
+<span class="sd">        current_user (User): Текущий администратор.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        Status: Созданный объект.</span>
 
 <span class="sd">    Raises:</span>
 <span class="sd">        HTTPException: Если статус с таким именем уже существует.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">existing</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Status</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">Status</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">data</span><span class="o">.</span><span class="n">name</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
+<span class="sd">    """</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="n">existing</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Status</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">Status</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">name</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">existing</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
             <span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_400_BAD_REQUEST</span><span class="p">,</span>
-            <span class="n">detail</span><span class="o">=</span><span class="s2">&quot;Статус с таким названием уже существует&quot;</span><span class="p">,</span>
+            <span class="n">detail</span><span class="o">=</span><span class="s2">"Статус с таким названием уже существует"</span><span class="p">,</span>
         <span class="p">)</span>
 
     <span class="n">status_obj</span> <span class="o">=</span> <span class="n">Status</span><span class="p">(</span>
-        <span class="n">name</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
         <span class="n">description</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">description</span><span class="p">,</span>
         <span class="n">created_at</span><span class="o">=</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">),</span>
     <span class="p">)</span>
 
     <span class="n">db</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">status_obj</span><span class="p">)</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+    <span class="n">audit</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">current_user</span><span class="p">,</span> <span class="n">audit</span><span class="o">.</span><span class="n">ACTION_CREATE</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"Добавлен статус «</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">»"</span><span class="p">,</span>
+              <span class="n">entity_type</span><span class="o">=</span><span class="s2">"status"</span><span class="p">,</span> <span class="n">entity_id</span><span class="o">=</span><span class="n">status_obj</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
     <span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
     <span class="n">db</span><span class="o">.</span><span class="n">refresh</span><span class="p">(</span><span class="n">status_obj</span><span class="p">)</span>
 
@@ -153,110 +168,56 @@
 
 <div class="viewcode-block" id="init_default_statuses">
 <a class="viewcode-back" href="../../routers.html#routers.statuses.init_default_statuses">[документация]</a>
-<span class="nd">@router</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s2">&quot;/init-defaults&quot;</span><span class="p">,</span> <span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_201_CREATED</span><span class="p">)</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">init_default_statuses</span><span class="p">(</span><span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">)):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Инициализировать стандартные статусы для системы (по ГОСТ/умолчанию).</span>
+<span class="nd">@router</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s2">"/init-defaults"</span><span class="p">,</span> <span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_201_CREATED</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">init_default_statuses</span><span class="p">(</span>
+    <span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">),</span>
+    <span class="n">current_user</span><span class="p">:</span> <span class="n">User</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">require_role</span><span class="p">([</span><span class="n">ROLE_ADMIN</span><span class="p">])),</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Инициализировать стандартные статусы системы.</span>
 <span class="sd">    Создает записи только если они отсутствуют в базе.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        db (Session): Сессия БД.</span>
+<span class="sd">        current_user (User): Текущий администратор.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        dict: Статистика инициализации.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">default_statuses</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;Актуально&quot;</span><span class="p">,</span> <span class="s2">&quot;description&quot;</span><span class="p">:</span> <span class="s2">&quot;Огнетушитель прошел проверку, срок не истек&quot;</span><span class="p">},</span>
-        <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;Просрочено&quot;</span><span class="p">,</span> <span class="s2">&quot;description&quot;</span><span class="p">:</span> <span class="s2">&quot;Необходима проверка, срок истек&quot;</span><span class="p">},</span>
-        <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;Требует обслуживания&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;description&quot;</span><span class="p">:</span> <span class="s2">&quot;Обнаружены дефекты при проверке&quot;</span><span class="p">},</span>
-        <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;На техническом обслуживании&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;description&quot;</span><span class="p">:</span> <span class="s2">&quot;Огнетушитель на ТО&quot;</span><span class="p">},</span>
-        <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;Списан&quot;</span><span class="p">,</span> <span class="s2">&quot;description&quot;</span><span class="p">:</span> <span class="s2">&quot;Огнетушитель выведен из эксплуатации&quot;</span><span class="p">},</span>
-    <span class="p">]</span>
-
-    <span class="n">created</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">status_data</span> <span class="ow">in</span> <span class="n">default_statuses</span><span class="p">:</span>
-        <span class="n">existing</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Status</span><span class="p">)</span>
-            <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">Status</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">status_data</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">])</span>
-            <span class="o">.</span><span class="n">first</span><span class="p">()</span>
-        <span class="p">)</span>
-        <span class="k">if</span> <span class="n">existing</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">status_obj</span> <span class="o">=</span> <span class="n">Status</span><span class="p">(</span>
-                <span class="n">name</span><span class="o">=</span><span class="n">status_data</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">],</span>
-                <span class="n">description</span><span class="o">=</span><span class="n">status_data</span><span class="p">[</span><span class="s2">&quot;description&quot;</span><span class="p">],</span>
-                <span class="n">created_at</span><span class="o">=</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">),</span>
-            <span class="p">)</span>
-            <span class="n">db</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">status_obj</span><span class="p">)</span>
-            <span class="n">created</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">status_data</span><span class="p">[</span><span class="s2">&quot;name&quot;</span><span class="p">])</span>
-
-    <span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
-
+<span class="sd">    """</span>
+    <span class="n">created</span> <span class="o">=</span> <span class="n">ensure_default_statuses</span><span class="p">(</span><span class="n">db</span><span class="p">)</span>
     <span class="k">return</span> <span class="p">{</span>
-        <span class="s2">&quot;detail&quot;</span><span class="p">:</span> <span class="s2">&quot;Инициализация завершена&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;created&quot;</span><span class="p">:</span> <span class="n">created</span><span class="p">,</span>
+        <span class="s2">"detail"</span><span class="p">:</span> <span class="s2">"Инициализация завершена"</span><span class="p">,</span>
+        <span class="s2">"created"</span><span class="p">:</span> <span class="n">created</span><span class="p">,</span>
     <span class="p">}</span></div>
 
 
 
-<div class="viewcode-block" id="recalculate_statuses">
-<a class="viewcode-back" href="../../routers.html#routers.statuses.recalculate_statuses">[документация]</a>
-<span class="nd">@router</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s2">&quot;/recalculate&quot;</span><span class="p">)</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">recalculate_statuses</span><span class="p">(</span><span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">)):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Массовый пересчет статусов всего парка огнетушителей на основе дат проверок.</span>
-<span class="sd">    Если next_inspection_date &lt; сегодня -&gt; устанавливается статус &#39;Просрочено&#39;,</span>
-<span class="sd">    иначе возвращается статус &#39;Актуально&#39; (если не был списан или на ТО).</span>
+<div class="viewcode-block" id="recalculate_statuses_endpoint">
+<a class="viewcode-back" href="../../routers.html#routers.statuses.recalculate_statuses_endpoint">[документация]</a>
+<span class="nd">@router</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s2">"/recalculate"</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">recalculate_statuses_endpoint</span><span class="p">(</span>
+    <span class="n">request</span><span class="p">:</span> <span class="n">Request</span><span class="p">,</span>
+    <span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">),</span>
+    <span class="n">current_user</span><span class="p">:</span> <span class="n">User</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">require_role</span><span class="p">(</span><span class="n">EDITOR_ROLES</span><span class="p">)),</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Массовый пересчет статусов всего парка огнетушителей на основе последних проверок.</span>
+
+<span class="sd">    Статусы «Списан» и «На техническом обслуживании» не меняются.</span>
+<span class="sd">    Остальные огнетушители получают «Актуально», «Просрочено» или</span>
+<span class="sd">    «Требует обслуживания» (если при последней проверке найдены дефекты).</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        db (Session): Сессия БД.</span>
+<span class="sd">        current_user (User): Пользователь с правами инженера или администратора.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        dict: Сообщение об успешном выполнении.</span>
-
-<span class="sd">    Raises:</span>
-<span class="sd">        HTTPException: Если отсутствуют базовые статусы &#39;Актуально&#39; и &#39;Просрочено&#39;.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">status_actual</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Status</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">Status</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;Актуально&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
-    <span class="n">status_expired</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Status</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
-        <span class="n">Status</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s2">&quot;Просрочено&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">first</span><span class="p">()</span>
-
-    <span class="k">if</span> <span class="n">status_actual</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">status_expired</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span>
-            <span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_400_BAD_REQUEST</span><span class="p">,</span>
-            <span class="n">detail</span><span class="o">=</span><span class="s2">&quot;Не найдены статусы &#39;Актуально&#39; и &#39;Просрочено&#39;&quot;</span><span class="p">,</span>
-        <span class="p">)</span>
-
-    <span class="n">today</span> <span class="o">=</span> <span class="n">date</span><span class="o">.</span><span class="n">today</span><span class="p">()</span>
-    <span class="n">extinguishers</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">FireExtinguisher</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
-
-    <span class="k">for</span> <span class="n">fe</span> <span class="ow">in</span> <span class="n">extinguishers</span><span class="p">:</span>
-        <span class="c1"># Берём последнюю запись проверки для этого огнетушителя</span>
-        <span class="n">last_insp</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Inspection</span><span class="p">)</span>
-            <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">Inspection</span><span class="o">.</span><span class="n">fire_extinguisher_id</span> <span class="o">==</span> <span class="n">fe</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
-            <span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="n">Inspection</span><span class="o">.</span><span class="n">inspection_date</span><span class="o">.</span><span class="n">desc</span><span class="p">())</span>
-            <span class="o">.</span><span class="n">first</span><span class="p">()</span>
-        <span class="p">)</span>
-
-        <span class="k">if</span> <span class="n">last_insp</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="c1"># Без проверок считаем просроченным</span>
-            <span class="n">fe</span><span class="o">.</span><span class="n">status_id</span> <span class="o">=</span> <span class="n">status_expired</span><span class="o">.</span><span class="n">id</span>
-            <span class="k">continue</span>
-
-        <span class="c1"># Явно берём дату следующей проверки (для Pylance)</span>
-        <span class="c1"># type: ignore[assignment]</span>
-        <span class="n">next_date</span><span class="p">:</span> <span class="n">date</span> <span class="o">=</span> <span class="n">last_insp</span><span class="o">.</span><span class="n">next_inspection_date</span>
-
-        <span class="k">if</span> <span class="n">next_date</span> <span class="o">&lt;</span> <span class="n">today</span><span class="p">:</span>
-            <span class="n">fe</span><span class="o">.</span><span class="n">status_id</span> <span class="o">=</span> <span class="n">status_expired</span><span class="o">.</span><span class="n">id</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">fe</span><span class="o">.</span><span class="n">status_id</span> <span class="o">=</span> <span class="n">status_actual</span><span class="o">.</span><span class="n">id</span>
-
-    <span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
-
-    <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;detail&quot;</span><span class="p">:</span> <span class="s2">&quot;Статусы пересчитаны&quot;</span><span class="p">}</span></div>
+<span class="sd">        dict: Сообщение и количество измененных статусов.</span>
+<span class="sd">    """</span>
+    <span class="n">changed</span> <span class="o">=</span> <span class="n">recalculate_statuses</span><span class="p">(</span><span class="n">db</span><span class="p">)</span>
+    <span class="n">audit</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">current_user</span><span class="p">,</span> <span class="n">audit</span><span class="o">.</span><span class="n">ACTION_RECALCULATE</span><span class="p">,</span>
+              <span class="sa">f</span><span class="s2">"Ручной пересчет статусов, изменено: </span><span class="si">{</span><span class="n">changed</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span> <span class="n">commit</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s2">"detail"</span><span class="p">:</span> <span class="s2">"Статусы пересчитаны"</span><span class="p">,</span> <span class="s2">"changed"</span><span class="p">:</span> <span class="n">changed</span><span class="p">}</span></div>
 
 </pre></div>
 

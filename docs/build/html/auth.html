@@ -21,7 +21,7 @@
     <link rel="index" title="Алфавитный указатель" href="genindex.html" />
     <link rel="search" title="Поиск" href="search.html" />
     <link rel="next" title="db module" href="db.html" />
-    <link rel="prev" title="FireExtinguishers" href="modules.html" /> 
+    <link rel="prev" title="audit module" href="audit.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -46,22 +46,42 @@
               <p class="caption" role="heading"><span class="caption-text">Содержание:</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="modules.html">FireExtinguishers</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="app_settings.html">app_settings module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="audit.html">audit module</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">auth module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#auth.LoginThrottle"><code class="docutils literal notranslate"><span class="pre">LoginThrottle</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#auth.LoginThrottle.failure"><code class="docutils literal notranslate"><span class="pre">LoginThrottle.failure()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#auth.LoginThrottle.reset"><code class="docutils literal notranslate"><span class="pre">LoginThrottle.reset()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#auth.LoginThrottle.retry_after"><code class="docutils literal notranslate"><span class="pre">LoginThrottle.retry_after()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#auth.LoginThrottle.success"><code class="docutils literal notranslate"><span class="pre">LoginThrottle.success()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="#auth.authenticate_user"><code class="docutils literal notranslate"><span class="pre">authenticate_user()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#auth.change_password"><code class="docutils literal notranslate"><span class="pre">change_password()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#auth.create_access_token"><code class="docutils literal notranslate"><span class="pre">create_access_token()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#auth.get_current_active_user"><code class="docutils literal notranslate"><span class="pre">get_current_active_user()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#auth.get_current_user"><code class="docutils literal notranslate"><span class="pre">get_current_user()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#auth.get_current_user_pending_password"><code class="docutils literal notranslate"><span class="pre">get_current_user_pending_password()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#auth.get_password_hash"><code class="docutils literal notranslate"><span class="pre">get_password_hash()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#auth.login_for_access_token"><code class="docutils literal notranslate"><span class="pre">login_for_access_token()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#auth.read_current_user"><code class="docutils literal notranslate"><span class="pre">read_current_user()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#auth.require_role"><code class="docutils literal notranslate"><span class="pre">require_role()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#auth.revoke_tokens"><code class="docutils literal notranslate"><span class="pre">revoke_tokens()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#auth.token_for"><code class="docutils literal notranslate"><span class="pre">token_for()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#auth.verify_password"><code class="docutils literal notranslate"><span class="pre">verify_password()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="db.html">db module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deadlines.html">deadlines module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="main.html">main module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="migrate.html">migrate module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="models.html">models module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="report_data.html">report_data module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="routers.html">routers package</a></li>
 <li class="toctree-l2"><a class="reference internal" href="schemas.html">schemas module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="setup.html">setup module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="status_logic.html">status_logic module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="xlsx_export.html">xlsx_export module</a></li>
 </ul>
 </li>
 </ul>
@@ -96,6 +116,61 @@
 <p>Модуль аутентификации и авторизации пользователей.
 Обеспечивает хеширование паролей, генерацию и проверку токенов JWT,
 а также содержит зависимости FastAPI для защиты маршрутов по ролям (RBAC).</p>
+<p>Настройки берутся из переменных окружения:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">SECRET_KEY</span></code> — ключ подписи JWT. Если не задан, ключ генерируется
+один раз и сохраняется в файл <code class="docutils literal notranslate"><span class="pre">.secret_key</span></code> рядом с проектом, чтобы
+токены не сбрасывались при каждом перезапуске сервера.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">ACCESS_TOKEN_EXPIRE_MINUTES</span></code> — время жизни токена (по умолчанию 480 минут).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">LOGIN_MAX_FAILURES</span></code> и <code class="docutils literal notranslate"><span class="pre">LOGIN_LOCK_MINUTES</span></code> — после стольких неудачных
+попыток входа подряд (по паре «логин + IP») вход блокируется на столько
+минут (по умолчанию 5 попыток и 10 минут).</p></li>
+</ul>
+<p>Безопасность сессий:</p>
+<ul class="simple">
+<li><p>В токен записывается <code class="docutils literal notranslate"><span class="pre">ver</span></code> — версия токенов пользователя. Смена и сброс
+пароля, блокировка и смена роли увеличивают ее, и все выданные ранее
+токены этого пользователя сразу перестают приниматься.</p></li>
+<li><p>Пока у пользователя стоит флаг <code class="docutils literal notranslate"><span class="pre">must_change_password</span></code>, сервер отвечает
+403 на все запросы, кроме <code class="docutils literal notranslate"><span class="pre">/auth/me</span></code> и <code class="docutils literal notranslate"><span class="pre">/auth/change-password</span></code>.
+В ответе есть заголовок <code class="docutils literal notranslate"><span class="pre">X-Password-Change-Required:</span> <span class="pre">1</span></code>, по нему
+интерфейс открывает форму смены пароля.</p></li>
+</ul>
+<dl class="py class">
+<dt class="sig sig-object py" id="auth.LoginThrottle">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">auth.</span></span><span class="sig-name descname"><span class="pre">LoginThrottle</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">max_failures</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">window_seconds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/auth.html#LoginThrottle"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#auth.LoginThrottle" title="Ссылка на это определение"></a></dt>
+<dd><p>Базовые классы: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Простое ограничение перебора паролей в памяти процесса.</p>
+<p>Считает неудачные попытки по паре (логин, IP) в скользящем окне.
+После <code class="docutils literal notranslate"><span class="pre">max_failures</span></code> попыток вход для этой пары запрещен до тех пор,
+пока самая старая попытка не выйдет из окна. Успешный вход сбрасывает
+счетчик.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="auth.LoginThrottle.failure">
+<span class="sig-name descname"><span class="pre">failure</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">username</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ip</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/auth.html#LoginThrottle.failure"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#auth.LoginThrottle.failure" title="Ссылка на это определение"></a></dt>
+<dd><p>Запоминает неудачную попытку.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="auth.LoginThrottle.reset">
+<span class="sig-name descname"><span class="pre">reset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/auth.html#LoginThrottle.reset"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#auth.LoginThrottle.reset" title="Ссылка на это определение"></a></dt>
+<dd><p>Полностью очищает счетчики (для тестов).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="auth.LoginThrottle.retry_after">
+<span class="sig-name descname"><span class="pre">retry_after</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">username</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ip</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="reference internal" href="_modules/auth.html#LoginThrottle.retry_after"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#auth.LoginThrottle.retry_after" title="Ссылка на это определение"></a></dt>
+<dd><p>Сколько секунд осталось до разблокировки (0, если вход разрешен).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="auth.LoginThrottle.success">
+<span class="sig-name descname"><span class="pre">success</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">username</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ip</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/auth.html#LoginThrottle.success"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#auth.LoginThrottle.success" title="Ссылка на это определение"></a></dt>
+<dd><p>Сбрасывает счетчик после успешного входа.</p>
+</dd></dl>
+
+</dd></dl>
+
 <dl class="py function">
 <dt class="sig sig-object py" id="auth.authenticate_user">
 <span class="sig-prename descclassname"><span class="pre">auth.</span></span><span class="sig-name descname"><span class="pre">authenticate_user</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Session</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">username</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">password</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="models.html#models.User" title="models.User"><span class="pre">User</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="reference internal" href="_modules/auth.html#authenticate_user"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#auth.authenticate_user" title="Ссылка на это определение"></a></dt>
@@ -113,6 +188,34 @@
 </dd>
 <dt class="field-odd">Тип результата<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Optional[<a class="reference internal" href="models.html#models.User" title="models.User">User</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="auth.change_password">
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">auth.</span></span><span class="sig-name descname"><span class="pre">change_password</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="schemas.html#schemas.PasswordChange" title="schemas.PasswordChange"><span class="pre">PasswordChange</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">request</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Request</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Session</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Depends(dependency=&lt;function</span> <span class="pre">get_db&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scope</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">current_user</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="models.html#models.User" title="models.User"><span class="pre">User</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Depends(dependency=&lt;function</span> <span class="pre">get_current_user_pending_password&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scope</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None)</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/auth.html#change_password"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#auth.change_password" title="Ссылка на это определение"></a></dt>
+<dd><p>Смена собственного пароля.</p>
+<p>Старые токены пользователя (в том числе на других устройствах) перестают
+работать, в ответе приходит новый токен для текущей сессии.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Параметры<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<a class="reference internal" href="schemas.html#schemas.PasswordChange" title="schemas.PasswordChange"><em>PasswordChange</em></a>) – Старый и новый пароль.</p></li>
+<li><p><strong>request</strong> (<em>Request</em>) – Запрос (для журнала).</p></li>
+<li><p><strong>db</strong> (<em>Session</em>) – Сессия базы данных.</p></li>
+<li><p><strong>current_user</strong> (<a class="reference internal" href="models.html#models.User" title="models.User"><em>User</em></a>) – Текущий пользователь.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Результат<span class="colon">:</span></dt>
+<dd class="field-even"><p>Новый токен.</p>
+</dd>
+<dt class="field-odd">Тип результата<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+<dt class="field-even">Исключение<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>HTTPException</strong> – Если старый пароль неверен (400) или новый пароль
+    слишком простой или совпадает со старым (422).</p>
 </dd>
 </dl>
 </dd></dl>
@@ -139,8 +242,8 @@
 
 <dl class="py function">
 <dt class="sig sig-object py" id="auth.get_current_active_user">
-<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">auth.</span></span><span class="sig-name descname"><span class="pre">get_current_active_user</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">current_user</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="models.html#models.User" title="models.User"><span class="pre">User</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Depends(dependency=&lt;function</span> <span class="pre">get_current_user&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scope</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None)</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="models.html#models.User" title="models.User"><span class="pre">User</span></a></span></span><a class="reference internal" href="_modules/auth.html#get_current_active_user"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#auth.get_current_active_user" title="Ссылка на это определение"></a></dt>
-<dd><p>Проверяет, что текущий пользователь активен (не заблокирован).</p>
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">auth.</span></span><span class="sig-name descname"><span class="pre">get_current_active_user</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">current_user</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="models.html#models.User" title="models.User"><span class="pre">User</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Depends(dependency=&lt;function</span> <span class="pre">get_current_user_pending_password&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scope</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None)</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="models.html#models.User" title="models.User"><span class="pre">User</span></a></span></span><a class="reference internal" href="_modules/auth.html#get_current_active_user"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#auth.get_current_active_user" title="Ссылка на это определение"></a></dt>
+<dd><p>Проверяет, что текущий пользователь активен и не обязан сменить пароль.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Параметры<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>current_user</strong> (<a class="reference internal" href="models.html#models.User" title="models.User"><em>User</em></a>) – Пользователь, полученный из токена.</p>
@@ -152,7 +255,8 @@
 <dd class="field-odd"><p><a class="reference internal" href="models.html#models.User" title="models.User">User</a></p>
 </dd>
 <dt class="field-even">Исключение<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>HTTPException</strong> – Если учетная запись деактивирована (400).</p>
+<dd class="field-even"><p><strong>HTTPException</strong> – Если учетная запись деактивирована или требуется
+    сменить пароль (403).</p>
 </dd>
 </dl>
 </dd></dl>
@@ -175,7 +279,20 @@
 <dd class="field-odd"><p><a class="reference internal" href="models.html#models.User" title="models.User">User</a></p>
 </dd>
 <dt class="field-even">Исключение<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>HTTPException</strong> – Если токен невалиден или пользователь не найден (401).</p>
+<dd class="field-even"><p><strong>HTTPException</strong> – Если токен невалиден, истек, отозван или пользователь
+    не найден (401).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="auth.get_current_user_pending_password">
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">auth.</span></span><span class="sig-name descname"><span class="pre">get_current_user_pending_password</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">current_user</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="models.html#models.User" title="models.User"><span class="pre">User</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Depends(dependency=&lt;function</span> <span class="pre">get_current_user&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scope</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None)</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="models.html#models.User" title="models.User"><span class="pre">User</span></a></span></span><a class="reference internal" href="_modules/auth.html#get_current_user_pending_password"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#auth.get_current_user_pending_password" title="Ссылка на это определение"></a></dt>
+<dd><p>Активный пользователь, даже если ему нужно сменить пароль.
+Используется только для <code class="docutils literal notranslate"><span class="pre">/auth/me</span></code> и <code class="docutils literal notranslate"><span class="pre">/auth/change-password</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Исключение<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>HTTPException</strong> – Если учетная запись заблокирована (403).</p>
 </dd>
 </dl>
 </dd></dl>
@@ -199,20 +316,42 @@
 
 <dl class="py function">
 <dt class="sig sig-object py" id="auth.login_for_access_token">
-<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">auth.</span></span><span class="sig-name descname"><span class="pre">login_for_access_token</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">form_data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">OAuth2PasswordRequestForm</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Depends(dependency=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scope</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Session</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Depends(dependency=&lt;function</span> <span class="pre">get_db&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scope</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None)</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/auth.html#login_for_access_token"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#auth.login_for_access_token" title="Ссылка на это определение"></a></dt>
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">auth.</span></span><span class="sig-name descname"><span class="pre">login_for_access_token</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">request</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Request</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">form_data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">OAuth2PasswordRequestForm</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Depends(dependency=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scope</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Session</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Depends(dependency=&lt;function</span> <span class="pre">get_db&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scope</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None)</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/auth.html#login_for_access_token"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#auth.login_for_access_token" title="Ссылка на это определение"></a></dt>
 <dd><p>Эндпоинт для входа в систему и генерации токена доступа.</p>
+<p>Каждая попытка (успешная и неудачная) попадает в журнал действий.
+После нескольких неудачных попыток подряд вход временно блокируется (429).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Параметры<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
+<li><p><strong>request</strong> (<em>Request</em>) – Запрос (IP для журнала и ограничения попыток).</p></li>
 <li><p><strong>form_data</strong> (<em>OAuth2PasswordRequestForm</em>) – Данные формы авторизации (логин/пароль).</p></li>
 <li><p><strong>db</strong> (<em>Session</em>) – Сессия базы данных.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Результат<span class="colon">:</span></dt>
-<dd class="field-even"><p>Токен доступа и его тип.</p>
+<dd class="field-even"><p>Токен доступа, его тип, время жизни в секундах и флаг
+обязательной смены пароля.</p>
 </dd>
 <dt class="field-odd">Тип результата<span class="colon">:</span></dt>
 <dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="auth.read_current_user">
+<span class="property"><span class="k"><span class="pre">async</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">auth.</span></span><span class="sig-name descname"><span class="pre">read_current_user</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">current_user</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="models.html#models.User" title="models.User"><span class="pre">User</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Depends(dependency=&lt;function</span> <span class="pre">get_current_user_pending_password&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scope</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None)</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/auth.html#read_current_user"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#auth.read_current_user" title="Ссылка на это определение"></a></dt>
+<dd><p>Возвращает данные текущего пользователя (логин, ФИО, роль, флаг смены пароля).
+Используется интерфейсом для отображения пользователя и проверки сессии.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Параметры<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>current_user</strong> (<a class="reference internal" href="models.html#models.User" title="models.User"><em>User</em></a>) – Пользователь из токена.</p>
+</dd>
+<dt class="field-even">Результат<span class="colon">:</span></dt>
+<dd class="field-even"><p>Текущий пользователь.</p>
+</dd>
+<dt class="field-odd">Тип результата<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="models.html#models.User" title="models.User">User</a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -230,6 +369,29 @@
 </dd>
 <dt class="field-odd">Тип результата<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Callable</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="auth.revoke_tokens">
+<span class="sig-prename descclassname"><span class="pre">auth.</span></span><span class="sig-name descname"><span class="pre">revoke_tokens</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">user</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="models.html#models.User" title="models.User"><span class="pre">User</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/auth.html#revoke_tokens"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#auth.revoke_tokens" title="Ссылка на это определение"></a></dt>
+<dd><p>Делает недействительными все выданные пользователю токены (без commit).</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="auth.token_for">
+<span class="sig-prename descclassname"><span class="pre">auth.</span></span><span class="sig-name descname"><span class="pre">token_for</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">user</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="models.html#models.User" title="models.User"><span class="pre">User</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="reference internal" href="_modules/auth.html#token_for"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#auth.token_for" title="Ссылка на это определение"></a></dt>
+<dd><p>Выдает новый токен пользователю.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Параметры<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>user</strong> (<a class="reference internal" href="models.html#models.User" title="models.User"><em>User</em></a>) – Пользователь.</p>
+</dd>
+<dt class="field-even">Результат<span class="colon">:</span></dt>
+<dd class="field-even"><p>Ответ в формате схемы <code class="docutils literal notranslate"><span class="pre">Token</span></code>.</p>
+</dd>
+<dt class="field-odd">Тип результата<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
 </dd>
 </dl>
 </dd></dl>
@@ -260,7 +422,7 @@
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Нижняя область">
-        <a href="modules.html" class="btn btn-neutral float-left" title="FireExtinguishers" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Предыдущая</a>
+        <a href="audit.html" class="btn btn-neutral float-left" title="audit module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Предыдущая</a>
         <a href="db.html" class="btn btn-neutral float-right" title="db module" accesskey="n" rel="next">Следующая <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
