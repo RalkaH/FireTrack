@@ -81,7 +81,7 @@ body {
 }
 
 /* Inter font import */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('/static/vendor/inter/inter.css');
 
 /* ── Animations ── */
 @keyframes fadeIn {
@@ -1119,4 +1119,70 @@ body.app-shell {
 /* Подписи под заголовком страницы лежат на тёмном фоне */
 .page-header .text-muted {
   color: var(--text-muted) !important;
+}
+
+/* ═══════════ V5: исправление данных, история ТО ═══════════ */
+
+/* Аннулированная проверка в журнале */
+.row-annulled td {
+  color: var(--text-muted);
+  background: #F8FAFC;
+}
+
+.row-annulled td > :not(.annul-note):not(.table-actions) {
+  opacity: 0.55;
+  text-decoration: line-through;
+}
+
+.annul-note {
+  display: block;
+  color: #B91C1C;
+  font-size: 0.75rem;
+}
+
+.history-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin: 1rem 0 0.5rem;
+}
+
+/* Поле пароля с кнопкой «показать» */
+.password-field {
+  position: relative;
+}
+
+.password-field .form-control {
+  padding-right: 46px;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: 1.05rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+
+.password-toggle:hover,
+.password-toggle:focus-visible {
+  color: var(--text-primary);
+  background: rgba(15, 23, 42, 0.06);
+  outline: none;
+}
+
+.password-toggle .bi::before {
+  vertical-align: 0;
 }

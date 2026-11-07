@@ -88,7 +88,7 @@ function renderUsersPage() {
                                         : '<span class="badge badge-sm status-decommissioned"><i class="bi bi-lock"></i> Заблокирован</span>'}
                                     ${u.must_change_password ? '<br><small class="text-warning"><i class="bi bi-key"></i> сменит пароль при входе</small>' : ''}
                                 </td>
-                                <td class="text-muted">${u.last_login_at ? formatDateTime(u.last_login_at + (u.last_login_at.endsWith('Z') ? '' : 'Z')) : 'не входил'}</td>
+                                <td class="text-muted">${u.last_login_at ? formatUtcDateTime(u.last_login_at) : 'не входил'}</td>
                                 <td>
                                     <div class="table-actions">
                                         <button class="btn btn-sm btn-primary" title="Изменить" onclick="showUserModal(${u.id})">

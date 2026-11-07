@@ -38,6 +38,12 @@ function formatDateTime(isoString) {
     });
 }
 
+// Время из API в UTC без указания зоны (например, последний вход) в местное
+function formatUtcDateTime(isoString) {
+    if (!isoString) return '';
+    return formatDateTime(/(Z|[+-]\d{2}:\d{2})$/.test(isoString) ? isoString : isoString + 'Z');
+}
+
 // Склонение: plural(5, 'день', 'дня', 'дней') -> 'дней'
 function plural(n, one, few, many) {
     const abs = Math.abs(n) % 100;
@@ -62,6 +68,26 @@ function addMonthsISO(isoDate, months) {
     const pad = n => String(n).padStart(2, '0');
     return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
+
+// Кнопка показа пароля внутри поля: <div class="password-field"><input ...>passwordToggle()</div>
+function passwordToggle() {
+    return '<button type="button" class="password-toggle" data-toggle-password '
+        + 'aria-label="Показать пароль" title="Показать пароль" aria-pressed="false">'
+        + '<i class="bi bi-eye"></i></button>';
+}
+
+document.addEventListener('click', (e) => {
+    const button = e.target.closest('[data-toggle-password]');
+    if (!button) return;
+    const input = button.parentElement.querySelector('input');
+    const show = input.type === 'password';
+    input.type = show ? 'text' : 'password';
+    button.setAttribute('aria-pressed', String(show));
+    button.setAttribute('aria-label', show ? 'Скрыть пароль' : 'Показать пароль');
+    button.title = show ? 'Скрыть пароль' : 'Показать пароль';
+    button.querySelector('i').className = show ? 'bi bi-eye-slash' : 'bi bi-eye';
+    input.focus();
+});
 
 /* ================= Сессия ================= */
 
@@ -215,6 +241,15 @@ async function downloadBlob(resp, fallbackName) {
     window.URL.revokeObjectURL(url);
 }
 
+// Настройки приложения: интервалы для форм (загружаются один раз за открытие формы)
+let appSettings = null;
+
+async function loadAppSettings() {
+    const data = await API.getSettings();
+    appSettings = data.values;
+    return appSettings;
+}
+
 const API = {
     /* -------- Общие -------- */
 
@@ -298,8 +333,24 @@ const API = {
         });
     },
 
+    updateLocation(id, data) {
+        return authorizedFetch(`/locations/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+    },
+
+    deleteLocation(id) {
+        return authorizedFetch(`/locations/${id}`, { method: 'DELETE' });
+    },
+
     getEmployees() {
         return authorizedFetch('/employees/', { method: 'GET' });
+    },
+
+    updateEmployee(id, data) {
+        return authorizedFetch(`/employees/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+    },
+
+    deleteEmployee(id) {
+        return authorizedFetch(`/employees/${id}`, { method: 'DELETE' });
     },
 
     createEmployee(data) {
@@ -359,6 +410,18 @@ const API = {
         });
     },
 
+    updateInspection(id, data) {
+        return authorizedFetch(`/inspections/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+    },
+
+    annulInspection(id, reason) {
+        return authorizedFetch(`/inspections/${id}/annul`, { method: 'POST', body: JSON.stringify({ reason }) });
+    },
+
+    restoreInspection(id, reason) {
+        return authorizedFetch(`/inspections/${id}/restore`, { method: 'POST', body: JSON.stringify({ reason }) });
+    },
+
     /* -------- Импорт CSV/текста -------- */
 
     importLocations(formData) {
@@ -377,13 +440,22 @@ const API = {
         return authorizedFetch('/import/inspections', { method: 'POST', body: formData });
     },
 
-    /* -------- Перезарядка -------- */
+    /* -------- История ТО -------- */
 
-    markRecharged(id, data) {
-        return authorizedFetch(`/extinguishers/${id}/recharge`, {
-            method: 'POST',
-            body: JSON.stringify(data)
-        });
+    getServiceRecords(extinguisherId) {
+        return authorizedFetch('/service-records/' + queryString({ extinguisher_id: extinguisherId }), { method: 'GET' });
+    },
+
+    createServiceRecord(data) {
+        return authorizedFetch('/service-records/', { method: 'POST', body: JSON.stringify(data) });
+    },
+
+    updateServiceRecord(id, data) {
+        return authorizedFetch(`/service-records/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+    },
+
+    deleteServiceRecord(id, reason) {
+        return authorizedFetch(`/service-records/${id}` + queryString({ reason }), { method: 'DELETE' });
     },
 
     /* -------- Пароль -------- */
@@ -444,5 +516,15 @@ const API = {
 
     saveSettings(values) {
         return authorizedFetch('/settings/', { method: 'PUT', body: JSON.stringify(values) });
+    },
+
+    /* -------- Резервные копии (admin) -------- */
+
+    getBackups() {
+        return authorizedFetch('/backups/', { method: 'GET' });
+    },
+
+    createBackup() {
+        return authorizedFetch('/backups/', { method: 'POST' });
     }
 };

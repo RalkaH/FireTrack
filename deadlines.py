@@ -1,20 +1,23 @@
-# deadlines.py (v1.0)
+# deadlines.py (v1.1)
 """
 Сроки перезарядки и срок службы огнетушителей.
 
 Плановые осмотры считаются по журналу проверок (``status_logic``), а здесь
-считаются два других срока:
+считаются три других срока:
 
 1. **Перезарядка.** Интервал зависит от вида огнетушащего вещества (ОТВ),
    который определяется по префиксу типа: ОВ и ОВЭ (вода), ОВП (пена),
    ОП (порошок), ОУ (углекислота), ОХ (хладон). Интервалы по умолчанию
-   берутся из настроек (таблица 1 СП 9.13130.2009) и могут быть
+   берутся из настроек (таблица 1 ГОСТ Р 59641-2021) и могут быть
    переопределены в карточке огнетушителя. Отсчет ведется от даты
    последней перезарядки, а если ее нет, от даты изготовления
    (новый огнетушитель заряжен на заводе) или ввода в эксплуатацию.
 2. **Срок службы.** По умолчанию 10 лет (п. 5.53 ГОСТ Р 51057-2001),
    отсчитывается от даты изготовления. После него огнетушитель списывают
    или продлевают срок по решению организации, проводящей ТО.
+3. **Испытания.** Разрядка, осмотр и испытания на прочность один раз в пять
+   лет (п. 5.1.9 и 5.1.11.2 ГОСТ Р 59641-2021). Отсчет от последнего испытания,
+   а если его нет, от даты изготовления или ввода в эксплуатацию.
 """
 import calendar
 from datetime import date
@@ -94,6 +97,27 @@ def _state(deadline: Optional[date], today: date, warning_days: int) -> str:
     return STATE_OK
 
 
+def recharge_interval(fe, settings: Dict[str, Any]) -> Optional[int]:
+    """
+    Интервал перезарядки огнетушителя в месяцах.
+
+    Args:
+        fe (FireExtinguisher): Огнетушитель.
+        settings (Dict[str, Any]): Настройки приложения.
+
+    Returns:
+        Optional[int]: Значение из карточки, иначе по виду ОТВ из настроек,
+        либо None, если вид ОТВ определить не удалось.
+    """
+    if fe.recharge_interval_months:
+        return int(fe.recharge_interval_months)
+    kind = agent_kind(fe.type)
+    if kind is None:
+        return None
+    value = settings.get(f"recharge_months_{kind['kind']}")
+    return int(value) if value else None
+
+
 def compute_deadlines(fe, settings: Dict[str, Any], today: Optional[date] = None) -> Dict[str, Any]:
     """
     Считает сроки перезарядки и службы одного огнетушителя.
@@ -105,17 +129,17 @@ def compute_deadlines(fe, settings: Dict[str, Any], today: Optional[date] = None
 
     Returns:
         Dict[str, Any]: Вид ОТВ, интервал, база отсчета, дата следующей
-        перезарядки, конец срока службы, их состояния и остаток в днях.
+        перезарядки, конец срока службы, следующие испытания, их состояния
+        и остаток в днях.
     """
     today = today or date.today()
     warning_days = int(settings.get("recharge_warning_days", 60))
     kind = agent_kind(fe.type)
 
-    interval = fe.recharge_interval_months
-    interval_source = "карточка" if interval else None
-    if not interval and kind is not None:
-        interval = settings.get(f"recharge_months_{kind['kind']}")
-        interval_source = "настройки" if interval else None
+    interval = recharge_interval(fe, settings)
+    interval_source = None
+    if interval:
+        interval_source = "карточка" if fe.recharge_interval_months else "настройки"
 
     basis_field = next(
         (f for f in ("last_recharge_date", "manufacture_date", "commissioning_date")
@@ -128,6 +152,10 @@ def compute_deadlines(fe, settings: Dict[str, Any], today: Optional[date] = None
     life_years = fe.service_life_years or settings.get("service_life_years")
     life_basis = fe.manufacture_date or fe.commissioning_date
     service_end = add_months(life_basis, int(life_years) * 12) if life_basis and life_years else None
+
+    test_basis = getattr(fe, "last_test_date", None) or fe.manufacture_date or fe.commissioning_date
+    test_months = settings.get("test_interval_months")
+    next_test = add_months(test_basis, int(test_months)) if test_basis and test_months else None
 
     return {
         "agent_kind": kind["kind"] if kind else None,
@@ -143,4 +171,6 @@ def compute_deadlines(fe, settings: Dict[str, Any], today: Optional[date] = None
         "service_end_date": service_end,
         "service_days_left": (service_end - today).days if service_end else None,
         "service_state": _state(service_end, today, warning_days),
+        "next_test_date": next_test,
+        "test_state": _state(next_test, today, warning_days),
     }

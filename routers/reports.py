@@ -1,4 +1,4 @@
-# routers/reports.py (v1.4)
+# routers/reports.py (v1.5)
 """
 Модуль генерации отчетов и аналитики.
 Обеспечивает формирование статистики для дашборда, списков просроченного оборудования,
@@ -8,10 +8,11 @@
 старые записи журнала не попадают в «предстоящие» и не завышают счетчики.
 Списанные огнетушители в предстоящие проверки не попадают.
 
-Отчеты для печати (журнал проверок, журнал ТО по форме Г.2
-СП 9.13130.2009, состояние парка) отдаются в двух видах: XLSX-файлом
-и JSON для страницы печати ``/static/print.html``. Данные для обоих
-готовит модуль ``report_data``.
+Отчеты для печати (журнал проверок, журнал ТО и ремонта по форме А.2 и
+карточки учета по форме А.1 ГОСТ Р 59641-2021, состояние парка) отдаются
+в двух видах: XLSX-файлом и JSON для страницы печати ``/static/print.html``.
+Данные для обоих готовит модуль ``report_data``. Аннулированные проверки
+в журналы и выгрузки не попадают.
 """
 import csv
 from datetime import date, timedelta
@@ -29,6 +30,7 @@ import xlsx_export
 from app_settings import get_settings
 from auth import get_current_active_user
 from db import get_db
+from export_utils import safe_cell
 from deadlines import STATE_OVERDUE, STATE_SOON, compute_deadlines
 from models import FireExtinguisher, Inspection, Location, Status, Employee, User
 from schemas import InspectionRead
@@ -49,7 +51,7 @@ router = APIRouter(
 
 def _filtered_journal(db: Session, date_from: Optional[date], date_to: Optional[date]):
     """Общий запрос журнала проверок с фильтром по периоду."""
-    query = db.query(Inspection)
+    query = db.query(Inspection).filter(Inspection.annulled_at.is_(None))
     if date_from is not None:
         query = query.filter(Inspection.inspection_date >= date_from)
     if date_to is not None:
@@ -178,6 +180,7 @@ def journal_csv(
         .join(Location, FireExtinguisher.location_id == Location.id)
         .join(Status, FireExtinguisher.status_id == Status.id)
         .join(Employee, Inspection.employee_id == Employee.id)
+        .filter(Inspection.annulled_at.is_(None))
     )
 
     if date_from is not None:
@@ -214,7 +217,7 @@ def journal_csv(
 
     for insp, fe, loc, st, emp in query.all():
         writer.writerow(
-            [
+            [safe_cell(value) for value in (
                 insp.inspection_date.isoformat(),
                 fe.inventory_number,
                 fe.type,
@@ -230,7 +233,7 @@ def journal_csv(
                 insp.hose_condition,
                 insp.comments,
                 insp.next_inspection_date.isoformat(),
-            ]
+            )]
         )
 
     output.seek(0)
@@ -472,7 +475,7 @@ def print_maintenance(
     db: Session = Depends(get_db),
 ):
     """
-    Журнал ТО огнетушителей по форме Г.2 СП 9.13130.2009 для страницы печати.
+    Журнал ТО и ремонта по форме А.2 ГОСТ Р 59641-2021 для страницы печати.
 
     Returns:
         dict: ``header``, ``period`` и ``rows``.
@@ -527,7 +530,7 @@ def maintenance_xlsx(
     current_user: User = Depends(get_current_active_user),
 ):
     """
-    Журнал ТО огнетушителей (форма Г.2 СП 9.13130.2009) в Excel.
+    Журнал ТО и ремонта (форма А.2 ГОСТ Р 59641-2021) в Excel.
 
     Returns:
         Response: Файл XLSX.
@@ -556,3 +559,37 @@ def fleet_xlsx(
         report_data.fleet_summary(db, horizon_days=days), report_data.report_header(db))
     _log_export(db, request, current_user, "состояние парка XLSX")
     return _xlsx_response(content, f"fleet_{date.today().isoformat()}.xlsx")
+
+
+@router.get("/print/cards")
+def print_cards(
+    extinguisher_id: Optional[int] = Query(None, description="Один огнетушитель. Пусто: все, кроме списанных"),
+    db: Session = Depends(get_db),
+):
+    """
+    Карточки учета по форме А.1 ГОСТ Р 59641-2021 для страницы печати.
+
+    Returns:
+        dict: ``header`` и ``cards``.
+    """
+    return {"header": report_data.report_header(db),
+            "cards": report_data.card_rows(db, extinguisher_id)}
+
+
+@router.get("/cards.xlsx")
+def cards_xlsx(
+    request: Request,
+    extinguisher_id: Optional[int] = Query(None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """
+    Карточки учета по форме А.1 ГОСТ Р 59641-2021 в Excel.
+
+    Returns:
+        Response: Файл XLSX.
+    """
+    content = xlsx_export.cards_workbook(
+        report_data.card_rows(db, extinguisher_id), report_data.report_header(db))
+    _log_export(db, request, current_user, "карточки учета XLSX")
+    return _xlsx_response(content, f"cards_{date.today().isoformat()}.xlsx")

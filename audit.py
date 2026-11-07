@@ -1,4 +1,4 @@
-# audit.py (v1.0)
+# audit.py (v1.1)
 """
 Журнал действий пользователей (аудит).
 
@@ -37,6 +37,9 @@ ACTION_BLOCK = "block"
 ACTION_UNBLOCK = "unblock"
 ACTION_RECALCULATE = "recalculate"
 ACTION_EXPORT = "export"
+ACTION_ANNUL = "annul"
+ACTION_RESTORE = "restore"
+ACTION_BACKUP = "backup"
 
 ACTION_LABELS = {
     ACTION_CREATE: "Создание",
@@ -51,11 +54,16 @@ ACTION_LABELS = {
     ACTION_UNBLOCK: "Разблокировка",
     ACTION_RECALCULATE: "Пересчет статусов",
     ACTION_EXPORT: "Выгрузка",
+    ACTION_ANNUL: "Аннулирование",
+    ACTION_RESTORE: "Восстановление",
+    ACTION_BACKUP: "Резервная копия",
 }
 
 ENTITY_LABELS = {
     "extinguisher": "Огнетушитель",
     "inspection": "Проверка",
+    "service_record": "Запись о ТО",
+    "backup": "Резервная копия",
     "location": "Место",
     "employee": "Сотрудник",
     "status": "Статус",

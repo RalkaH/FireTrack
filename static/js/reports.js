@@ -17,11 +17,11 @@ const REPORTS = [
     },
     {
         id: 'maintenance',
-        title: 'Журнал ТО огнетушителей (форма Г.2)',
+        title: 'Журнал ТО и ремонта (форма А.2)',
         icon: 'bi-journal-check',
         color: 'amber',
-        description: 'Рекомендуемая форма журнала технического обслуживания из приложения Г СП 9.13130.2009: '
-            + 'проверки узлов, ОТВ, индикатора давления, перезарядки. Графы «Принятые меры» и подпись заполняются от руки.',
+        description: 'Записи для журнала эксплуатации систем противопожарной защиты по форме А.2 ГОСТ Р 59641-2021: '
+            + 'проверки, испытания, перезарядка, ремонт. Подпись ставится от руки.',
         period: true,
         formats: [
             { kind: 'print', label: 'Печать / PDF', icon: 'bi-printer' },
@@ -36,9 +36,23 @@ const REPORTS = [
         description: 'Сводка по статусам и местам, просроченные и требующие обслуживания, '
             + 'ближайшие проверки, перезарядки и окончание срока службы.',
         period: false,
+        horizon: true,
         formats: [
             { kind: 'print', label: 'Печать / PDF', icon: 'bi-printer' },
             { kind: 'xlsx', label: 'Excel', icon: 'bi-file-earmark-excel', path: '/reports/fleet.xlsx', file: 'fleet.xlsx' }
+        ]
+    },
+    {
+        id: 'cards',
+        title: 'Карточки учёта (форма А.1)',
+        icon: 'bi-card-list',
+        color: 'blue',
+        description: 'Карточка учёта на каждый огнетушитель по форме А.1 ГОСТ Р 59641-2021, по одной на странице. '
+            + 'Списанные не включаются. Карточку одного огнетушителя можно напечатать из его истории.',
+        period: false,
+        formats: [
+            { kind: 'print', label: 'Печать / PDF', icon: 'bi-printer' },
+            { kind: 'xlsx', label: 'Excel', icon: 'bi-file-earmark-excel', path: '/reports/cards.xlsx', file: 'cards.xlsx' }
         ]
     }
 ];
@@ -71,7 +85,7 @@ function loadReportsPage() {
 
         <div class="row g-4">
             ${REPORTS.map((r, idx) => `
-                <div class="col-xl-4 col-lg-6">
+                <div class="col-xxl-3 col-lg-6">
                     <div class="section-card report-card h-100 animate-fadeInUp stagger-${idx + 1}">
                         <div class="card-header">
                             <i class="bi ${r.icon}"></i> ${esc(r.title)}
@@ -95,12 +109,12 @@ function loadReportsPage() {
                                         <button type="button" class="btn btn-sm btn-outline-primary" onclick="applyPreset('${r.id}', '${key}')">${label}</button>
                                     `).join('')}
                                 </div>
-                            ` : `
+                            ` : r.horizon ? `
                                 <div class="mb-3">
                                     <label class="form-label">Ближайшие проверки на, дней</label>
                                     <input type="number" class="form-control" id="${r.id}_days" value="30" min="1" max="365">
                                 </div>
-                            `}
+                            ` : ''}
                             <div class="d-flex flex-wrap gap-2 mt-auto">
                                 ${r.formats.map(f => `
                                     <button class="btn ${f.kind === 'print' ? 'btn-primary' : 'btn-secondary'}"
@@ -146,7 +160,7 @@ function reportParams(report) {
         }
         return params;
     }
-    return { days: document.getElementById(`${report.id}_days`).value || 30 };
+    return report.horizon ? { days: document.getElementById(`${report.id}_days`).value || 30 } : {};
 }
 
 async function runReport(reportId, kind) {

@@ -2,7 +2,8 @@
 """Тесты миграций: старая база без alembic_version, новая база, резервная копия."""
 import sqlite3
 
-from sqlalchemy import create_engine, inspect
+from alembic import command
+from sqlalchemy import create_engine, inspect, text
 
 import migrate
 
@@ -52,10 +53,11 @@ def test_legacy_database_is_stamped_and_upgraded(tmp_path, monkeypatch):
 
     engine = create_engine(f"sqlite:///{db_file}")
     head = migrate.upgrade_database(engine)
-    assert head == "0004_recharge_and_settings"
+    assert head == "0005_service_records"
 
     assert {"must_change_password", "token_version", "last_login_at"} <= _columns(engine, "Users")
-    assert {"last_recharge_date", "recharge_interval_months"} <= _columns(engine, "FireExtinguishers")
+    assert {"last_recharge_date", "recharge_interval_months", "serial_number"} <= _columns(engine, "FireExtinguishers")
+    assert {"annulled_at", "annul_reason"} <= _columns(engine, "Inspections")
     assert "AuditLog" in inspect(engine).get_table_names()
 
     con = sqlite3.connect(db_file)
@@ -79,4 +81,28 @@ def test_fresh_database_created_by_migrations(tmp_path, monkeypatch):
     tables = set(inspect(engine).get_table_names())
     assert {"Users", "FireExtinguishers", "AuditLog", "Settings", "alembic_version"} <= tables
     assert not (tmp_path / "backups").exists()  # копировать было нечего
+    engine.dispose()
+
+
+def test_recharge_dates_moved_to_history(tmp_path, monkeypatch):
+    """Дата перезарядки из карточки (V4) при обновлении становится записью истории."""
+    monkeypatch.setattr(migrate, "BACKUP_DIR", tmp_path / "backups")
+    db_file = tmp_path / "v4.db"
+    con = sqlite3.connect(db_file)
+    con.executescript(LEGACY_SCHEMA)
+    con.close()
+
+    engine = create_engine(f"sqlite:///{db_file}")
+    config = migrate._alembic_config()
+    with engine.begin() as conn:
+        config.attributes["connection"] = conn
+        command.stamp(config, migrate.BASELINE_REVISION)
+        command.upgrade(config, "0004_recharge_and_settings")
+        conn.execute(text("""UPDATE "FireExtinguishers" SET last_recharge_date = '2025-03-01'"""))
+
+    migrate.upgrade_database(engine)
+    con = sqlite3.connect(db_file)
+    rows = con.execute('SELECT fire_extinguisher_id, service_date, recharged FROM "ServiceRecords"').fetchall()
+    con.close()
+    assert rows == [(1, "2025-03-01", 1)]
     engine.dispose()

@@ -272,8 +272,8 @@ function renderRecharge(rows) {
                             <td>${esc(item.location)}</td>
                             <td>${renderDeadlineBadge(item.next_recharge, item.days_left, item.state)}</td>
                             <td class="requires-edit">
-                                <button class="btn btn-sm btn-warning" title="Отметить перезарядку"
-                                        onclick="showRechargeModal(${Number(item.extinguisher_id)}, loadDashboard)">
+                                <button class="btn btn-sm btn-warning" title="Записать перезарядку или испытание"
+                                        onclick="showServiceModal(${Number(item.extinguisher_id)}, loadDashboard)">
                                     <i class="bi bi-arrow-repeat"></i>
                                 </button>
                             </td>

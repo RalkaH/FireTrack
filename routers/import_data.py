@@ -1,4 +1,4 @@
-# import_data.py (v1.3)
+# import_data.py (v1.4)
 """
 Модуль для импорта данных в систему из CSV-файлов.
 Предоставляет эндпоинты для массовой загрузки местоположений,
@@ -25,9 +25,11 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 import audit
+from app_settings import get_settings
 from auth import EDITOR_ROLES, get_current_active_user, require_role
 from db import get_db
 from models import Location, Employee, FireExtinguisher, Inspection, Status, User
+from service_logic import initial_recharge_record
 from status_logic import STATUS_ACTUAL, STATUS_DECOMMISSIONED, recalculate_statuses
 
 
@@ -283,7 +285,7 @@ async def import_extinguishers(
 
     Связывает огнетушители с существующими локациями и статусами по их названиям.
     Формат колонок: inventory_number;type;capacity;manufacturer;manufacture_date;commissioning_date;location_name;status_name
-    Необязательные колонки сроков: last_recharge_date;recharge_interval_months;service_life_years
+    Необязательные колонки: serial_number;last_recharge_date;recharge_interval_months;service_life_years
 
     Args:
         file (UploadFile): Файл формата CSV.
@@ -299,6 +301,7 @@ async def import_extinguishers(
     existing_numbers = {n for (n,) in db.query(FireExtinguisher.inventory_number).all()}
     locations = {loc.name: loc.id for loc in db.query(Location).all()}
     statuses = {st.name: st.id for st in db.query(Status).all()}
+    settings = get_settings(db)
     today = date.today()
 
     created: List[str] = []
@@ -335,7 +338,7 @@ async def import_extinguishers(
                     raise RowError(f"дата в поле '{column}' не может быть из будущего")
 
             now = datetime.now(timezone.utc)
-            db.add(FireExtinguisher(
+            extinguisher = FireExtinguisher(
                 inventory_number=number,
                 type=_required(row, "type"),
                 capacity=capacity,
@@ -345,11 +348,16 @@ async def import_extinguishers(
                 last_recharge_date=last_recharge_date,
                 recharge_interval_months=recharge_interval,
                 service_life_years=service_life,
+                serial_number=_cell(row, "serial_number") or None,
                 location_id=locations[location_name],
                 status_id=statuses[status_name],
                 created_at=now,
                 updated_at=now,
-            ))
+            )
+            db.add(extinguisher)
+            if last_recharge_date is not None:
+                db.add(initial_recharge_record(extinguisher, settings, last_recharge_date,
+                                               current_user.username))
             existing_numbers.add(number)
             created.append(number)
         except RowError as e:
@@ -495,16 +503,16 @@ def download_extinguishers_template():
     """
     csv_content = (
         "inventory_number;type;capacity;manufacturer;manufacture_date;"
-        "commissioning_date;location_name;status_name;"
+        "commissioning_date;location_name;status_name;serial_number;"
         "last_recharge_date;recharge_interval_months;service_life_years\n"
     )
     csv_content += (
         "ОУ-001;ОУ-8;8.0;ПожТехника;2023-05-15;2023-06-01;"
-        "Кабинет 101;Актуально;;;\n"
+        "Кабинет 101;Актуально;;;;\n"
     )
     csv_content += (
         "ОП-002;ОП-5;5.0;ТПКН;2024-01-10;2024-02-01;"
-        "Коридор 2 этаж;Актуально;2025-03-01;60;10\n"
+        "Коридор 2 этаж;Актуально;12345;2025-03-01;60;10\n"
     )
 
     return _csv_response(csv_content, "extinguishers_template.csv")

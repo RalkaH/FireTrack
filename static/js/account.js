@@ -38,17 +38,26 @@ function showChangePasswordModal(forced = false) {
         <form id="changePasswordForm" autocomplete="off">
             <div class="mb-3">
                 <label class="form-label">Текущий пароль *</label>
-                <input type="password" class="form-control" name="old_password" required autocomplete="current-password">
+                <div class="password-field">
+                    <input type="password" class="form-control" name="old_password" required autocomplete="current-password">
+                    ${passwordToggle()}
+                </div>
             </div>
             <div class="mb-3">
                 <label class="form-label">Новый пароль *</label>
-                <input type="password" class="form-control" name="new_password" id="newPasswordInput"
-                       required minlength="${PASSWORD_MIN_LENGTH}" autocomplete="new-password">
+                <div class="password-field">
+                    <input type="password" class="form-control" name="new_password" id="newPasswordInput"
+                           required minlength="${PASSWORD_MIN_LENGTH}" autocomplete="new-password">
+                    ${passwordToggle()}
+                </div>
                 <small class="text-muted" id="passwordHint">Не короче ${PASSWORD_MIN_LENGTH} символов, не совпадает с логином.</small>
             </div>
             <div class="mb-3">
                 <label class="form-label">Повторите новый пароль *</label>
-                <input type="password" class="form-control" name="repeat_password" required autocomplete="new-password">
+                <div class="password-field">
+                    <input type="password" class="form-control" name="repeat_password" required autocomplete="new-password">
+                    ${passwordToggle()}
+                </div>
             </div>
             <p class="text-muted small mb-3">
                 <i class="bi bi-info-circle"></i>

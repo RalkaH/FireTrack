@@ -83,24 +83,26 @@ def test_overdue_recharge_needs_service(client, headers, base_refs, make_extingu
     fe = client.get(f"/extinguishers/{ext['id']}", headers=headers).json()
     assert fe["status_id"] == status_id(client, headers, "Требует обслуживания")
 
-    # Отмечаем перезарядку: срок обновляется, статус возвращается в «Актуально»
-    resp = client.post(f"/extinguishers/{ext['id']}/recharge", headers=headers,
-                       json={"recharge_date": date.today().isoformat(), "comment": "акт №5"})
-    assert resp.status_code == 200, resp.text
-    body = resp.json()
+    # Записываем перезарядку: срок обновляется, статус возвращается в «Актуально»
+    resp = client.post("/service-records/", headers=headers, json={
+        "fire_extinguisher_id": ext["id"], "service_date": date.today().isoformat(),
+        "recharged": True, "comments": "акт №5"})
+    assert resp.status_code == 201, resp.text
+    body = client.get(f"/extinguishers/{ext['id']}", headers=headers).json()
     assert body["last_recharge_date"] == date.today().isoformat()
     assert body["recharge_state"] == "ok"
     assert body["status_id"] == status_id(client, headers, "Актуально")
 
     audit = client.get("/audit/", headers=headers,
-                       params={"entity_type": "extinguisher", "entity_id": ext["id"]}).json()
-    assert "акт №5" in audit["items"][0]["summary"]
+                       params={"entity_type": "service_record", "entity_id": resp.json()["id"]}).json()
+    assert audit["items"][0]["changes"]["comments"]["new"] == "акт №5"
 
 
 def test_recharge_future_date_rejected(client, headers, make_extinguisher):
     ext = make_extinguisher()
-    resp = client.post(f"/extinguishers/{ext['id']}/recharge", headers=headers,
-                       json={"recharge_date": (date.today() + timedelta(days=1)).isoformat()})
+    resp = client.post("/service-records/", headers=headers, json={
+        "fire_extinguisher_id": ext["id"], "recharged": True,
+        "service_date": (date.today() + timedelta(days=1)).isoformat()})
     assert resp.status_code == 422
 
 

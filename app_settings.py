@@ -1,4 +1,4 @@
-# app_settings.py (v1.0)
+# app_settings.py (v1.1)
 """
 Настройки приложения, которые админ меняет из интерфейса.
 
@@ -6,12 +6,16 @@
 используется значение по умолчанию из :data:`DEFAULTS`. Типы значений
 описаны в :data:`TYPES` и приводятся при чтении и проверяются при записи.
 
-Сроки перезарядки по умолчанию взяты из таблицы 1 СП 9.13130.2009
-(«не реже»): вода и пена 1 раз в год, порошок, углекислота и хладон
-1 раз в 5 лет. Срок службы 10 лет взят из п. 5.53 ГОСТ Р 51057-2001
-(«не менее 10 лет» для перезаряжаемого огнетушителя с металлическим
-корпусом). Если в паспорте огнетушителя указан другой срок, его задают
-в карточке огнетушителя.
+Значения по умолчанию взяты из ГОСТ Р 59641-2021 (с Изменением № 1):
+
+* перезарядка: таблица 1 («не реже»), вода и пена 1 раз в год, порошок,
+  углекислота и хладон 1 раз в 5 лет;
+* проверка: п. 5.1.1, ежегодная;
+* испытания: п. 5.1.9 и 5.1.11.2, один раз в пять лет.
+
+Срок службы 10 лет взят из п. 5.53 ГОСТ Р 51057-2001 («не менее 10 лет»
+для перезаряжаемого огнетушителя с металлическим корпусом). Если в паспорте
+огнетушителя указан другой срок, его задают в карточке огнетушителя.
 """
 from datetime import datetime, timezone
 from typing import Any, Dict
@@ -30,8 +34,11 @@ DEFAULTS: Dict[str, Any] = {
     "recharge_months_co2": 60,
     "recharge_months_halon": 60,
     "service_life_years": 10,
+    "inspection_interval_months": 12,
+    "test_interval_months": 60,
     "recharge_warning_days": 60,
     "recharge_overdue_needs_service": True,
+    "backup_keep_count": 14,
 }
 
 TYPES: Dict[str, type] = {key: type(value) for key, value in DEFAULTS.items()}
@@ -46,6 +53,9 @@ LABELS: Dict[str, str] = {
     "recharge_months_co2": "Перезарядка углекислотных (ОУ), месяцев",
     "recharge_months_halon": "Перезарядка хладоновых (ОХ), месяцев",
     "service_life_years": "Срок службы по умолчанию, лет",
+    "inspection_interval_months": "Следующая проверка через, месяцев",
+    "test_interval_months": "Испытания через, месяцев",
+    "backup_keep_count": "Хранить автокопий базы, штук",
     "recharge_warning_days": "Предупреждать о перезарядке за, дней",
     "recharge_overdue_needs_service": "Просроченная перезарядка ставит «Требует обслуживания»",
 }
@@ -58,6 +68,9 @@ LIMITS: Dict[str, tuple] = {
     "recharge_months_co2": (1, 240),
     "recharge_months_halon": (1, 240),
     "service_life_years": (1, 50),
+    "inspection_interval_months": (1, 60),
+    "test_interval_months": (1, 240),
+    "backup_keep_count": (1, 365),
     "recharge_warning_days": (1, 365),
 }
 

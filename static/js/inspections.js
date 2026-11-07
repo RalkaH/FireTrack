@@ -16,7 +16,7 @@ async function loadInspections() {
 
     try {
         [allInspections, allExtinguishers, allEmployees, locations, statuses] = await Promise.all([
-            API.getJournal(),
+            API.getJournal({ include_annulled: true }),
             API.getExtinguishers(),
             API.getEmployees(),
             API.getLocations(),
@@ -75,16 +75,16 @@ function renderInspectionsPage() {
         <!-- Stats -->
         <div class="d-flex gap-3 mb-3 flex-wrap">
             <span class="badge" style="background: rgba(59,130,246,0.1); color: #3B82F6;">
-                <i class="bi bi-clipboard-check me-1"></i> Всего: ${allInspections.length}
+                <i class="bi bi-clipboard-check me-1"></i> Всего: ${allInspections.filter(i => !i.annulled_at).length}
             </span>
             <span class="badge" style="background: rgba(16,185,129,0.1); color: #10B981;">
-                <i class="bi bi-check-circle me-1"></i> Исправен: ${allInspections.filter(i => i.visual_inspection === 'Исправен').length}
+                <i class="bi bi-check-circle me-1"></i> Исправен: ${allInspections.filter(i => !i.annulled_at && i.visual_inspection === 'Исправен').length}
             </span>
             <span class="badge" style="background: rgba(245,158,11,0.1); color: #D97706;">
-                <i class="bi bi-exclamation-circle me-1"></i> Требует внимания: ${allInspections.filter(i => i.visual_inspection === 'Требует внимания').length}
+                <i class="bi bi-exclamation-circle me-1"></i> Требует внимания: ${allInspections.filter(i => !i.annulled_at && i.visual_inspection === 'Требует внимания').length}
             </span>
             <span class="badge" style="background: rgba(239,68,68,0.1); color: #EF4444;">
-                <i class="bi bi-x-circle me-1"></i> Неисправен: ${allInspections.filter(i => i.visual_inspection === 'Неисправен').length}
+                <i class="bi bi-x-circle me-1"></i> Неисправен: ${allInspections.filter(i => !i.annulled_at && i.visual_inspection === 'Неисправен').length}
             </span>
         </div>
 
@@ -127,6 +127,7 @@ function renderInspectionsTable(inspections) {
                         <th>Шланг</th>
                         <th>След. проверка</th>
                         <th>Комментарий</th>
+                        <th class="requires-admin" style="width: 90px;"></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -136,8 +137,11 @@ function renderInspectionsTable(inspections) {
         const location = extinguisher ? locations.find(l => l.id === extinguisher.location_id) : null;
 
         return `
-                            <tr style="animation: fadeInUp 0.2s ease-out ${Math.min(idx * 0.02, 0.5)}s both;">
-                                <td><strong>${formatDate(insp.inspection_date)}</strong></td>
+                            <tr class="${insp.annulled_at ? 'row-annulled' : ''}" style="animation: fadeInUp 0.2s ease-out ${Math.min(idx * 0.02, 0.5)}s both;">
+                                <td>
+                                    <strong>${formatDate(insp.inspection_date)}</strong>
+                                    ${insp.annulled_at ? `<span class="annul-note" title="${esc(insp.annulled_by)}, ${esc(formatUtcDateTime(insp.annulled_at))}">Аннулирована: ${esc(insp.annul_reason)}</span>` : ''}
+                                </td>
                                 <td>
                                     ${extinguisher ? `
                                         <div><strong>${esc(extinguisher.inventory_number)}</strong></div>
@@ -195,6 +199,16 @@ function renderInspectionsTable(inspections) {
                                         <small class="text-muted" title="${esc(insp.comments)}">${esc(insp.comments.length > 30 ? insp.comments.substring(0, 30) + '...' : insp.comments)}</small>
                                     ` : '<span class="text-muted">-</span>'}
                                 </td>
+                                <td class="requires-admin">
+                                    <div class="table-actions">
+                                        ${insp.annulled_at ? `
+                                            <button class="btn btn-sm btn-success" title="Восстановить" onclick="restoreInspection(${insp.id})"><i class="bi bi-arrow-counterclockwise"></i></button>
+                                        ` : `
+                                            <button class="btn btn-sm btn-primary" title="Исправить" onclick="showEditInspectionModal(${insp.id})"><i class="bi bi-pencil"></i></button>
+                                            <button class="btn btn-sm btn-danger" title="Аннулировать" onclick="annulInspection(${insp.id})"><i class="bi bi-x-octagon"></i></button>
+                                        `}
+                                    </div>
+                                </td>
                             </tr>
                         `;
     }).join('')}
@@ -246,7 +260,7 @@ async function filterInspections() {
     const dateFrom = document.getElementById('dateFrom').value;
     const dateTo = document.getElementById('dateTo').value;
 
-    const filters = {};
+    const filters = { include_annulled: true };
     if (dateFrom) filters.date_from = dateFrom;
     if (dateTo) filters.date_to = dateTo;
 
@@ -262,7 +276,7 @@ async function resetInspectionFilters() {
     document.getElementById('dateFrom').value = '';
     document.getElementById('dateTo').value = '';
     try {
-        allInspections = await API.getJournal();
+        allInspections = await API.getJournal({ include_annulled: true });
         document.getElementById('inspectionsTable').innerHTML = renderInspectionsTable(allInspections);
     } catch (error) {
         showAlert('Ошибка загрузки журнала: ' + error.message, 'danger');
@@ -270,7 +284,14 @@ async function resetInspectionFilters() {
 }
 
 // onSuccess — что сделать после сохранения (по умолчанию обновить журнал)
-function showAddInspectionModal(onSuccess = loadInspections) {
+async function showAddInspectionModal(onSuccess = loadInspections) {
+    let intervalMonths = 12;
+    try {
+        intervalMonths = (await loadAppSettings()).inspection_interval_months;
+    } catch (error) {
+        showAlert('Не удалось загрузить настройки: ' + error.message, 'warning');
+    }
+
     if (allExtinguishers.length === 0) {
         showAlert('Сначала добавьте огнетушители', 'warning');
         return;
@@ -289,7 +310,7 @@ function showAddInspectionModal(onSuccess = loadInspections) {
     const activeExtinguishers = allExtinguishers.filter(ext => !decommissioned || ext.status_id !== decommissioned.id);
 
     const today = todayISO();
-    const nextInspectionDate = addMonthsISO(today, 6);
+    const nextInspectionDate = addMonthsISO(today, intervalMonths);
 
     document.getElementById('modalBody').innerHTML = `
         <form id="inspectionForm">
@@ -382,7 +403,7 @@ function showAddInspectionModal(onSuccess = loadInspections) {
                 <label class="form-label">Дата следующей проверки</label>
                 <input type="date" class="form-control" name="next_inspection_date" id="nextInspectionInput"
                        value="${nextInspectionDate}" min="${today}">
-                <small class="text-muted">По умолчанию через 6 месяцев после проверки. Если оставить пустым, сервер рассчитает сам.</small>
+                <small class="text-muted">По умолчанию через ${intervalMonths} мес. (меняется в настройках). Если оставить пустым, сервер рассчитает сам.</small>
             </div>
 
             <div class="mb-3">
@@ -408,7 +429,7 @@ function showAddInspectionModal(onSuccess = loadInspections) {
     inspectionInput.addEventListener('change', () => {
         if (!inspectionInput.value) return;
         nextInput.min = inspectionInput.value;
-        if (!nextEditedManually) nextInput.value = addMonthsISO(inspectionInput.value, 6);
+        if (!nextEditedManually) nextInput.value = addMonthsISO(inspectionInput.value, intervalMonths);
     });
 
     document.getElementById('inspectionForm').addEventListener('submit', async (e) => {
@@ -436,5 +457,162 @@ function showAddInspectionModal(onSuccess = loadInspections) {
         }
     });
 
+    modal.show();
+}
+
+// Форма с обязательной причиной. action(reason) выполняет действие, after вызывается
+// после закрытия окна: Bootstrap игнорирует show(), пока окно закрывается
+function showReasonModal(title, text, buttonLabel, action, after) {
+    const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('formModal'));
+    document.getElementById('modalTitle').textContent = title;
+    document.getElementById('modalBody').innerHTML = `
+        <form id="reasonForm" autocomplete="off">
+            <p>${esc(text)}</p>
+            <div class="mb-3">
+                <label class="form-label">Причина *</label>
+                <input type="text" class="form-control" name="reason" minlength="3" maxlength="300" required>
+            </div>
+            <div class="text-end">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="submit" class="btn btn-danger">${esc(buttonLabel)}</button>
+            </div>
+        </form>
+    `;
+    document.getElementById('reasonForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const reason = new FormData(e.target).get('reason').trim();
+        try {
+            await action(reason);
+            document.getElementById('formModal').addEventListener('hidden.bs.modal', after, { once: true });
+            modal.hide();
+        } catch (error) {
+            showAlert('Ошибка: ' + error.message, 'danger');
+        }
+    });
+    modal.show();
+}
+
+function annulInspection(id) {
+    showReasonModal('Аннулировать проверку',
+        'Проверка останется в истории, но перестанет участвовать в статусах и отчётах. Статус огнетушителя пересчитается.',
+        'Аннулировать', async (reason) => {
+            await API.annulInspection(id, reason);
+            showAlert('Проверка аннулирована', 'success');
+        }, loadInspections);
+}
+
+function restoreInspection(id) {
+    showReasonModal('Восстановить проверку',
+        'Проверка снова будет участвовать в статусах и отчётах.',
+        'Восстановить', async (reason) => {
+            await API.restoreInspection(id, reason);
+            showAlert('Проверка восстановлена', 'success');
+        }, loadInspections);
+}
+
+// Варианты списка с сохранением значения, которого нет среди стандартных
+function conditionOptions(values, current) {
+    const list = current && !values.includes(current) ? [...values, current] : values;
+    return `<option value="">Не указано</option>` + list.map(v =>
+        `<option value="${esc(v)}" ${v === current ? 'selected' : ''}>${esc(v)}</option>`).join('');
+}
+
+function showEditInspectionModal(id) {
+    const insp = allInspections.find(i => i.id === id);
+    if (!insp) return;
+    const today = todayISO();
+    const extinguisher = allExtinguishers.find(e => e.id === insp.fire_extinguisher_id);
+    const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('formModal'));
+    document.getElementById('modalTitle').textContent =
+        `Исправить проверку${extinguisher ? ': ' + extinguisher.inventory_number : ''}`;
+    document.getElementById('modalBody').innerHTML = `
+        <form id="editInspectionForm" autocomplete="off">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Дата проверки *</label>
+                    <input type="date" class="form-control" name="inspection_date" value="${esc(insp.inspection_date)}" max="${today}" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Дата следующей проверки *</label>
+                    <input type="date" class="form-control" name="next_inspection_date" value="${esc(insp.next_inspection_date)}" required>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Проверяющий *</label>
+                <select class="form-select" name="employee_id" required>
+                    ${allEmployees.map(emp => `
+                        <option value="${emp.id}" ${emp.id === insp.employee_id ? 'selected' : ''}>
+                            ${esc(emp.full_name)} — ${esc(emp.position)}
+                        </option>
+                    `).join('')}
+                </select>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Давление (МПа)</label>
+                    <input type="number" class="form-control" name="pressure" step="0.1" min="0" value="${esc(insp.pressure)}">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Вес (кг)</label>
+                    <input type="number" class="form-control" name="weight" step="0.1" min="0" value="${esc(insp.weight)}">
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Визуальный осмотр</label>
+                    <select class="form-select" name="visual_inspection">${conditionOptions(['Исправен', 'Требует внимания', 'Неисправен'], insp.visual_inspection)}</select>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Состояние пломбы</label>
+                    <select class="form-select" name="seal_condition">${conditionOptions(['Цела', 'Повреждена', 'Отсутствует'], insp.seal_condition)}</select>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Состояние чеки</label>
+                    <select class="form-select" name="safety_pin_condition">${conditionOptions(['Исправна', 'Повреждена', 'Отсутствует'], insp.safety_pin_condition)}</select>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Состояние шланга</label>
+                    <select class="form-select" name="hose_condition">${conditionOptions(['Исправен', 'Поврежден', 'Отсутствует'], insp.hose_condition)}</select>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Комментарии</label>
+                <textarea class="form-control" name="comments" rows="2">${esc(insp.comments)}</textarea>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Причина исправления *</label>
+                <input type="text" class="form-control" name="reason" minlength="3" maxlength="300" required>
+            </div>
+            <div class="text-end">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> Сохранить</button>
+            </div>
+        </form>
+    `;
+    document.getElementById('editInspectionForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const raw = Object.fromEntries(new FormData(e.target));
+        const data = {
+            reason: raw.reason.trim(),
+            inspection_date: raw.inspection_date,
+            next_inspection_date: raw.next_inspection_date,
+            employee_id: parseInt(raw.employee_id, 10),
+            pressure: raw.pressure === '' ? null : parseFloat(raw.pressure),
+            weight: raw.weight === '' ? null : parseFloat(raw.weight),
+            visual_inspection: raw.visual_inspection || null,
+            seal_condition: raw.seal_condition || null,
+            safety_pin_condition: raw.safety_pin_condition || null,
+            hose_condition: raw.hose_condition || null,
+            comments: raw.comments.trim() || null
+        };
+        try {
+            await API.updateInspection(id, data);
+            showAlert('Проверка исправлена', 'success');
+            modal.hide();
+            loadInspections();
+        } catch (error) {
+            showAlert('Ошибка: ' + error.message, 'danger');
+        }
+    });
     modal.show();
 }

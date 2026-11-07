@@ -1,4 +1,4 @@
-# setup.py (v1.2)
+# setup.py (v1.3)
 """
 Конфигурационный файл системы сборки (Setuptools).
 Позволяет упаковать проект FireTrack как стандартный Python-пакет,
@@ -11,7 +11,7 @@ from setuptools import setup, find_packages
 
 PACKAGE_INFO = dict(
     name="firetrack",
-    version="1.4.0",
+    version="1.5.0",
     packages=find_packages(exclude=["tests", "tests.*", "docs", "migrations"]),
     include_package_data=True,
     install_requires=[

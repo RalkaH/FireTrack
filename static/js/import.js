@@ -66,7 +66,7 @@ async function loadImportPage() {
                         </div>
                         <div class="alert alert-warning alert-sm mb-3">
                             <i class="bi bi-exclamation-triangle"></i>
-                            <small>Перед импортом огнетушителей добавьте места и статусы.</small>
+                            <small>Перед импортом огнетушителей добавьте места. Необязательные колонки: serial_number, last_recharge_date, recharge_interval_months, service_life_years.</small>
                         </div>
                         <textarea id="extinguishersText" class="form-control" rows="6"
                                   placeholder="inventory_number;type;...;status_name&#10;ОУ-001;ОУ-5;5.0;..."></textarea>
@@ -116,7 +116,7 @@ async function loadImportPage() {
                             <div style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #6B7280, #4B5563); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 0.85rem; flex-shrink: 0;">1</div>
                             <div>
                                 <strong style="font-size: 0.9rem;">Статусы</strong>
-                                <p class="text-muted mb-0" style="font-size: 0.8rem;">Инициализируйте через Swagger (POST /statuses/init-defaults)</p>
+                                <p class="text-muted mb-0" style="font-size: 0.8rem;">Создаются автоматически, ничего делать не нужно</p>
                             </div>
                         </div>
                     </div>
@@ -143,7 +143,7 @@ async function loadImportPage() {
                             <div style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #F97316, #EF4444); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 0.85rem; flex-shrink: 0;">4</div>
                             <div>
                                 <strong style="font-size: 0.9rem;">Огнетушители</strong>
-                                <p class="text-muted mb-0" style="font-size: 0.8rem;">Требуются уже добавленные места и статусы</p>
+                                <p class="text-muted mb-0" style="font-size: 0.8rem;">Требуются уже добавленные места</p>
                             </div>
                         </div>
                     </div>

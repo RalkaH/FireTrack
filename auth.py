@@ -1,4 +1,4 @@
-# auth.py (v1.4)
+# auth.py (v1.5)
 """
 Модуль аутентификации и авторизации пользователей.
 Обеспечивает хеширование паролей, генерацию и проверку токенов JWT,
@@ -136,7 +136,13 @@ class LoginThrottle:
         key = (username.lower(), ip)
         now = time.monotonic()
         with self._lock:
+            if key not in self._failures:
+                return 0
             attempts = self._trim(key, now)
+            if not attempts:
+                # Старые попытки вышли из окна: не копим в памяти произвольные логины
+                del self._failures[key]
+                return 0
             if len(attempts) < self.max_failures:
                 return 0
             return max(1, int(self.window - (now - attempts[0])))
@@ -396,7 +402,8 @@ async def login_for_access_token(
         dict: Токен доступа, его тип, время жизни в секундах и флаг
         обязательной смены пароля.
     """
-    username = form_data.username.strip()
+    # Логин приходит от кого угодно: длину в журнале и счетчике попыток ограничиваем
+    username = form_data.username.strip()[:150]
     ip = request.client.host if request.client else "unknown"
 
     wait = login_throttle.retry_after(username, ip)

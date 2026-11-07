@@ -1,4 +1,4 @@
-# report_data.py (v1.0)
+# report_data.py (v1.1)
 """
 Данные для отчетов.
 
@@ -9,10 +9,15 @@
 Отчеты:
 
 1. :func:`journal_rows` — журнал проверок за период.
-2. :func:`maintenance_rows` — журнал технического обслуживания огнетушителей
-   по рекомендуемой форме Г.2 приложения Г СП 9.13130.2009.
-3. :func:`fleet_summary` — состояние парка: сводка по статусам и местам,
-   проблемные огнетушители, ближайшие проверки, перезарядки и сроки службы.
+2. :func:`maintenance_rows` — записи о техническом обслуживании и ремонте для
+   Журнала эксплуатации систем противопожарной защиты по форме А.2
+   приложения А ГОСТ Р 59641-2021.
+3. :func:`card_rows` — карточки учета огнетушителей по форме А.1.
+4. :func:`fleet_summary` — состояние парка: сводка по статусам и местам,
+   проблемные огнетушители, ближайшие проверки, перезарядки, испытания
+   и сроки службы.
+
+Аннулированные проверки в отчеты не попадают.
 """
 from datetime import date, timedelta
 from typing import Any, Dict, List, Optional
@@ -21,7 +26,7 @@ from sqlalchemy.orm import Session
 
 from app_settings import get_settings
 from deadlines import STATE_OVERDUE, STATE_SOON, compute_deadlines
-from models import Employee, FireExtinguisher, Inspection, Location, Status
+from models import Employee, FireExtinguisher, Inspection, Location, ServiceRecord, Status
 from status_logic import (
     DEFECT_VALUES,
     STATUS_DECOMMISSIONED,
@@ -59,6 +64,7 @@ def _journal_query(db: Session, date_from: Optional[date], date_to: Optional[dat
         .join(FireExtinguisher, Inspection.fire_extinguisher_id == FireExtinguisher.id)
         .join(Location, FireExtinguisher.location_id == Location.id)
         .join(Employee, Inspection.employee_id == Employee.id)
+        .filter(Inspection.annulled_at.is_(None))
     )
     if date_from is not None:
         query = query.filter(Inspection.inspection_date >= date_from)
@@ -112,21 +118,44 @@ def journal_rows(db: Session, date_from: Optional[date], date_to: Optional[date]
     return rows
 
 
+def _inspection_result(insp: Inspection) -> str:
+    """Результаты осмотра одной строкой для графы журнала."""
+    parts = []
+    for label, value in (("внешний осмотр", insp.visual_inspection), ("пломба", insp.seal_condition),
+                         ("чека", insp.safety_pin_condition), ("шланг", insp.hose_condition)):
+        if value:
+            parts.append(f"{label}: {value.strip().lower()}")
+    if insp.pressure is not None:
+        parts.append(f"давление {insp.pressure:g} МПа")
+    if insp.weight is not None:
+        parts.append(f"масса {insp.weight:g} кг")
+    if insp.comments:
+        parts.append(insp.comments.strip())
+    return "; ".join(parts) or "Замечаний нет"
+
+
+def _work_text(record: ServiceRecord) -> str:
+    """Дата, виды работ и организация для графы журнала."""
+    works = [name for flag, name in ((record.tested, "испытание"), (record.recharged, "перезарядка"),
+                                     (record.repaired, "ремонт")) if flag]
+    text = f"{record.service_date:%d.%m.%Y}, {', '.join(works)}"
+    return f"{text}; {record.organization}" if record.organization else text
+
+
 def maintenance_rows(db: Session, date_from: Optional[date], date_to: Optional[date]) -> List[Dict[str, Any]]:
     """
-    Журнал ТО огнетушителей по форме Г.2 СП 9.13130.2009.
+    Записи журнала по форме А.2 приложения А ГОСТ Р 59641-2021.
 
-    Колонки формы: «№ и марка огнетушителя», «Техническое обслуживание
-    (вид и дата)» с подколонками «Проверка узлов огнетушителя», «Проверка
-    качества ОТВ», «Проверка индикатора давления», «Перезарядка
-    огнетушителя», «Испытание узлов огнетушителя», затем «Замечания
-    о техническом состоянии», «Принятые меры» и «Должность, фамилия,
-    инициалы и подпись ответственного лица».
+    Графы формы: номер и марка огнетушителя; дата проведения испытания,
+    перезарядки, ремонта и организация; результаты осмотра и испытания на
+    прочность; срок следующего планового испытания; дата проведения
+    перезарядки; марка (концентрация) заряженного ОТВ; результат осмотра
+    после перезарядки; дата следующей плановой перезарядки; должность,
+    фамилия, инициалы и подпись ответственного лица.
 
-    Каждая проверка из журнала дает строку: осмотр узлов (дата), масса
-    в колонке качества ОТВ, давление в колонке индикатора. Перезарядки
-    за период добавляются отдельными строками по дате последней
-    перезарядки. «Принятые меры» и подпись заполняются от руки.
+    По п. 5.1.1 стандарта ТО включает проверку, испытания и перезарядку,
+    поэтому в журнал попадают и проверки, и записи об испытаниях,
+    перезарядке и ремонте. Подпись ставится от руки.
 
     Args:
         db (Session): Сессия базы данных.
@@ -138,44 +167,86 @@ def maintenance_rows(db: Session, date_from: Optional[date], date_to: Optional[d
     """
     rows: List[Dict[str, Any]] = []
     for insp, fe, _loc, emp in _journal_query(db, date_from, date_to).all():
-        day = f"{insp.inspection_date:%d.%m.%Y}"
-        remarks = [r for r in (defects_text(insp), (insp.comments or "").strip()) if r]
         rows.append({
             "date": insp.inspection_date,
             "extinguisher": f"{fe.inventory_number}, {fe.type}",
-            "units_check": f"{day}, осмотр",
-            "agent_check": f"{day}, масса {insp.weight:g} кг" if insp.weight is not None else "",
-            "pressure_check": f"{day}, {insp.pressure:g} МПа" if insp.pressure is not None else "",
-            "recharge": "",
-            "units_test": "",
-            "remarks": "; ".join(remarks) or "Замечаний нет",
-            "measures": "",
+            "work": f"{insp.inspection_date:%d.%m.%Y}, проверка",
+            "test_result": _inspection_result(insp),
+            "next_test_date": None,
+            "recharge_date": None,
+            "agent_brand": "",
+            "post_recharge_result": "",
+            "next_recharge_date": None,
             "responsible": f"{emp.position}, {emp.full_name}",
         })
 
-    recharge_query = db.query(FireExtinguisher).filter(FireExtinguisher.last_recharge_date.isnot(None))
+    query = (
+        db.query(ServiceRecord, FireExtinguisher)
+        .join(FireExtinguisher, ServiceRecord.fire_extinguisher_id == FireExtinguisher.id)
+    )
     if date_from is not None:
-        recharge_query = recharge_query.filter(FireExtinguisher.last_recharge_date >= date_from)
+        query = query.filter(ServiceRecord.service_date >= date_from)
     if date_to is not None:
-        recharge_query = recharge_query.filter(FireExtinguisher.last_recharge_date <= date_to)
-    for fe in recharge_query.all():
+        query = query.filter(ServiceRecord.service_date <= date_to)
+    for record, fe in query.all():
         rows.append({
-            "date": fe.last_recharge_date,
+            "date": record.service_date,
             "extinguisher": f"{fe.inventory_number}, {fe.type}",
-            "units_check": "",
-            "agent_check": "",
-            "pressure_check": "",
-            "recharge": f"{fe.last_recharge_date:%d.%m.%Y}",
-            "units_test": "",
-            "remarks": "",
-            "measures": "",
-            "responsible": "",
+            "work": _work_text(record),
+            "test_result": record.test_result or "",
+            "next_test_date": record.next_test_date,
+            "recharge_date": record.service_date if record.recharged else None,
+            "agent_brand": record.agent_brand or "",
+            "post_recharge_result": record.post_recharge_result or "",
+            "next_recharge_date": record.next_recharge_date,
+            "responsible": record.responsible or "",
         })
 
     rows.sort(key=lambda r: (r["date"], r["extinguisher"]))
     for n, row in enumerate(rows, start=1):
         row["n"] = n
     return rows
+
+
+def card_rows(db: Session, extinguisher_id: Optional[int] = None) -> List[Dict[str, Any]]:
+    """
+    Карточки учета огнетушителей по форме А.1 приложения А ГОСТ Р 59641-2021.
+
+    Args:
+        db (Session): Сессия базы данных.
+        extinguisher_id (Optional[int]): Один огнетушитель. Если не указан,
+            карточки всех огнетушителей, кроме списанных.
+
+    Returns:
+        List[Dict[str, Any]]: Поля формы для каждого огнетушителя.
+    """
+    settings = get_settings(db)
+    query = (
+        db.query(FireExtinguisher, Location, Status)
+        .join(Location, FireExtinguisher.location_id == Location.id)
+        .join(Status, FireExtinguisher.status_id == Status.id)
+    )
+    if extinguisher_id is not None:
+        query = query.filter(FireExtinguisher.id == extinguisher_id)
+    else:
+        query = query.filter(Status.name != STATUS_DECOMMISSIONED)
+
+    cards = []
+    for fe, loc, _st in query.order_by(FireExtinguisher.inventory_number).all():
+        d = compute_deadlines(fe, settings)
+        cards.append({
+            "number": fe.inventory_number,
+            "placed_date": fe.commissioning_date,
+            "location": loc.name,
+            "type": fe.type,
+            "manufacturer": fe.manufacturer or "",
+            "serial_number": fe.serial_number or "",
+            "manufacture_date": fe.manufacture_date,
+            "next_recharge_date": d["next_recharge_date"],
+            "service_life_years": d["service_life_years"],
+            "service_end_date": d["service_end_date"],
+        })
+    return cards
 
 
 def fleet_summary(db: Session, today: Optional[date] = None, horizon_days: int = 30) -> Dict[str, Any]:
@@ -191,7 +262,8 @@ def fleet_summary(db: Session, today: Optional[date] = None, horizon_days: int =
         Dict[str, Any]: Сводка и списки:
         ``by_status``, ``by_location``, ``problems`` (просрочено и требует
         обслуживания), ``upcoming_inspections``, ``recharge`` (просрочено
-        и скоро), ``service_life`` (истек и скоро истекает).
+        и скоро), ``service_life`` (истек и скоро истекает), ``tests``
+        (испытания просрочены или скоро).
     """
     today = today or date.today()
     settings = get_settings(db)
@@ -207,7 +279,7 @@ def fleet_summary(db: Session, today: Optional[date] = None, horizon_days: int =
 
     by_status: Dict[str, int] = {}
     by_location: Dict[str, Dict[str, int]] = {}
-    problems, upcoming, recharge, service = [], [], [], []
+    problems, upcoming, recharge, service, tests = [], [], [], [], []
     horizon = today + timedelta(days=horizon_days)
 
     for fe, loc, st, last_date, next_date in rows:
@@ -234,10 +306,14 @@ def fleet_summary(db: Session, today: Optional[date] = None, horizon_days: int =
         if d["service_state"] in (STATE_OVERDUE, STATE_SOON):
             service.append({**base, "service_end": d["service_end_date"],
                             "days_left": d["service_days_left"], "state": d["service_state"]})
+        if d["test_state"] in (STATE_OVERDUE, STATE_SOON):
+            tests.append({**base, "next_test": d["next_test_date"],
+                          "days_left": (d["next_test_date"] - today).days, "state": d["test_state"]})
 
     upcoming.sort(key=lambda r: r["next_inspection"])
     recharge.sort(key=lambda r: r["next_recharge"])
     service.sort(key=lambda r: r["service_end"])
+    tests.sort(key=lambda r: r["next_test"])
     problems.sort(key=lambda r: (r["next_inspection"] or date.min, r["inventory_number"]))
 
     return {
@@ -251,4 +327,5 @@ def fleet_summary(db: Session, today: Optional[date] = None, horizon_days: int =
         "recharge": recharge,
         "recharge_warning_days": settings["recharge_warning_days"],
         "service_life": service,
+        "tests": tests,
     }

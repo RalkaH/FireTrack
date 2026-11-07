@@ -16,7 +16,10 @@ const AUDIT_ACTION_CLASS = {
     block: 'status-expired',
     unblock: 'status-actual',
     recalculate: 'status-decommissioned',
-    export: 'status-decommissioned'
+    export: 'status-decommissioned',
+    annul: 'status-maintenance',
+    restore: 'status-service',
+    backup: 'status-decommissioned'
 };
 
 // Подписи полей для блока «было и стало»
@@ -30,7 +33,12 @@ const AUDIT_FIELD_LABELS = {
     fire_extinguisher_id: 'Огнетушитель (ID)', inspection_date: 'Дата проверки', employee_id: 'Сотрудник (ID)',
     pressure: 'Давление', weight: 'Масса', visual_inspection: 'Осмотр', seal_condition: 'Пломба',
     safety_pin_condition: 'Чека', hose_condition: 'Шланг', comments: 'Комментарии',
-    next_inspection_date: 'Следующая проверка', created: 'Создано', errors: 'Ошибок', first_errors: 'Первые ошибки'
+    next_inspection_date: 'Следующая проверка', serial_number: 'Заводской номер',
+    last_test_date: 'Последнее испытание', service_date: 'Дата работ', tested: 'Испытание', recharged: 'Перезарядка',
+    repaired: 'Ремонт', organization: 'Организация', test_result: 'Результат испытания',
+    next_test_date: 'Следующее испытание', agent_brand: 'Марка ОТВ', post_recharge_result: 'Результат после перезарядки',
+    next_recharge_date: 'Следующая перезарядка', responsible: 'Ответственный',
+    created: 'Создано', errors: 'Ошибок', first_errors: 'Первые ошибки'
 };
 
 async function loadAuditPage() {

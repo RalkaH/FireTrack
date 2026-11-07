@@ -2,14 +2,16 @@
 <html lang="ru">
 <!--
   print.html — отчёты для печати и сохранения в PDF.
-  Параметры: ?report=journal|maintenance|fleet, date_from, date_to (журналы), days (состояние парка).
+  Параметры: ?report=journal|maintenance|fleet|cards, date_from, date_to (журналы),
+  days (состояние парка), extinguisher_id (одна карточка).
   Данные приходят из /reports/print/<report>; оформление рассчитано на A4 в альбомной ориентации.
 -->
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>FireTrack — печать отчёта</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <link rel="icon" href="/static/favicon.ico">
+  <link rel="stylesheet" href="/static/vendor/bootstrap-icons/bootstrap-icons.min.css">
   <style>
     :root {
       --ink: #111827;
@@ -72,6 +74,13 @@
     .signature { display: grid; grid-template-columns: 2fr 1fr 1.4fr; gap: 1rem; margin-top: 1.4rem; align-items: end; break-inside: avoid; }
     .signature .line { border-bottom: 0.6pt solid var(--ink); height: 1.2rem; }
     .signature small { display: block; color: var(--muted); font-size: 7.5pt; text-align: center; }
+    .sheet-portrait { max-width: 190mm; }
+    .card-page { break-after: page; padding-bottom: 1.5rem; }
+    .card-page:last-child { break-after: auto; }
+    .card-table { margin-top: 1rem; }
+    .card-table td { padding: 8px 10px; font-size: 11pt; height: 2.4rem; vertical-align: middle; }
+    .card-label { width: 52%; }
+    .card-value { font-weight: 600; }
     .loading, .error { text-align: center; padding: 3rem; color: var(--muted); }
     .error { color: #B91C1C; }
     @media print {
@@ -152,35 +161,61 @@
     }
 
     function renderMaintenance(data) {
-      const groupCols = [
-        ['units_check', 'Проверка узлов огнетушителя'], ['agent_check', 'Проверка качества ОТВ'],
-        ['pressure_check', 'Проверка индикатора давления'], ['recharge', 'Перезарядка огнетушителя'],
-        ['units_test', 'Испытание узлов огнетушителя'],
+      const cols = [
+        { key: 'n', title: '№ п/п', cls: 'num', width: '3%' },
+        { key: 'extinguisher', title: 'Номер и марка огнетушителя', width: '9%' },
+        { key: 'work', title: 'Дата проведения испытания, перезарядки, ремонта; организация, проводившая техобслуживание или ремонт', width: '15%' },
+        { key: 'test_result', title: 'Результаты осмотра и испытания на прочность', width: '18%' },
+        { title: 'Срок следующего планового испытания', cls: 'date', render: r => formatDate(r.next_test_date) },
+        { title: 'Дата проведения перезарядки огнетушителя', cls: 'date', render: r => formatDate(r.recharge_date) },
+        { key: 'agent_brand', title: 'Марка (концентрация) заряженного ОТВ' },
+        { key: 'post_recharge_result', title: 'Результат осмотра после перезарядки' },
+        { title: 'Дата следующей плановой перезарядки', cls: 'date', render: r => formatDate(r.next_recharge_date) },
+        { key: 'responsible', title: 'Должность, фамилия, инициалы и подпись ответственного лица', width: '15%' },
       ];
-      const rows = data.rows.length ? data.rows.map(r => `
-        <tr>
-          <td class="num">${r.n}</td><td>${val(r.extinguisher)}</td>
-          ${groupCols.map(([k]) => `<td>${val(r[k])}</td>`).join('')}
-          <td>${val(r.remarks)}</td><td>${val(r.measures)}</td><td>${val(r.responsible)}</td>
-        </tr>`).join('')
-        : `<tr><td class="empty" colspan="10">За выбранный период записей нет</td></tr>`;
-      return header(data.header, 'Журнал технического обслуживания огнетушителей',
-                    `Период: ${esc(data.period)} · форма Г.2 приложения Г СП 9.13130.2009 (рекомендуемая)`)
-        + `<table>
-            <thead>
-              <tr>
-                <th rowspan="2" style="width:3%">№ п/п</th>
-                <th rowspan="2" style="width:10%">№ и марка огнетушителя</th>
-                <th colspan="5">Техническое обслуживание (вид и дата)</th>
-                <th rowspan="2">Замечания о техническом состоянии</th>
-                <th rowspan="2" style="width:10%">Принятые меры</th>
-                <th rowspan="2" style="width:14%">Должность, фамилия, инициалы и подпись ответственного лица</th>
-              </tr>
-              <tr>${groupCols.map(([, t]) => `<th style="width:8%">${t}</th>`).join('')}</tr>
-            </thead>
-            <tbody>${rows}</tbody>
-          </table>`
+      return header(data.header, 'Журнал эксплуатации систем противопожарной защиты: техническое обслуживание и ремонт огнетушителей',
+                    `Период: ${esc(data.period)} · форма А.2 приложения А ГОСТ Р 59641-2021`)
+        + table(cols, data.rows, 'За выбранный период записей нет')
         + signature(data.header);
+    }
+
+    function renderCards(data) {
+      const style = document.createElement('style');
+      style.textContent = '@page { size: A4 portrait; margin: 15mm; }';
+      document.head.appendChild(style);
+      document.getElementById('sheet').classList.add('sheet-portrait');
+      if (data.cards.length === 0) return '<div class="loading">Нет огнетушителей</div>';
+
+      const h = data.header;
+      const responsible = [h.responsible_position, h.responsible_name].filter(Boolean).map(esc).join(', ');
+      return data.cards.map(c => {
+        let life = '';
+        if (c.service_life_years) {
+          life = `${c.service_life_years} лет`;
+          if (c.service_end_date) life += ` (до ${formatDate(c.service_end_date)})`;
+        }
+        const fields = [
+          ['1. Номер, присвоенный огнетушителю', esc(c.number)],
+          ['2. Дата размещения огнетушителя на объекте защиты', formatDate(c.placed_date)],
+          ['3. Место установки огнетушителя', esc(c.location)],
+          ['4. Тип и марка огнетушителя', esc(c.type)],
+          ['5. Завод-изготовитель огнетушителя', esc(c.manufacturer)],
+          ['6. Заводской номер', esc(c.serial_number)],
+          ['7. Дата изготовления огнетушителя', formatDate(c.manufacture_date)],
+          ['8. Дата очередной перезарядки огнетушителя', formatDate(c.next_recharge_date)],
+          ['9. Срок службы огнетушителя', esc(life)],
+          ['10. Ответственное лицо и его подпись', responsible],
+        ];
+        return `
+          <section class="card-page">
+            ${h.organization_name ? `<div class="org">${esc(h.organization_name)}</div>` : ''}
+            <h1>Карточка учёта огнетушителя № ${esc(c.number)}</h1>
+            <p class="subtitle">Форма А.1 приложения А ГОСТ Р 59641-2021</p>
+            <table class="card-table"><tbody>
+              ${fields.map(([label, value]) => `<tr><td class="card-label">${esc(label)}</td><td class="card-value">${value}</td></tr>`).join('')}
+            </tbody></table>
+          </section>`;
+      }).join('');
     }
 
     function renderFleet(data) {
@@ -212,6 +247,13 @@
             { title: 'Дата проверки', cls: 'date', render: r => formatDate(r.next_inspection) },
             { title: 'Осталось, дн.', cls: 'num', render: days },
           ], s.upcoming_inspections, 'Проверок в этот период нет')
+        + `<h2>Испытания раз в пять лет: просрочены или скоро (${s.tests.length})</h2>`
+        + table([
+            { key: 'inventory_number', title: 'Инв. номер' }, { key: 'type', title: 'Тип' },
+            { key: 'location', title: 'Место' },
+            { title: 'Срок испытания', cls: 'date', render: r => formatDate(r.next_test) },
+            { title: 'Осталось, дн.', cls: 'num', render: days },
+          ], s.tests, 'Испытания в ближайшее время не требуются', r => r.state === 'overdue' ? 'alert' : 'warn')
         + `<h2>Срок службы истёк или истекает (${s.service_life.length})</h2>`
         + table([
             { key: 'inventory_number', title: 'Инв. номер' }, { key: 'type', title: 'Тип' },
@@ -227,8 +269,8 @@
         + signature(data.header);
     }
 
-    const RENDERERS = { journal: renderJournal, maintenance: renderMaintenance, fleet: renderFleet };
-    const TITLES = { journal: 'Журнал проверок', maintenance: 'Журнал ТО (Г.2)', fleet: 'Состояние парка' };
+    const RENDERERS = { journal: renderJournal, maintenance: renderMaintenance, fleet: renderFleet, cards: renderCards };
+    const TITLES = { journal: 'Журнал проверок', maintenance: 'Журнал ТО и ремонта (А.2)', fleet: 'Состояние парка', cards: 'Карточки учёта (А.1)' };
 
     (async () => {
       const sheet = document.getElementById('sheet');
@@ -238,7 +280,7 @@
       }
       if (!getToken() || !isTokenValid()) { redirectToLogin('expired'); return; }
       const query = {};
-      for (const key of ['date_from', 'date_to', 'days']) if (params.get(key)) query[key] = params.get(key);
+      for (const key of ['date_from', 'date_to', 'days', 'extinguisher_id']) if (params.get(key)) query[key] = params.get(key);
       try {
         const data = await API.getPrintData(report, query);
         document.title = `${TITLES[report]} — FireTrack`;

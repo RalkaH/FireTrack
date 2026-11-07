@@ -1,4 +1,4 @@
-# routers/audit_log.py (v1.0)
+# routers/audit_log.py (v1.1)
 """
 Просмотр журнала действий (только для администратора).
 
@@ -21,6 +21,7 @@ from sqlalchemy.orm import Query as OrmQuery, Session
 import audit
 from auth import ROLE_ADMIN, get_current_active_user, require_role
 from db import get_db
+from export_utils import safe_cell
 from models import AuditLog, User
 from schemas import AuditPage
 
@@ -167,12 +168,12 @@ def export_audit_csv(
     writer.writerow(["ID", "Время (UTC)", "Пользователь", "ID пользователя", "Действие",
                      "Тип объекта", "ID объекта", "Описание", "Изменения", "IP", "User-Agent"])
     for e in rows:
-        writer.writerow([
+        writer.writerow([safe_cell(value) for value in (
             e.id, _utc_iso(e.created_at), e.username, e.user_id,
             audit.ACTION_LABELS.get(e.action, e.action),
             audit.ENTITY_LABELS.get(e.entity_type, e.entity_type), e.entity_id,
             e.summary, e.changes or "", e.ip, e.user_agent,
-        ])
+        )])
 
     audit.log(db, request, current_user, audit.ACTION_EXPORT,
               f"Выгрузка журнала действий в CSV ({len(rows)} записей)",

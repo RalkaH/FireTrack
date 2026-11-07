@@ -1,8 +1,8 @@
-# routers/extinguishers.py (v1.3)
+# routers/extinguishers.py (v1.4)
 """
 Модуль для управления огнетушителями (CRUD операции).
-Включает фильтрацию, поиск по инвентарному номеру, создание, обновление,
-удаление оборудования и отметку о перезарядке.
+Включает фильтрацию, поиск по инвентарному номеру, создание, обновление
+и удаление оборудования. История ТО находится в ``routers.service_records``.
 
 В каждом ответе есть вычисляемые сроки: вид ОТВ, дата следующей
 перезарядки и конец срока службы (см. модуль ``deadlines``).
@@ -19,14 +19,14 @@ from app_settings import get_settings
 from auth import EDITOR_ROLES, ROLE_ADMIN, get_current_active_user, require_role
 from db import get_db
 from deadlines import compute_deadlines
-from models import User, FireExtinguisher, Location, Status, Inspection
+from models import User, FireExtinguisher, Location, Status, Inspection, ServiceRecord
 from schemas import (
     FireExtinguisherCreate,
     FireExtinguisherRead,
     FireExtinguisherUpdate,
-    RechargeMark,
 )
-from status_logic import STATUS_DECOMMISSIONED, recalculate_statuses
+from service_logic import initial_recharge_record, sync_extinguisher_dates
+from status_logic import recalculate_statuses
 
 router = APIRouter(
     prefix="/extinguishers",
@@ -37,10 +37,10 @@ router = APIRouter(
 AUDIT_FIELDS = (
     "inventory_number", "type", "capacity", "manufacturer", "manufacture_date",
     "commissioning_date", "location_id", "status_id", "last_recharge_date",
-    "recharge_interval_months", "service_life_years",
+    "recharge_interval_months", "service_life_years", "serial_number", "last_test_date",
 )
 # Поля, от которых зависят сроки перезарядки (и значит статус)
-DEADLINE_FIELDS = {"type", "manufacture_date", "commissioning_date", "last_recharge_date",
+DEADLINE_FIELDS = {"type", "manufacture_date", "commissioning_date",
                    "recharge_interval_months", "service_life_years"}
 
 
@@ -68,6 +68,8 @@ def serialize(fe: FireExtinguisher, settings: Dict[str, Any],
         "effective_service_life_years": d["service_life_years"],
         "service_end_date": d["service_end_date"],
         "service_state": d["service_state"],
+        "next_test_date": d["next_test_date"],
+        "test_state": d["test_state"],
     })
     return data
 
@@ -207,7 +209,11 @@ def create_extinguisher(
     now = datetime.now(timezone.utc)
     extinguisher = FireExtinguisher(**data.model_dump(), created_at=now, updated_at=now)
     db.add(extinguisher)
+    if data.last_recharge_date is not None:
+        db.add(initial_recharge_record(extinguisher, get_settings(db), data.last_recharge_date,
+                                       current_user.username))
     db.flush()
+    sync_extinguisher_dates(db, extinguisher)
     audit.log(db, request, current_user, audit.ACTION_CREATE,
               f"Добавлен огнетушитель {extinguisher.inventory_number}",
               entity_type="extinguisher", entity_id=extinguisher.id,
@@ -294,51 +300,6 @@ def update_extinguisher(
     return serialize(extinguisher, get_settings(db))
 
 
-@router.post("/{extinguisher_id}/recharge", response_model=FireExtinguisherRead)
-def mark_recharged(
-    extinguisher_id: int,
-    data: RechargeMark,
-    request: Request,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(require_role(EDITOR_ROLES)),
-):
-    """
-    Отметить перезарядку огнетушителя.
-
-    Сохраняет дату перезарядки (и, если указан, новый интервал по паспорту),
-    пишет событие в журнал действий и пересчитывает статус
-    (кроме списанных огнетушителей).
-
-    Args:
-        extinguisher_id (int): ID огнетушителя.
-        data (RechargeMark): Дата перезарядки, интервал и комментарий.
-        request (Request): Запрос (для журнала).
-        db (Session): Сессия базы данных.
-        current_user (User): Инженер или администратор.
-
-    Returns:
-        dict: Огнетушитель с новыми сроками.
-    """
-    extinguisher = _get_or_404(db, extinguisher_id)
-    before = audit.snapshot(extinguisher, AUDIT_FIELDS)
-    extinguisher.last_recharge_date = data.recharge_date
-    if data.recharge_interval_months is not None:
-        extinguisher.recharge_interval_months = data.recharge_interval_months
-    extinguisher.updated_at = datetime.now(timezone.utc)
-
-    summary = f"Отмечена перезарядка огнетушителя {extinguisher.inventory_number} от {data.recharge_date:%d.%m.%Y}"
-    if data.comment:
-        summary += f" ({data.comment.strip()})"
-    audit.log(db, request, current_user, audit.ACTION_UPDATE, summary,
-              entity_type="extinguisher", entity_id=extinguisher.id,
-              changes=audit.diff(before, audit.snapshot(extinguisher, AUDIT_FIELDS)))
-    db.commit()
-
-    recalculate_statuses(db, extinguisher_ids=[extinguisher.id], keep_manual=[STATUS_DECOMMISSIONED])
-    db.refresh(extinguisher)
-    return serialize(extinguisher, get_settings(db))
-
-
 @router.delete("/{extinguisher_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_extinguisher(
     extinguisher_id: int,
@@ -347,7 +308,7 @@ def delete_extinguisher(
     current_user: User = Depends(require_role([ROLE_ADMIN]))
 ):
     """
-    Полностью удалить огнетушитель и всю историю его проверок (каскадное удаление).
+    Полностью удалить огнетушитель, историю его проверок и ТО (каскадное удаление).
     Доступно ИСКЛЮЧИТЕЛЬНО администраторам.
 
     В журнал действий сохраняется карточка огнетушителя и число удаленных
@@ -370,6 +331,9 @@ def delete_extinguisher(
 
     removed = db.query(Inspection).filter(
         Inspection.fire_extinguisher_id == extinguisher_id
+    ).delete()
+    db.query(ServiceRecord).filter(
+        ServiceRecord.fire_extinguisher_id == extinguisher_id
     ).delete()
 
     audit.log(db, request, current_user, audit.ACTION_DELETE,

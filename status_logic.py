@@ -1,4 +1,4 @@
-# status_logic.py (v1.1)
+# status_logic.py (v1.2)
 """
 Бизнес-логика статусов огнетушителей.
 
@@ -18,6 +18,8 @@
    «Требует обслуживания».
 5. Если дата следующей проверки уже прошла, ставится «Просрочено».
 6. Иначе ставится «Актуально».
+
+Аннулированные проверки в расчете не участвуют.
 """
 from datetime import date, datetime, timezone
 from typing import Dict, Iterable, Optional
@@ -118,6 +120,7 @@ def latest_inspections_subquery(db: Session):
                 order_by=(Inspection.inspection_date.desc(), Inspection.id.desc()),
             ).label("rn"),
         )
+        .filter(Inspection.annulled_at.is_(None))
         .subquery()
     )
     return (
@@ -129,7 +132,7 @@ def latest_inspections_subquery(db: Session):
 
 def get_latest_inspection(db: Session, extinguisher_id: int) -> Optional[Inspection]:
     """
-    Возвращает последнюю проверку огнетушителя.
+    Возвращает последнюю действующую (не аннулированную) проверку огнетушителя.
 
     Args:
         db (Session): Сессия базы данных.
@@ -140,7 +143,8 @@ def get_latest_inspection(db: Session, extinguisher_id: int) -> Optional[Inspect
     """
     return (
         db.query(Inspection)
-        .filter(Inspection.fire_extinguisher_id == extinguisher_id)
+        .filter(Inspection.fire_extinguisher_id == extinguisher_id,
+                Inspection.annulled_at.is_(None))
         .order_by(Inspection.inspection_date.desc(), Inspection.id.desc())
         .first()
     )

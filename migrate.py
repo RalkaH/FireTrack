@@ -1,4 +1,4 @@
-# migrate.py (v1.0)
+# migrate.py (v1.1)
 """
 Обновление схемы базы данных через Alembic.
 
@@ -45,7 +45,7 @@ def _alembic_config() -> Config:
     return cfg
 
 
-def _sqlite_file(engine: Engine) -> Optional[Path]:
+def sqlite_file(engine: Engine) -> Optional[Path]:
     """Возвращает путь к файлу SQLite или None для других баз и баз в памяти."""
     url = engine.url
     if url.get_backend_name() != "sqlite" or not url.database or url.database == ":memory:":
@@ -67,7 +67,7 @@ def backup_database(engine: Engine, label: str) -> Optional[Path]:
     Returns:
         Optional[Path]: Путь к копии или None, если копировать нечего.
     """
-    source = _sqlite_file(engine)
+    source = sqlite_file(engine)
     if source is None or not source.exists():
         return None
     BACKUP_DIR.mkdir(exist_ok=True)

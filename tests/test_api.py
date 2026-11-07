@@ -9,6 +9,7 @@ from datetime import date, timedelta
 
 import auth
 from conftest import status_id
+from deadlines import add_months
 
 
 def test_endpoints_require_auth(client):
@@ -87,7 +88,8 @@ def test_full_flow(client, headers):
         "inspection_date": today.isoformat(),
     })
     assert auto.status_code == 201, auto.text
-    assert auto.json()["next_inspection_date"] == (today + timedelta(days=180)).isoformat()
+    # По умолчанию ежегодно: п. 5.1.1 ГОСТ Р 59641-2021
+    assert auto.json()["next_inspection_date"] == add_months(today, 12).isoformat()
 
     # Дефект при осмотре -> «Требует обслуживания»
     client.post("/inspections/", headers=headers, json={

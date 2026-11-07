@@ -1,0 +1,17 @@
+# .dockerignore (v1.0)
+# Рабочие данные и секреты не должны попадать в образ
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.db
+backups/
+.secret_key
+.env
+.git/
+.github/
+.claude/
+.pytest_cache/
+.ruff_cache/
+docs/
+tests/

@@ -5,8 +5,9 @@ services:
       - "8000:8000"
     environment:
       - DATABASE_URL=sqlite:///./fire_extinguishers.db
-      # Задайте свои значения (например, в файле .env рядом с docker-compose.yml)
-      - SECRET_KEY=${SECRET_KEY:-change-me-dev-secret-key}
+      # Задайте свои значения (например, в файле .env рядом с docker-compose.yml).
+      # Если SECRET_KEY пуст, ключ генерируется и сохраняется в файл .secret_key
+      - SECRET_KEY=${SECRET_KEY:-}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
       - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES:-480}
     volumes:

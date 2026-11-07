@@ -6,6 +6,8 @@ let statuses = [];
 // Фильтр по статусу, который нужно применить при следующем открытии страницы
 // (например, переход «Показать все просроченные» с дашборда)
 let pendingStatusFilter = null;
+// Записи о ТО в открытой карточке огнетушителя
+let historyServiceRecords = [];
 
 async function loadExtinguishers() {
     const content = document.getElementById('content');
@@ -165,12 +167,12 @@ function renderExtinguishersTable(extinguishers) {
                                     <div class="table-actions">
                                         <button class="btn btn-sm btn-info"
                                                 onclick="viewExtinguisherHistory(${ext.id})"
-                                                title="История проверок">
+                                                title="Карточка и история">
                                             <i class="bi bi-clock-history"></i>
                                         </button>
                                         <button class="btn btn-sm btn-warning requires-edit"
-                                                onclick="showRechargeModal(${ext.id})"
-                                                title="Отметить перезарядку">
+                                                onclick="showServiceModal(${ext.id})"
+                                                title="Записать перезарядку, испытание или ремонт">
                                             <i class="bi bi-arrow-repeat"></i>
                                         </button>
                                         <button class="btn btn-sm btn-primary requires-edit"
@@ -238,7 +240,7 @@ function collectExtinguisherForm(form, forUpdate) {
     data.location_id = parseInt(data.location_id);
     data.status_id = parseInt(data.status_id);
 
-    ['manufacturer', 'manufacture_date', 'commissioning_date', 'last_recharge_date',
+    ['manufacturer', 'serial_number', 'manufacture_date', 'commissioning_date', 'last_recharge_date',
      'recharge_interval_months', 'service_life_years'].forEach(key => {
         const value = (data[key] || '').trim();
         if (value) {
@@ -249,6 +251,8 @@ function collectExtinguisherForm(form, forUpdate) {
             delete data[key];
         }
     });
+    // Дата перезарядки в карточке вычисляется по истории ТО
+    if (forUpdate) delete data.last_recharge_date;
     return data;
 }
 
@@ -339,9 +343,16 @@ function renderExtinguisherForm(data = null) {
                            step="0.1" min="0.1" required>
                 </div>
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">Производитель</label>
+                    <label class="form-label">Завод-изготовитель</label>
                     <input type="text" class="form-control" name="manufacturer"
                            value="${isEdit ? esc(data.manufacturer) : ''}">
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Заводской номер</label>
+                    <input type="text" class="form-control" name="serial_number"
+                           value="${isEdit ? esc(data.serial_number) : ''}">
                 </div>
             </div>
             <div class="row">
@@ -351,7 +362,7 @@ function renderExtinguisherForm(data = null) {
                            value="${isEdit ? esc(data.manufacture_date) : ''}">
                 </div>
                 <div class="col-md-6 mb-3">
-                    <label class="form-label">Дата ввода в эксплуатацию</label>
+                    <label class="form-label">Дата размещения на объекте</label>
                     <input type="date" class="form-control" name="commissioning_date" max="${today}"
                            value="${isEdit ? esc(data.commissioning_date) : ''}">
                 </div>
@@ -383,9 +394,13 @@ function renderExtinguisherForm(data = null) {
             <div class="row">
                 <div class="col-md-4 mb-3">
                     <label class="form-label">Последняя перезарядка</label>
-                    <input type="date" class="form-control" name="last_recharge_date" max="${today}"
-                           value="${isEdit ? esc(data.last_recharge_date) : ''}">
-                    <small class="text-muted">Если пусто, отсчёт от даты изготовления</small>
+                    ${isEdit ? `
+                        <input type="text" class="form-control" disabled value="${data.last_recharge_date ? formatDate(data.last_recharge_date) : 'не отмечена'}">
+                        <small class="text-muted">Меняется через запись о ТО</small>
+                    ` : `
+                        <input type="date" class="form-control" name="last_recharge_date" max="${today}">
+                        <small class="text-muted">Если пусто, отсчёт от даты изготовления</small>
+                    `}
                 </div>
                 <div class="col-md-4 mb-3">
                     <label class="form-label">Интервал перезарядки, мес.</label>
@@ -429,9 +444,12 @@ async function deleteExtinguisher(id) {
 async function viewExtinguisherHistory(id) {
     let extinguisher, inspections;
     try {
-        [extinguisher, inspections] = await Promise.all([
+        [extinguisher, inspections, historyServiceRecords, locations, statuses] = await Promise.all([
             API.getExtinguisher(id),
-            API.getInspectionsByExtinguisher(id)
+            API.getInspectionsByExtinguisher(id),
+            API.getServiceRecords(id),
+            API.getLocations(),
+            API.getStatuses()
         ]);
     } catch (error) {
         showAlert('Не удалось загрузить историю: ' + error.message, 'danger');
@@ -439,7 +457,7 @@ async function viewExtinguisherHistory(id) {
     }
 
     const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('formModal'));
-    document.getElementById('modalTitle').textContent = `История проверок: ${extinguisher.inventory_number}`;
+    document.getElementById('modalTitle').textContent = `Огнетушитель ${extinguisher.inventory_number}`;
 
     const location = locations.find(l => l.id === extinguisher.location_id);
     const status = statuses.find(s => s.id === extinguisher.status_id);
@@ -456,7 +474,7 @@ async function viewExtinguisherHistory(id) {
         </div>
 
         <div class="row g-2 mb-3">
-            <div class="col-md-6">
+            <div class="col-md-4">
                 <div class="deadline-box">
                     <div class="deadline-title"><i class="bi bi-arrow-repeat"></i> Перезарядка</div>
                     <div>${renderDeadlineBadge(extinguisher.next_recharge_date, extinguisher.recharge_days_left, extinguisher.recharge_state)}</div>
@@ -467,7 +485,16 @@ async function viewExtinguisherHistory(id) {
                     </small>
                 </div>
             </div>
-            <div class="col-md-6">
+            <div class="col-md-4">
+                <div class="deadline-box">
+                    <div class="deadline-title"><i class="bi bi-shield-check"></i> Испытания</div>
+                    <div>${renderDeadlineBadge(extinguisher.next_test_date, null, extinguisher.test_state)}</div>
+                    <small class="text-muted">
+                        ${extinguisher.last_test_date ? `Последнее: ${formatDate(extinguisher.last_test_date)}.` : 'Отсчёт от даты изготовления.'}
+                    </small>
+                </div>
+            </div>
+            <div class="col-md-4">
                 <div class="deadline-box">
                     <div class="deadline-title"><i class="bi bi-hourglass-split"></i> Срок службы</div>
                     <div>${renderDeadlineBadge(extinguisher.service_end_date, null, extinguisher.service_state)}</div>
@@ -478,6 +505,15 @@ async function viewExtinguisherHistory(id) {
             </div>
         </div>
 
+        <div class="history-title d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <span><i class="bi bi-tools"></i> Перезарядка, испытания, ремонт</span>
+            <button type="button" class="btn btn-sm btn-warning requires-edit" onclick="showServiceModal(${extinguisher.id}, () => viewExtinguisherHistory(${extinguisher.id}))">
+                <i class="bi bi-plus-circle"></i> Добавить запись
+            </button>
+        </div>
+        ${renderServiceHistory(historyServiceRecords)}
+
+        <div class="history-title"><i class="bi bi-clock-history"></i> Проверки</div>
         ${inspections.length > 0 ? `
             <div class="table-responsive">
                 <table class="table table-sm table-hover mb-0">
@@ -492,7 +528,7 @@ async function viewExtinguisherHistory(id) {
                     </thead>
                     <tbody>
                         ${inspections.map(insp => `
-                            <tr>
+                            <tr class="${insp.annulled_at ? 'row-annulled' : ''}" title="${insp.annulled_at ? esc('Аннулирована: ' + insp.annul_reason) : ''}">
                                 <td><strong>${formatDate(insp.inspection_date)}</strong></td>
                                 <td>${insp.pressure ?? '-'}</td>
                                 <td>${insp.weight ?? '-'}</td>
@@ -514,6 +550,9 @@ async function viewExtinguisherHistory(id) {
             </div>
         `}
         <div class="text-end mt-3">
+            <button type="button" class="btn btn-info" onclick="printExtinguisherCard(${extinguisher.id})">
+                <i class="bi bi-printer"></i> Карточка учёта
+            </button>
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
         </div>
     `;
@@ -537,61 +576,216 @@ function renderDeadlineBadge(dateIso, daysLeft, state) {
     return `<span class="badge badge-sm ${cls}">${formatDate(dateIso)}${suffix}</span>`;
 }
 
-// Отметка о перезарядке. onSuccess — что обновить после сохранения
-async function showRechargeModal(id, onSuccess = loadExtinguishers) {
-    let ext;
+// Запись о ТО: перезарядка, испытание, ремонт (графы формы А.2 ГОСТ Р 59641-2021).
+// record = null: новая запись; иначе исправление (только админ, с причиной)
+async function showServiceModal(id, onSuccess = loadExtinguishers, record = null) {
+    let ext, employees;
     try {
-        ext = await API.getExtinguisher(id);
+        [ext, employees] = await Promise.all([API.getExtinguisher(id), API.getEmployees()]);
     } catch (error) {
-        showAlert('Не удалось загрузить огнетушитель: ' + error.message, 'danger');
+        showAlert('Не удалось загрузить данные: ' + error.message, 'danger');
         return;
     }
     const today = todayISO();
+    const isEdit = record !== null;
+    const value = key => (isEdit ? esc(record[key]) : '');
     const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('formModal'));
-    document.getElementById('modalTitle').textContent = `Перезарядка: ${ext.inventory_number}`;
+    document.getElementById('modalTitle').textContent =
+        `${isEdit ? 'Исправить запись о ТО' : 'Запись о ТО'}: ${ext.inventory_number}`;
     document.getElementById('modalBody').innerHTML = `
-        <form id="rechargeForm">
+        <form id="serviceForm" autocomplete="off">
             <p class="text-muted">
                 ${esc(ext.type)}${ext.agent_label ? `, ${esc(ext.agent_label.toLowerCase())}` : ''}.
-                Текущий срок перезарядки: ${renderDeadlineBadge(ext.next_recharge_date, ext.recharge_days_left, ext.recharge_state)}
+                Срок перезарядки: ${renderDeadlineBadge(ext.next_recharge_date, ext.recharge_days_left, ext.recharge_state)}
             </p>
             <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label class="form-label">Дата перезарядки *</label>
-                    <input type="date" class="form-control" name="recharge_date" value="${today}" max="${today}" required>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Дата работ *</label>
+                    <input type="date" class="form-control" name="service_date" value="${isEdit ? esc(record.service_date) : today}" max="${today}" required>
                 </div>
-                <div class="col-md-6 mb-3">
-                    <label class="form-label">Интервал по паспорту, мес.</label>
-                    <input type="number" class="form-control" name="recharge_interval_months" min="1" max="240"
-                           placeholder="${ext.effective_recharge_interval_months ? esc(ext.effective_recharge_interval_months) + ' (без изменений)' : ''}">
+                <div class="col-md-8 mb-3">
+                    <label class="form-label">Что сделано *</label>
+                    <div class="d-flex flex-wrap gap-3 pt-2">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="svcRecharged" name="recharged" ${!isEdit || record.recharged ? 'checked' : ''}>
+                            <label class="form-check-label" for="svcRecharged">Перезарядка</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="svcTested" name="tested" ${isEdit && record.tested ? 'checked' : ''}>
+                            <label class="form-check-label" for="svcTested">Испытание на прочность</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="svcRepaired" name="repaired" ${isEdit && record.repaired ? 'checked' : ''}>
+                            <label class="form-check-label" for="svcRepaired">Ремонт</label>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div class="mb-3">
-                <label class="form-label">Комментарий</label>
-                <input type="text" class="form-control" name="comment" maxlength="200" placeholder="Организация, номер акта">
+                <label class="form-label">Организация, проводившая работы</label>
+                <input type="text" class="form-control" name="organization" maxlength="200" value="${value('organization')}">
             </div>
+            <div class="row" id="svcTestFields">
+                <div class="col-md-8 mb-3">
+                    <label class="form-label">Результаты осмотра и испытания на прочность</label>
+                    <input type="text" class="form-control" name="test_result" maxlength="300" value="${value('test_result')}">
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Следующее испытание</label>
+                    <input type="date" class="form-control" name="next_test_date" value="${value('next_test_date')}">
+                    <small class="text-muted">Пусто: посчитает сервер</small>
+                </div>
+            </div>
+            <div class="row" id="svcRechargeFields">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Марка (концентрация) ОТВ</label>
+                    <input type="text" class="form-control" name="agent_brand" maxlength="100" value="${value('agent_brand')}">
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Результат осмотра после перезарядки</label>
+                    <input type="text" class="form-control" name="post_recharge_result" maxlength="300" value="${value('post_recharge_result')}">
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Следующая перезарядка</label>
+                    <input type="date" class="form-control" name="next_recharge_date" value="${value('next_recharge_date')}">
+                    <small class="text-muted">Пусто: посчитает сервер</small>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Должность, фамилия, инициалы ответственного</label>
+                <input type="text" class="form-control" name="responsible" maxlength="200" list="svcResponsible" value="${value('responsible')}">
+                <datalist id="svcResponsible">
+                    ${employees.map(emp => `<option value="${esc(emp.position)}, ${esc(emp.full_name)}"></option>`).join('')}
+                </datalist>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Комментарий</label>
+                <input type="text" class="form-control" name="comments" maxlength="300" placeholder="Например, номер акта" value="${value('comments')}">
+            </div>
+            ${isEdit ? `
+            <div class="mb-3">
+                <label class="form-label">Причина исправления *</label>
+                <input type="text" class="form-control" name="reason" minlength="3" maxlength="300" required>
+            </div>` : ''}
             <div class="text-end">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                <button type="submit" class="btn btn-warning"><i class="bi bi-arrow-repeat"></i> Отметить перезарядку</button>
+                <button type="submit" class="btn btn-warning"><i class="bi bi-save"></i> Сохранить</button>
             </div>
         </form>
     `;
-    document.getElementById('rechargeForm').addEventListener('submit', async (e) => {
+
+    const form = document.getElementById('serviceForm');
+    const toggleFields = () => {
+        document.getElementById('svcTestFields').classList.toggle('d-none', !form.elements.tested.checked);
+        document.getElementById('svcRechargeFields').classList.toggle('d-none', !form.elements.recharged.checked);
+    };
+    form.elements.tested.addEventListener('change', toggleFields);
+    form.elements.recharged.addEventListener('change', toggleFields);
+    toggleFields();
+
+    form.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const form = Object.fromEntries(new FormData(e.target));
-        const data = { recharge_date: form.recharge_date };
-        if (form.recharge_interval_months) data.recharge_interval_months = parseInt(form.recharge_interval_months, 10);
-        if (form.comment.trim()) data.comment = form.comment.trim();
+        const raw = Object.fromEntries(new FormData(form));
+        const data = {
+            service_date: raw.service_date,
+            tested: form.elements.tested.checked,
+            recharged: form.elements.recharged.checked,
+            repaired: form.elements.repaired.checked
+        };
+        if (!data.tested && !data.recharged && !data.repaired) {
+            showAlert('Отметьте, что было сделано', 'warning');
+            return;
+        }
+        ['organization', 'test_result', 'next_test_date', 'agent_brand', 'post_recharge_result',
+         'next_recharge_date', 'responsible', 'comments'].forEach(key => {
+            const text = (raw[key] || '').trim();
+            data[key] = text || null;
+        });
         try {
-            const updated = await API.markRecharged(id, data);
-            showAlert(`Перезарядка отмечена. Следующая: ${formatDate(updated.next_recharge_date) || 'не определена'}`, 'success');
+            if (isEdit) {
+                data.reason = raw.reason.trim();
+                await API.updateServiceRecord(record.id, data);
+                showAlert('Запись исправлена', 'success');
+            } else {
+                data.fire_extinguisher_id = id;
+                await API.createServiceRecord(data);
+                showAlert('Запись о ТО сохранена', 'success');
+            }
+            // Следующее окно можно открыть только после закрытия этого
+            document.getElementById('formModal').addEventListener('hidden.bs.modal', () => onSuccess(), { once: true });
             modal.hide();
-            onSuccess();
         } catch (error) {
             showAlert('Ошибка: ' + error.message, 'danger');
         }
     });
     modal.show();
+}
+
+// История ТО в карточке огнетушителя
+function renderServiceHistory(records) {
+    if (records.length === 0) {
+        return '<p class="text-muted small mb-0">Записей о перезарядке, испытаниях и ремонте пока нет.</p>';
+    }
+    const works = r => [r.recharged && 'перезарядка', r.tested && 'испытание', r.repaired && 'ремонт'].filter(Boolean).join(', ');
+    return `
+        <div class="table-responsive">
+            <table class="table table-sm table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Дата</th>
+                        <th>Работы</th>
+                        <th>Организация</th>
+                        <th>Марка ОТВ</th>
+                        <th>Следующие сроки</th>
+                        <th class="requires-admin" style="width: 90px;"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${records.map(r => `
+                        <tr>
+                            <td><strong>${formatDate(r.service_date)}</strong></td>
+                            <td title="${esc(r.comments)}">${esc(works(r))}</td>
+                            <td>${esc(r.organization) || '-'}</td>
+                            <td>${esc(r.agent_brand) || '-'}</td>
+                            <td class="small">
+                                ${r.next_recharge_date ? `<div class="text-nowrap">перезарядка ${formatDate(r.next_recharge_date)}</div>` : ''}
+                                ${r.next_test_date ? `<div class="text-nowrap">испытание ${formatDate(r.next_test_date)}</div>` : ''}
+                                ${!r.next_recharge_date && !r.next_test_date ? '-' : ''}
+                            </td>
+                            <td class="requires-admin">
+                                <div class="table-actions">
+                                    <button class="btn btn-sm btn-primary" title="Исправить" onclick="editServiceRecord(${r.id})"><i class="bi bi-pencil"></i></button>
+                                    <button class="btn btn-sm btn-danger" title="Удалить" onclick="deleteServiceRecord(${r.id})"><i class="bi bi-trash"></i></button>
+                                </div>
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
+}
+
+function editServiceRecord(recordId) {
+    const record = historyServiceRecords.find(r => r.id === recordId);
+    if (!record) return;
+    const id = record.fire_extinguisher_id;
+    showServiceModal(id, () => viewExtinguisherHistory(id), record);
+}
+
+function deleteServiceRecord(recordId) {
+    const record = historyServiceRecords.find(r => r.id === recordId);
+    if (!record) return;
+    const id = record.fire_extinguisher_id;
+    showReasonModal('Удалить запись о ТО', 'Запись будет удалена, сроки в карточке пересчитаются. Содержимое останется в журнале действий.',
+        'Удалить', async (reason) => {
+            await API.deleteServiceRecord(recordId, reason);
+            showAlert('Запись удалена', 'success');
+        }, () => viewExtinguisherHistory(id));
+}
+
+function printExtinguisherCard(id) {
+    window.open('/static/print.html' + queryString({ report: 'cards', extinguisher_id: id }), '_blank');
 }
 
 function getStatusClass(statusName) {

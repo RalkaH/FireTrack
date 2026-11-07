@@ -1,8 +1,8 @@
-# models.py (v1.2)
+# models.py (v1.3)
 """
 Модуль описания ORM-моделей системы FireTrack.
 Определяет таблицы для локаций, статусов, огнетушителей, сотрудников, проверок,
-пользователей, журнала действий и настроек.
+записей о техническом обслуживании, пользователей, журнала действий и настроек.
 
 Схема базы меняется только через миграции Alembic (папка ``migrations``).
 Если добавляете колонку здесь, создайте для нее новую ревизию.
@@ -56,6 +56,8 @@ class FireExtinguisher(Base):
     и задаются в настройках (модуль ``deadlines``). Колонки
     ``recharge_interval_months`` и ``service_life_years`` позволяют
     переопределить их для конкретного экземпляра (например, по паспорту).
+    ``last_recharge_date`` и ``last_test_date`` не вводятся напрямую, а
+    поддерживаются по истории ``ServiceRecords`` (модуль ``service_logic``).
     """
     __tablename__ = "FireExtinguishers"
     id = Column(Integer, primary_key=True, index=True)
@@ -72,11 +74,15 @@ class FireExtinguisher(Base):
     last_recharge_date = Column(Date, nullable=True)
     recharge_interval_months = Column(Integer, nullable=True)
     service_life_years = Column(Integer, nullable=True)
+    serial_number = Column(String, nullable=True)
+    last_test_date = Column(Date, nullable=True)
 
     location = relationship("Location", back_populates="fire_extinguishers")
     status = relationship("Status", back_populates="fire_extinguishers")
     inspections = relationship(
         "Inspection", back_populates="fire_extinguisher")
+    service_records = relationship(
+        "ServiceRecord", back_populates="fire_extinguisher")
 
 
 class Employee(Base):
@@ -91,7 +97,12 @@ class Employee(Base):
 
 
 class Inspection(Base):
-    """Модель записи о проведенной проверке оборудования."""
+    """
+    Модель записи о проведенной проверке оборудования.
+
+    Ошибочная проверка не удаляется, а аннулируется с указанием причины:
+    она остается в истории, но не участвует в расчете статусов и отчетах.
+    """
     __tablename__ = "Inspections"
     id = Column(Integer, primary_key=True, index=True)
     fire_extinguisher_id = Column(Integer, ForeignKey(
@@ -107,10 +118,42 @@ class Inspection(Base):
     comments = Column(String, nullable=True)
     next_inspection_date = Column(Date, nullable=False)
     created_at = Column(DateTime, nullable=False)
+    annulled_at = Column(DateTime, nullable=True)
+    annulled_by = Column(String, nullable=True)
+    annul_reason = Column(String, nullable=True)
 
     fire_extinguisher = relationship(
         "FireExtinguisher", back_populates="inspections")
     employee = relationship("Employee", back_populates="inspections")
+
+
+class ServiceRecord(Base):
+    """
+    Запись о техническом обслуживании: испытание, перезарядка или ремонт.
+
+    Поля соответствуют графам формы А.2 приложения А ГОСТ Р 59641-2021.
+    """
+    __tablename__ = "ServiceRecords"
+
+    id = Column(Integer, primary_key=True)
+    fire_extinguisher_id = Column(
+        Integer, ForeignKey("FireExtinguishers.id"), nullable=False, index=True)
+    service_date = Column(Date, nullable=False, index=True)
+    tested = Column(Boolean, nullable=False, default=False, server_default=text("0"))
+    recharged = Column(Boolean, nullable=False, default=False, server_default=text("0"))
+    repaired = Column(Boolean, nullable=False, default=False, server_default=text("0"))
+    organization = Column(String, nullable=True)
+    test_result = Column(String, nullable=True)
+    next_test_date = Column(Date, nullable=True)
+    agent_brand = Column(String, nullable=True)
+    post_recharge_result = Column(String, nullable=True)
+    next_recharge_date = Column(Date, nullable=True)
+    responsible = Column(String, nullable=True)
+    comments = Column(String, nullable=True)
+    created_at = Column(DateTime, nullable=False)
+    created_by = Column(String, nullable=True)
+
+    fire_extinguisher = relationship("FireExtinguisher", back_populates="service_records")
 
 
 class User(Base):

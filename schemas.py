@@ -1,4 +1,4 @@
-# schemas.py (v1.4)
+# schemas.py (v1.5)
 """
 Модуль схем Pydantic для валидации данных, сериализации и десериализации.
 Определяет структуру данных для входящих API-запросов и исходящих ответов.
@@ -35,6 +35,12 @@ class LocationBase(BaseModel):
 class LocationCreate(LocationBase):
     """Схема для создания нового местоположения."""
     pass
+
+
+class LocationUpdate(BaseModel):
+    """Схема для изменения места (передаются только изменяемые поля)."""
+    name: Optional[str] = Field(None, min_length=1)
+    description: Optional[str] = None
 
 
 class LocationRead(LocationBase):
@@ -88,6 +94,7 @@ class FireExtinguisherBase(BaseModel):
     service_life_years: Optional[int] = Field(
         None, ge=1, le=50,
         description="Срок службы, лет. Пусто: значение из настроек")
+    serial_number: Optional[str] = Field(None, description="Заводской номер")
 
     @field_validator('manufacture_date', 'commissioning_date', 'last_recharge_date')
     @classmethod
@@ -111,14 +118,14 @@ class FireExtinguisherUpdate(BaseModel):
     commissioning_date: Optional[date] = None
     location_id: Optional[int] = None
     status_id: Optional[int] = None
-    last_recharge_date: Optional[date] = None
     recharge_interval_months: Optional[int] = Field(None, ge=1, le=240)
     service_life_years: Optional[int] = Field(None, ge=1, le=50)
+    serial_number: Optional[str] = None
 
-    @field_validator('manufacture_date', 'commissioning_date', 'last_recharge_date')
+    @field_validator('manufacture_date', 'commissioning_date')
     @classmethod
     def not_in_future(cls, v):
-        """Валидатор: даты изготовления, ввода и перезарядки не могут быть из будущего."""
+        """Валидатор: даты изготовления и ввода не могут быть из будущего."""
         return _date_not_in_future(v)
 
 
@@ -140,6 +147,9 @@ class FireExtinguisherRead(FireExtinguisherBase):
     effective_service_life_years: Optional[int] = None
     service_end_date: Optional[date] = None
     service_state: Optional[str] = Field(None, description="ok, soon, overdue, unknown")
+    last_test_date: Optional[date] = None
+    next_test_date: Optional[date] = None
+    test_state: Optional[str] = Field(None, description="ok, soon, overdue, unknown")
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -155,6 +165,12 @@ class EmployeeBase(BaseModel):
 class EmployeeCreate(EmployeeBase):
     """Схема для создания нового сотрудника."""
     pass
+
+
+class EmployeeUpdate(BaseModel):
+    """Схема для изменения сотрудника (передаются только изменяемые поля)."""
+    full_name: Optional[str] = Field(None, min_length=1)
+    position: Optional[str] = Field(None, min_length=1)
 
 
 class EmployeeRead(EmployeeBase):
@@ -182,7 +198,7 @@ class InspectionBase(BaseModel):
     next_inspection_date: Optional[date] = Field(
         None,
         description="Дата следующей проверки. Если не указана, "
-                    "рассчитывается автоматически (+6 месяцев)",
+                    "рассчитывается автоматически (по умолчанию через 12 месяцев)",
     )
 
 
@@ -204,10 +220,45 @@ class InspectionCreate(InspectionBase):
         return self
 
 
+class InspectionUpdate(BaseModel):
+    """
+    Исправление ошибочной проверки администратором.
+
+    Передаются только изменяемые поля. Причина обязательна и попадает
+    в журнал действий.
+    """
+    reason: str = Field(..., min_length=3, max_length=300, description="Причина исправления")
+    fire_extinguisher_id: Optional[int] = None
+    inspection_date: Optional[date] = None
+    employee_id: Optional[int] = None
+    pressure: Optional[float] = None
+    weight: Optional[float] = None
+    visual_inspection: Optional[str] = None
+    seal_condition: Optional[str] = None
+    safety_pin_condition: Optional[str] = None
+    hose_condition: Optional[str] = None
+    comments: Optional[str] = None
+    next_inspection_date: Optional[date] = None
+
+    @field_validator('inspection_date')
+    @classmethod
+    def inspection_not_in_future(cls, v):
+        """Валидатор: дата проверки не может быть из будущего."""
+        return _date_not_in_future(v)
+
+
+class InspectionReason(BaseModel):
+    """Причина аннулирования или восстановления проверки."""
+    reason: str = Field(..., min_length=3, max_length=300)
+
+
 class InspectionRead(InspectionBase):
     """Схема для чтения данных о проверке (возвращается в API)."""
     id: int
     created_at: datetime
+    annulled_at: Optional[datetime] = None
+    annulled_by: Optional[str] = None
+    annul_reason: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -217,6 +268,7 @@ ROLES = ("admin", "engineer", "viewer")
 USERNAME_RE = re.compile(r"^[A-Za-z0-9_.-]{3,32}$")
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 PASSWORD_MIN_LENGTH = 8
+PASSWORD_MAX_LENGTH = 128
 WEAK_PASSWORDS = {"admin123", "password", "12345678", "123456789", "qwerty123",
                   "11111111", "password1", "firetrack", "qwertyui"}
 
@@ -238,6 +290,8 @@ def validate_password_strength(password: str, username: Optional[str] = None) ->
     """
     if len(password) < PASSWORD_MIN_LENGTH:
         raise ValueError(f"Пароль должен быть не короче {PASSWORD_MIN_LENGTH} символов")
+    if len(password) > PASSWORD_MAX_LENGTH:
+        raise ValueError(f"Пароль должен быть не длиннее {PASSWORD_MAX_LENGTH} символов")
     if password.lower() in WEAK_PASSWORDS:
         raise ValueError("Слишком простой пароль")
     if username and password.lower() == username.lower():
@@ -408,17 +462,72 @@ class AuditPage(BaseModel):
     page_size: int
 
 
-# ---------- Recharge ----------
+# ---------- Service records ----------
 
-class RechargeMark(BaseModel):
-    """Отметка о перезарядке огнетушителя."""
-    recharge_date: date = Field(..., description="Дата перезарядки")
-    recharge_interval_months: Optional[int] = Field(
-        None, ge=1, le=240, description="Новый интервал по паспорту, мес. (если изменился)")
-    comment: Optional[str] = Field(None, max_length=200, description="Кто перезаряжал, номер акта")
+class ServiceRecordBase(BaseModel):
+    """
+    Запись о техническом обслуживании: графы формы А.2 ГОСТ Р 59641-2021.
 
-    @field_validator("recharge_date")
+    Если даты следующего испытания и перезарядки не указаны, сервер считает их
+    сам по интервалам из настроек или карточки огнетушителя.
+    """
+    service_date: date = Field(..., description="Дата проведения работ")
+    tested: bool = Field(False, description="Проведено испытание на прочность")
+    recharged: bool = Field(False, description="Проведена перезарядка")
+    repaired: bool = Field(False, description="Проведен ремонт")
+    organization: Optional[str] = Field(None, max_length=200, description="Организация, проводившая работы")
+    test_result: Optional[str] = Field(None, max_length=300, description="Результаты осмотра и испытания на прочность")
+    next_test_date: Optional[date] = Field(None, description="Срок следующего планового испытания")
+    agent_brand: Optional[str] = Field(None, max_length=100, description="Марка (концентрация) заряженного ОТВ")
+    post_recharge_result: Optional[str] = Field(None, max_length=300, description="Результат осмотра после перезарядки")
+    next_recharge_date: Optional[date] = Field(None, description="Дата следующей плановой перезарядки")
+    responsible: Optional[str] = Field(None, max_length=200, description="Должность, фамилия, инициалы ответственного")
+    comments: Optional[str] = Field(None, max_length=300)
+
+    @field_validator("service_date")
     @classmethod
     def not_in_future(cls, v):
-        """Дата перезарядки не может быть из будущего."""
+        """Дата работ не может быть из будущего."""
         return _date_not_in_future(v)
+
+    @model_validator(mode="after")
+    def check_work_and_dates(self):
+        """Должен быть указан хотя бы один вид работ, а следующие сроки не раньше работ."""
+        if not (self.tested or self.recharged or self.repaired):
+            raise ValueError("Укажите вид работ: испытание, перезарядка или ремонт")
+        for value in (self.next_test_date, self.next_recharge_date):
+            if value and value < self.service_date:
+                raise ValueError("Следующий срок не может быть раньше даты работ")
+        return self
+
+
+class ServiceRecordCreate(ServiceRecordBase):
+    """Новая запись о техническом обслуживании."""
+    fire_extinguisher_id: int
+
+
+class ServiceRecordUpdate(ServiceRecordBase):
+    """Исправление записи о техническом обслуживании (все поля целиком)."""
+    reason: str = Field(..., min_length=3, max_length=300, description="Причина исправления")
+
+
+class ServiceRecordRead(BaseModel):
+    """Запись о техническом обслуживании (возвращается в API)."""
+    id: int
+    fire_extinguisher_id: int
+    service_date: date
+    tested: bool
+    recharged: bool
+    repaired: bool
+    organization: Optional[str] = None
+    test_result: Optional[str] = None
+    next_test_date: Optional[date] = None
+    agent_brand: Optional[str] = None
+    post_recharge_result: Optional[str] = None
+    next_recharge_date: Optional[date] = None
+    responsible: Optional[str] = None
+    comments: Optional[str] = None
+    created_at: datetime
+    created_by: Optional[str] = None
+
+    model_config = ConfigDict(from_attributes=True)

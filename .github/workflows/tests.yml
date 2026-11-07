@@ -1,4 +1,4 @@
-# .github/workflows/tests.yml (v1.0)
+# .github/workflows/tests.yml (v1.1)
 # Автотесты FireTrack: запускаются на каждый push и pull request в main.
 name: Tests
 
@@ -34,3 +34,10 @@ jobs:
 
       - name: Тесты
         run: python -m pytest -q
+
+      - name: Миграции совпадают с моделями
+        env:
+          DATABASE_URL: sqlite:///./ci_check.db
+        run: |
+          python migrate.py
+          python -m alembic check

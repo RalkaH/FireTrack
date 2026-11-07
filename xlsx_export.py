@@ -1,4 +1,4 @@
-# xlsx_export.py (v1.0)
+# xlsx_export.py (v1.1)
 """
 Оформленные отчеты в Excel (XLSX) через openpyxl.
 
@@ -16,7 +16,10 @@ from typing import Any, Dict, List, Optional, Sequence
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
+from openpyxl.worksheet.pagebreak import Break
 from openpyxl.worksheet.worksheet import Worksheet
+
+from export_utils import safe_cell
 
 THIN = Side(style="thin", color="7F7F7F")
 BORDER = Border(left=THIN, right=THIN, top=THIN, bottom=THIN)
@@ -28,8 +31,7 @@ DATE_FORMAT = "DD.MM.YYYY"
 FONT = "Calibri"
 
 
-def column(key: str, title: str, width: float = 14, kind: str = "text",
-           group: Optional[str] = None) -> Dict[str, Any]:
+def column(key: str, title: str, width: float = 14, kind: str = "text") -> Dict[str, Any]:
     """
     Описание колонки таблицы.
 
@@ -38,13 +40,11 @@ def column(key: str, title: str, width: float = 14, kind: str = "text",
         title (str): Заголовок колонки.
         width (float): Минимальная ширина в символах.
         kind (str): ``text``, ``date``, ``num`` или ``int``.
-        group (Optional[str]): Общий заголовок над несколькими колонками
-            (двухуровневая шапка, как в форме Г.2).
 
     Returns:
         Dict[str, Any]: Описание колонки.
     """
-    return {"key": key, "title": title, "width": width, "kind": kind, "group": group}
+    return {"key": key, "title": title, "width": width, "kind": kind}
 
 
 def _write_header_block(ws: Worksheet, ncols: int, organization: str, title: str,
@@ -72,47 +72,16 @@ def _write_header_block(ws: Worksheet, ncols: int, organization: str, title: str
 
 
 def _write_table_header(ws: Worksheet, start_row: int, columns: List[Dict[str, Any]]) -> int:
-    """Пишет шапку таблицы (одно- или двухуровневую). Возвращает первую строку данных."""
-    two_levels = any(c["group"] for c in columns)
-    header_font = Font(name=FONT, size=10, bold=True)
-    align = Alignment(horizontal="center", vertical="center", wrap_text=True)
-
-    def style(cell):
-        cell.font = header_font
+    """Пишет шапку таблицы. Возвращает номер первой строки данных."""
+    for i, col in enumerate(columns, start=1):
+        cell = ws.cell(start_row, i, col["title"])
+        cell.font = Font(name=FONT, size=10, bold=True)
         cell.fill = HEADER_FILL
         cell.border = BORDER
-        cell.alignment = align
-
-    if not two_levels:
-        for i, col in enumerate(columns, start=1):
-            style(ws.cell(start_row, i, col["title"]))
-        ws.row_dimensions[start_row].height = 32
-        return start_row + 1
-
-    top, bottom = start_row, start_row + 1
-    i = 1
-    while i <= len(columns):
-        col = columns[i - 1]
-        if col["group"]:
-            j = i
-            while j < len(columns) and columns[j]["group"] == col["group"]:
-                j += 1
-            ws.merge_cells(start_row=top, start_column=i, end_row=top, end_column=j)
-            ws.cell(top, i, col["group"])
-            for k in range(i, j + 1):
-                ws.cell(bottom, k, columns[k - 1]["title"])
-                style(ws.cell(top, k))
-                style(ws.cell(bottom, k))
-            i = j + 1
-        else:
-            ws.merge_cells(start_row=top, start_column=i, end_row=bottom, end_column=i)
-            ws.cell(top, i, col["title"])
-            style(ws.cell(top, i))
-            style(ws.cell(bottom, i))
-            i += 1
-    ws.row_dimensions[top].height = 22
-    ws.row_dimensions[bottom].height = 44
-    return bottom + 1
+        cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+    longest = max(len(col["title"]) / max(col["width"], 1) for col in columns)
+    ws.row_dimensions[start_row].height = max(32, 15 * (int(longest) + 1))
+    return start_row + 1
 
 
 def _display_len(value: Any) -> int:
@@ -183,7 +152,7 @@ def add_table_sheet(
         if fill is None and n % 2 == 1:
             fill = ZEBRA_FILL
         for i, col in enumerate(columns, start=1):
-            value = data.get(col["key"])
+            value = safe_cell(data.get(col["key"]))
             if value == "":
                 value = None
             cell = ws.cell(row_idx, i, value)
@@ -263,17 +232,16 @@ JOURNAL_COLUMNS = [
     column("employee", "Проверяющий", 20),
 ]
 
-MAINTENANCE_GROUP = "Техническое обслуживание (вид и дата)"
 MAINTENANCE_COLUMNS = [
     column("n", "№ п/п", 5, "int"),
-    column("extinguisher", "№ и марка огнетушителя", 16),
-    column("units_check", "Проверка узлов огнетушителя", 14, group=MAINTENANCE_GROUP),
-    column("agent_check", "Проверка качества ОТВ", 14, group=MAINTENANCE_GROUP),
-    column("pressure_check", "Проверка индикатора давления", 14, group=MAINTENANCE_GROUP),
-    column("recharge", "Перезарядка огнетушителя", 13, group=MAINTENANCE_GROUP),
-    column("units_test", "Испытание узлов огнетушителя", 13, group=MAINTENANCE_GROUP),
-    column("remarks", "Замечания о техническом состоянии", 24),
-    column("measures", "Принятые меры", 18),
+    column("extinguisher", "Номер и марка огнетушителя", 16),
+    column("work", "Дата проведения испытания, перезарядки, ремонта; организация, проводившая техобслуживание или ремонт", 24),
+    column("test_result", "Результаты осмотра и испытания на прочность", 30),
+    column("next_test_date", "Срок следующего планового испытания", 12, "date"),
+    column("recharge_date", "Дата проведения перезарядки огнетушителя", 12, "date"),
+    column("agent_brand", "Марка (концентрация) заряженного ОТВ", 13),
+    column("post_recharge_result", "Результат осмотра после перезарядки", 16),
+    column("next_recharge_date", "Дата следующей плановой перезарядки", 12, "date"),
     column("responsible", "Должность, фамилия, инициалы и подпись ответственного лица", 26),
 ]
 
@@ -294,12 +262,82 @@ def journal_workbook(rows: List[Dict[str, Any]], header: Dict[str, str], period:
 
 
 def maintenance_workbook(rows: List[Dict[str, Any]], header: Dict[str, str], period: str) -> bytes:
-    """Журнал ТО огнетушителей по форме Г.2 СП 9.13130.2009."""
+    """Записи журнала эксплуатации СПЗ по форме А.2 ГОСТ Р 59641-2021."""
     wb = new_workbook()
-    add_table_sheet(wb, "Журнал ТО (Г.2)", "Журнал технического обслуживания огнетушителей",
+    add_table_sheet(wb, "Журнал ТО и ремонта (А.2)",
+                    "Журнал эксплуатации систем противопожарной защиты: "
+                    "техническое обслуживание и ремонт огнетушителей",
                     MAINTENANCE_COLUMNS, rows, header,
-                    [f"Период: {period}",
-                     "Форма Г.2 приложения Г СП 9.13130.2009 (рекомендуемая)"])
+                    [f"Период: {period}", "Форма А.2 приложения А ГОСТ Р 59641-2021"])
+    return to_bytes(wb)
+
+
+def cards_workbook(cards: List[Dict[str, Any]], header: Dict[str, str]) -> bytes:
+    """Карточки учета огнетушителей по форме А.1 ГОСТ Р 59641-2021, каждая на своей странице."""
+    wb = new_workbook()
+    ws = wb.create_sheet("Карточки учета (А.1)")
+    ws.column_dimensions["A"].width = 46
+    ws.column_dimensions["B"].width = 44
+    label_font = Font(name=FONT, size=11)
+    value_font = Font(name=FONT, size=11, bold=True)
+    row = 1
+    for index, card in enumerate(cards):
+        if header.get("organization_name"):
+            ws.cell(row, 1, safe_cell(header["organization_name"])).font = Font(name=FONT, size=11, bold=True)
+            row += 1
+        ws.merge_cells(start_row=row, start_column=1, end_row=row, end_column=2)
+        title = ws.cell(row, 1, f"Карточка учета огнетушителя № {safe_cell(card['number'])}")
+        title.font = Font(name=FONT, size=14, bold=True)
+        title.alignment = Alignment(horizontal="center")
+        row += 1
+        ws.merge_cells(start_row=row, start_column=1, end_row=row, end_column=2)
+        note = ws.cell(row, 1, "Форма А.1 приложения А ГОСТ Р 59641-2021")
+        note.font = Font(name=FONT, size=9, color="7F7F7F")
+        note.alignment = Alignment(horizontal="center")
+        row += 2
+
+        life = f"{card['service_life_years']} лет" if card["service_life_years"] else None
+        if life and card["service_end_date"]:
+            life += f" (до {card['service_end_date']:%d.%m.%Y})"
+        responsible = header.get("responsible_name") or ""
+        if header.get("responsible_position"):
+            responsible = f"{header['responsible_position']}, {responsible}".rstrip(", ")
+        fields = [
+            ("1. Номер, присвоенный огнетушителю", card["number"]),
+            ("2. Дата размещения огнетушителя на объекте защиты", card["placed_date"]),
+            ("3. Место установки огнетушителя", card["location"]),
+            ("4. Тип и марка огнетушителя", card["type"]),
+            ("5. Завод-изготовитель огнетушителя", card["manufacturer"]),
+            ("6. Заводской номер", card["serial_number"]),
+            ("7. Дата изготовления огнетушителя", card["manufacture_date"]),
+            ("8. Дата очередной перезарядки огнетушителя", card["next_recharge_date"]),
+            ("9. Срок службы огнетушителя", life),
+            ("10. Ответственное лицо и его подпись", responsible),
+        ]
+        for label, value in fields:
+            left = ws.cell(row, 1, label)
+            left.font = label_font
+            left.border = BORDER
+            left.alignment = Alignment(vertical="center", wrap_text=True)
+            right = ws.cell(row, 2, safe_cell(value) if value not in ("", None) else None)
+            right.font = value_font
+            right.border = BORDER
+            right.alignment = Alignment(horizontal="left", vertical="center", wrap_text=True)
+            if isinstance(value, date):
+                right.number_format = DATE_FORMAT
+            ws.row_dimensions[row].height = 30
+            row += 1
+        if index < len(cards) - 1:
+            ws.row_breaks.append(Break(id=row))
+            row += 2
+
+    if not cards:
+        ws.cell(1, 1, "Нет огнетушителей")
+    ws.page_setup.orientation = "portrait"
+    ws.page_setup.paperSize = ws.PAPERSIZE_A4
+    ws.page_setup.fitToWidth = 1
+    ws.page_setup.fitToHeight = 0
+    ws.sheet_properties.pageSetUpPr.fitToPage = True
     return to_bytes(wb)
 
 
@@ -350,6 +388,15 @@ def fleet_workbook(summary: Dict[str, Any], header: Dict[str, str]) -> bytes:
                      column("basis", "Отсчет от", 18)],
                     recharge, header, [day], row_fill_key="_fill", signature=False,
                     empty_text="Перезарядка в ближайшее время не требуется")
+
+    tests = [{**r, "_fill": "alert" if r["state"] == "overdue" else "warn"} for r in summary["tests"]]
+    add_table_sheet(wb, "Испытания",
+                    "Испытания один раз в пять лет: просрочены или скоро (п. 5.1.9 ГОСТ Р 59641-2021)",
+                    [column("inventory_number", "Инв. номер", 12), column("type", "Тип", 9),
+                     column("location", "Место", 20), column("next_test", "Срок испытания", 12, "date"),
+                     column("days_left", "Осталось, дней", 10, "int")],
+                    tests, header, [day], row_fill_key="_fill", signature=False,
+                    empty_text="Испытания в ближайшее время не требуются")
 
     service = [{**r, "_fill": "alert" if r["state"] == "overdue" else "warn"} for r in summary["service_life"]]
     add_table_sheet(wb, "Срок службы", "Истекает или истек срок службы",
