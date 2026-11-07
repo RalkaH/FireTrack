@@ -49,12 +49,15 @@
 <li class="toctree-l2"><a class="reference internal" href="app_settings.html">app_settings module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="audit.html">audit module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="auth.html">auth module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="backup.html">backup module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="db.html">db module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="deadlines.html">deadlines module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="export_utils.html">export_utils module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="main.html">main module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="migrate.html">migrate module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="models.html">models module</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">report_data module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#report_data.card_rows"><code class="docutils literal notranslate"><span class="pre">card_rows()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#report_data.defects_text"><code class="docutils literal notranslate"><span class="pre">defects_text()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#report_data.fleet_summary"><code class="docutils literal notranslate"><span class="pre">fleet_summary()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#report_data.journal_rows"><code class="docutils literal notranslate"><span class="pre">journal_rows()</span></code></a></li>
@@ -64,7 +67,9 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="routers.html">routers package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="run.html">run module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="schemas.html">schemas module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="service_logic.html">service_logic module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="setup.html">setup module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="status_logic.html">status_logic module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="xlsx_export.html">xlsx_export module</a></li>
@@ -106,11 +111,36 @@
 <p>Отчеты:</p>
 <ol class="arabic simple">
 <li><p><a class="reference internal" href="#report_data.journal_rows" title="report_data.journal_rows"><code class="xref py py-func docutils literal notranslate"><span class="pre">journal_rows()</span></code></a> — журнал проверок за период.</p></li>
-<li><p><a class="reference internal" href="#report_data.maintenance_rows" title="report_data.maintenance_rows"><code class="xref py py-func docutils literal notranslate"><span class="pre">maintenance_rows()</span></code></a> — журнал технического обслуживания огнетушителей
-по рекомендуемой форме Г.2 приложения Г СП 9.13130.2009.</p></li>
+<li><p><a class="reference internal" href="#report_data.maintenance_rows" title="report_data.maintenance_rows"><code class="xref py py-func docutils literal notranslate"><span class="pre">maintenance_rows()</span></code></a> — записи о техническом обслуживании и ремонте для
+Журнала эксплуатации систем противопожарной защиты по форме А.2
+приложения А ГОСТ Р 59641-2021.</p></li>
+<li><p><a class="reference internal" href="#report_data.card_rows" title="report_data.card_rows"><code class="xref py py-func docutils literal notranslate"><span class="pre">card_rows()</span></code></a> — карточки учета огнетушителей по форме А.1.</p></li>
 <li><p><a class="reference internal" href="#report_data.fleet_summary" title="report_data.fleet_summary"><code class="xref py py-func docutils literal notranslate"><span class="pre">fleet_summary()</span></code></a> — состояние парка: сводка по статусам и местам,
-проблемные огнетушители, ближайшие проверки, перезарядки и сроки службы.</p></li>
+проблемные огнетушители, ближайшие проверки, перезарядки, испытания
+и сроки службы.</p></li>
 </ol>
+<p>Аннулированные проверки в отчеты не попадают.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="report_data.card_rows">
+<span class="sig-prename descclassname"><span class="pre">report_data.</span></span><span class="sig-name descname"><span class="pre">card_rows</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Session</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extinguisher_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/report_data.html#card_rows"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#report_data.card_rows" title="Ссылка на это определение"></a></dt>
+<dd><p>Карточки учета огнетушителей по форме А.1 приложения А ГОСТ Р 59641-2021.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Параметры<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>db</strong> (<em>Session</em>) – Сессия базы данных.</p></li>
+<li><p><strong>extinguisher_id</strong> (<em>Optional</em><em>[</em><em>int</em><em>]</em>) – Один огнетушитель. Если не указан,
+карточки всех огнетушителей, кроме списанных.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Результат<span class="colon">:</span></dt>
+<dd class="field-even"><p>Поля формы для каждого огнетушителя.</p>
+</dd>
+<dt class="field-odd">Тип результата<span class="colon">:</span></dt>
+<dd class="field-odd"><p>List[Dict[str, Any]]</p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py function">
 <dt class="sig sig-object py" id="report_data.defects_text">
 <span class="sig-prename descclassname"><span class="pre">report_data.</span></span><span class="sig-name descname"><span class="pre">defects_text</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">insp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="models.html#models.Inspection" title="models.Inspection"><span class="pre">Inspection</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="_modules/report_data.html#defects_text"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#report_data.defects_text" title="Ссылка на это определение"></a></dt>
@@ -133,7 +163,8 @@
 <dd class="field-even"><p>Сводка и списки:
 <code class="docutils literal notranslate"><span class="pre">by_status</span></code>, <code class="docutils literal notranslate"><span class="pre">by_location</span></code>, <code class="docutils literal notranslate"><span class="pre">problems</span></code> (просрочено и требует
 обслуживания), <code class="docutils literal notranslate"><span class="pre">upcoming_inspections</span></code>, <code class="docutils literal notranslate"><span class="pre">recharge</span></code> (просрочено
-и скоро), <code class="docutils literal notranslate"><span class="pre">service_life</span></code> (истек и скоро истекает).</p>
+и скоро), <code class="docutils literal notranslate"><span class="pre">service_life</span></code> (истек и скоро истекает), <code class="docutils literal notranslate"><span class="pre">tests</span></code>
+(испытания просрочены или скоро).</p>
 </dd>
 <dt class="field-odd">Тип результата<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Dict[str, Any]</p>
@@ -165,17 +196,16 @@
 <dl class="py function">
 <dt class="sig sig-object py" id="report_data.maintenance_rows">
 <span class="sig-prename descclassname"><span class="pre">report_data.</span></span><span class="sig-name descname"><span class="pre">maintenance_rows</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Session</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">date_from</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">date</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">date_to</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">date</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/report_data.html#maintenance_rows"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#report_data.maintenance_rows" title="Ссылка на это определение"></a></dt>
-<dd><p>Журнал ТО огнетушителей по форме Г.2 СП 9.13130.2009.</p>
-<p>Колонки формы: «№ и марка огнетушителя», «Техническое обслуживание
-(вид и дата)» с подколонками «Проверка узлов огнетушителя», «Проверка
-качества ОТВ», «Проверка индикатора давления», «Перезарядка
-огнетушителя», «Испытание узлов огнетушителя», затем «Замечания
-о техническом состоянии», «Принятые меры» и «Должность, фамилия,
-инициалы и подпись ответственного лица».</p>
-<p>Каждая проверка из журнала дает строку: осмотр узлов (дата), масса
-в колонке качества ОТВ, давление в колонке индикатора. Перезарядки
-за период добавляются отдельными строками по дате последней
-перезарядки. «Принятые меры» и подпись заполняются от руки.</p>
+<dd><p>Записи журнала по форме А.2 приложения А ГОСТ Р 59641-2021.</p>
+<p>Графы формы: номер и марка огнетушителя; дата проведения испытания,
+перезарядки, ремонта и организация; результаты осмотра и испытания на
+прочность; срок следующего планового испытания; дата проведения
+перезарядки; марка (концентрация) заряженного ОТВ; результат осмотра
+после перезарядки; дата следующей плановой перезарядки; должность,
+фамилия, инициалы и подпись ответственного лица.</p>
+<p>По п. 5.1.1 стандарта ТО включает проверку, испытания и перезарядку,
+поэтому в журнал попадают и проверки, и записи об испытаниях,
+перезарядке и ремонте. Подпись ставится от руки.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Параметры<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">

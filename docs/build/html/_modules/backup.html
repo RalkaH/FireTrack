@@ -1,0 +1,278 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="ru" data-content_root="../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>backup &mdash; документация FireTrack 1</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=47a0e12c"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../_static/translations.js?v=cd1d70c9"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Алфавитный указатель" href="../genindex.html" />
+    <link rel="search" title="Поиск" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            FireTrack
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Поиск в документации" aria-label="Поиск в документации" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Меню навигации">
+              <p class="caption" role="heading"><span class="caption-text">Содержание:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../modules.html">FireExtinguishers</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Меню навигации для мобильных устройств" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">FireTrack</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Навигация по страницам">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Код модуля</a></li>
+      <li class="breadcrumb-item active">backup</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Исходный код backup</h1><div class="highlight"><pre>
+<span></span><span class="c1"># backup.py (v1.0)</span>
+<span class="sd">"""</span>
+<span class="sd">Резервные копии базы данных SQLite.</span>
+
+<span class="sd">Копии лежат в папке ``backups`` (та же, что и для копий перед миграциями):</span>
+
+<span class="sd">* ``&lt;база&gt;_auto_&lt;время&gt;.db`` — автоматические, не чаще раза в сутки,</span>
+<span class="sd">  хранятся последние N штук (настройка ``backup_keep_count``);</span>
+<span class="sd">* ``&lt;база&gt;_manual_&lt;время&gt;.db`` — созданные вручную из админки;</span>
+<span class="sd">* ``&lt;база&gt;_&lt;время&gt;_before_&lt;ревизия&gt;.db`` — перед миграциями.</span>
+
+<span class="sd">Вручную созданные копии и копии перед миграциями автоматически не удаляются.</span>
+<span class="sd">Копирование идет через штатный механизм резервирования SQLite, поэтому копия</span>
+<span class="sd">целостна, даже если в этот момент сервер пишет в базу.</span>
+<span class="sd">"""</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">sqlite3</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timedelta</span><span class="p">,</span> <span class="n">timezone</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">sqlalchemy.engine</span><span class="w"> </span><span class="kn">import</span> <span class="n">Engine</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">migrate</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">db</span><span class="w"> </span><span class="kn">import</span> <span class="n">engine</span> <span class="k">as</span> <span class="n">default_engine</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s2">"firetrack.backup"</span><span class="p">)</span>
+
+<span class="n">AUTO_INTERVAL</span> <span class="o">=</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">hours</span><span class="o">=</span><span class="mi">24</span><span class="p">)</span>
+<span class="n">_SAFE_NAME</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"^[\w.\-]+\.db$"</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="backup_dir">
+<a class="viewcode-back" href="../backup.html#backup.backup_dir">[документация]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">backup_dir</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Path</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Папка резервных копий."""</span>
+    <span class="k">return</span> <span class="n">Path</span><span class="p">(</span><span class="n">migrate</span><span class="o">.</span><span class="n">BACKUP_DIR</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="create_backup">
+<a class="viewcode-back" href="../backup.html#backup.create_backup">[документация]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">create_backup</span><span class="p">(</span><span class="n">kind</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"manual"</span><span class="p">,</span> <span class="n">engine</span><span class="p">:</span> <span class="n">Engine</span> <span class="o">=</span> <span class="n">default_engine</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Создает копию базы.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        kind (str): ``auto`` или ``manual``.</span>
+<span class="sd">        engine (Engine): Движок базы.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Optional[Path]: Путь к копии или None, если база не в файле SQLite.</span>
+<span class="sd">    """</span>
+    <span class="n">source</span> <span class="o">=</span> <span class="n">migrate</span><span class="o">.</span><span class="n">sqlite_file</span><span class="p">(</span><span class="n">engine</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">source</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">source</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="n">folder</span> <span class="o">=</span> <span class="n">backup_dir</span><span class="p">()</span>
+    <span class="n">folder</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">stamp</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">"%Y%m</span><span class="si">%d</span><span class="s2">_%H%M%S"</span><span class="p">)</span>
+    <span class="n">target</span> <span class="o">=</span> <span class="n">folder</span> <span class="o">/</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">source</span><span class="o">.</span><span class="n">stem</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">kind</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">stamp</span><span class="si">}{</span><span class="n">source</span><span class="o">.</span><span class="n">suffix</span><span class="si">}</span><span class="s2">"</span>
+
+    <span class="n">src</span> <span class="o">=</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">source</span><span class="p">)</span>
+    <span class="n">dst</span> <span class="o">=</span> <span class="n">sqlite3</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">dst</span><span class="p">:</span>
+            <span class="n">src</span><span class="o">.</span><span class="n">backup</span><span class="p">(</span><span class="n">dst</span><span class="p">)</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="n">dst</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+        <span class="n">src</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">target</span></div>
+
+
+
+<div class="viewcode-block" id="list_backups">
+<a class="viewcode-back" href="../backup.html#backup.list_backups">[документация]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">list_backups</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Список копий, новые сверху.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        List[Dict[str, object]]: Имя, тип, размер в байтах и время создания (UTC).</span>
+<span class="sd">    """</span>
+    <span class="n">folder</span> <span class="o">=</span> <span class="n">backup_dir</span><span class="p">()</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">folder</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+        <span class="k">return</span> <span class="p">[]</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">folder</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">"*.db"</span><span class="p">):</span>
+        <span class="n">stat</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">stat</span><span class="p">()</span>
+        <span class="k">if</span> <span class="s2">"_auto_"</span> <span class="ow">in</span> <span class="n">path</span><span class="o">.</span><span class="n">name</span><span class="p">:</span>
+            <span class="n">kind</span> <span class="o">=</span> <span class="s2">"auto"</span>
+        <span class="k">elif</span> <span class="s2">"_before_"</span> <span class="ow">in</span> <span class="n">path</span><span class="o">.</span><span class="n">name</span><span class="p">:</span>
+            <span class="n">kind</span> <span class="o">=</span> <span class="s2">"migration"</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">kind</span> <span class="o">=</span> <span class="s2">"manual"</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+            <span class="s2">"name"</span><span class="p">:</span> <span class="n">path</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+            <span class="s2">"kind"</span><span class="p">:</span> <span class="n">kind</span><span class="p">,</span>
+            <span class="s2">"size"</span><span class="p">:</span> <span class="n">stat</span><span class="o">.</span><span class="n">st_size</span><span class="p">,</span>
+            <span class="s2">"created_at"</span><span class="p">:</span> <span class="n">datetime</span><span class="o">.</span><span class="n">fromtimestamp</span><span class="p">(</span><span class="n">stat</span><span class="o">.</span><span class="n">st_mtime</span><span class="p">,</span> <span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">"%Y-%m-</span><span class="si">%d</span><span class="s2">T%H:%M:%SZ"</span><span class="p">),</span>
+        <span class="p">})</span>
+    <span class="n">result</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">item</span><span class="p">:</span> <span class="n">item</span><span class="p">[</span><span class="s2">"created_at"</span><span class="p">],</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">result</span></div>
+
+
+
+<div class="viewcode-block" id="resolve_backup">
+<a class="viewcode-back" href="../backup.html#backup.resolve_backup">[документация]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">resolve_backup</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Находит файл копии по имени, не выпуская запрос за пределы папки копий.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        name (str): Имя файла.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Optional[Path]: Путь к файлу или None, если имя недопустимо или файла нет.</span>
+<span class="sd">    """</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">_SAFE_NAME</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">".."</span> <span class="ow">in</span> <span class="n">name</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="n">backup_dir</span><span class="p">()</span> <span class="o">/</span> <span class="n">name</span>
+    <span class="k">return</span> <span class="n">path</span> <span class="k">if</span> <span class="n">path</span><span class="o">.</span><span class="n">is_file</span><span class="p">()</span> <span class="k">else</span> <span class="kc">None</span></div>
+
+
+
+<div class="viewcode-block" id="prune_auto_backups">
+<a class="viewcode-back" href="../backup.html#backup.prune_auto_backups">[документация]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">prune_auto_backups</span><span class="p">(</span><span class="n">keep</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Удаляет старые автоматические копии.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        keep (int): Сколько последних копий оставить.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        int: Сколько файлов удалено.</span>
+<span class="sd">    """</span>
+    <span class="n">folder</span> <span class="o">=</span> <span class="n">backup_dir</span><span class="p">()</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">folder</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+        <span class="k">return</span> <span class="mi">0</span>
+    <span class="n">files</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">folder</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">"*_auto_*.db"</span><span class="p">),</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">p</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">stat</span><span class="p">()</span><span class="o">.</span><span class="n">st_mtime</span><span class="p">,</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">removed</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">files</span><span class="p">[</span><span class="n">keep</span><span class="p">:]:</span>
+        <span class="n">path</span><span class="o">.</span><span class="n">unlink</span><span class="p">(</span><span class="n">missing_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">removed</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="k">return</span> <span class="n">removed</span></div>
+
+
+
+<div class="viewcode-block" id="run_scheduled_backup">
+<a class="viewcode-back" href="../backup.html#backup.run_scheduled_backup">[документация]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">run_scheduled_backup</span><span class="p">(</span><span class="n">keep</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">engine</span><span class="p">:</span> <span class="n">Engine</span> <span class="o">=</span> <span class="n">default_engine</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Делает автоматическую копию, если с прошлой прошло не меньше суток.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        keep (int): Сколько автоматических копий хранить.</span>
+<span class="sd">        engine (Engine): Движок базы.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Optional[Path]: Путь к новой копии или None, если копия не нужна.</span>
+<span class="sd">    """</span>
+    <span class="n">folder</span> <span class="o">=</span> <span class="n">backup_dir</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">folder</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+        <span class="n">files</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">folder</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">"*_auto_*.db"</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">files</span><span class="p">:</span>
+            <span class="n">newest</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">stat</span><span class="p">()</span><span class="o">.</span><span class="n">st_mtime</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">files</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span> <span class="o">-</span> <span class="n">datetime</span><span class="o">.</span><span class="n">fromtimestamp</span><span class="p">(</span><span class="n">newest</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">AUTO_INTERVAL</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">None</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="n">create_backup</span><span class="p">(</span><span class="s2">"auto"</span><span class="p">,</span> <span class="n">engine</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">prune_auto_backups</span><span class="p">(</span><span class="n">keep</span><span class="p">)</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">"Автокопия базы: </span><span class="si">%s</span><span class="s2">"</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">path</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Авторские права 2026, Ralka. </p>
+  </div>
+
+  Собрано при помощи <a href="https://www.sphinx-doc.org/">Sphinx</a> с использованием
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">темы,</a>
+    предоставленной <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

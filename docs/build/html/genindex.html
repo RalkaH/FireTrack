@@ -112,10 +112,40 @@
 </li>
       <li><a href="xlsx_export.html#xlsx_export.add_table_sheet">add_table_sheet() (в модуле xlsx_export)</a>
 </li>
+      <li><a href="models.html#models.ServiceRecord.agent_brand">agent_brand (атрибут models.ServiceRecord)</a>
+
+      <ul>
+        <li><a href="schemas.html#schemas.ServiceRecordBase.agent_brand">(атрибут schemas.ServiceRecordBase)</a>
+</li>
+        <li><a href="schemas.html#schemas.ServiceRecordRead.agent_brand">(атрибут schemas.ServiceRecordRead)</a>
+</li>
+      </ul></li>
       <li><a href="deadlines.html#deadlines.agent_kind">agent_kind() (в модуле deadlines)</a>
 </li>
       <li><a href="schemas.html#schemas.FireExtinguisherRead.agent_label">agent_label (атрибут schemas.FireExtinguisherRead)</a>
 </li>
+      <li><a href="routers.html#routers.inspections.annul_inspection">annul_inspection() (в модуле routers.inspections)</a>
+</li>
+      <li><a href="models.html#models.Inspection.annul_reason">annul_reason (атрибут models.Inspection)</a>
+
+      <ul>
+        <li><a href="schemas.html#schemas.InspectionRead.annul_reason">(атрибут schemas.InspectionRead)</a>
+</li>
+      </ul></li>
+      <li><a href="models.html#models.Inspection.annulled_at">annulled_at (атрибут models.Inspection)</a>
+
+      <ul>
+        <li><a href="schemas.html#schemas.InspectionRead.annulled_at">(атрибут schemas.InspectionRead)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="models.html#models.Inspection.annulled_by">annulled_by (атрибут models.Inspection)</a>
+
+      <ul>
+        <li><a href="schemas.html#schemas.InspectionRead.annulled_by">(атрибут schemas.InspectionRead)</a>
+</li>
+      </ul></li>
       <li>
     app_settings
 
@@ -123,8 +153,6 @@
         <li><a href="app_settings.html#module-app_settings">module</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="models.html#models.AppSetting">AppSetting (класс в models)</a>
 </li>
       <li>
@@ -157,10 +185,19 @@
 <h2 id="B">B</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="migrate.html#migrate.backup_database">backup_database() (в модуле migrate)</a>
+      <li>
+    backup
+
+      <ul>
+        <li><a href="backup.html#module-backup">module</a>
 </li>
+      </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="migrate.html#migrate.backup_database">backup_database() (в модуле migrate)</a>
+</li>
+      <li><a href="backup.html#backup.backup_dir">backup_dir() (в модуле backup)</a>
+</li>
       <li><a href="db.html#db.Base">Base (класс в db)</a>
 </li>
   </ul></td>
@@ -177,6 +214,12 @@
         <li><a href="schemas.html#schemas.FireExtinguisherUpdate.capacity">(атрибут schemas.FireExtinguisherUpdate)</a>
 </li>
       </ul></li>
+      <li><a href="report_data.html#report_data.card_rows">card_rows() (в модуле report_data)</a>
+</li>
+      <li><a href="xlsx_export.html#xlsx_export.cards_workbook">cards_workbook() (в модуле xlsx_export)</a>
+</li>
+      <li><a href="routers.html#routers.reports.cards_xlsx">cards_xlsx() (в модуле routers.reports)</a>
+</li>
       <li><a href="auth.html#auth.change_password">change_password() (в модуле auth)</a>
 </li>
       <li><a href="models.html#models.AuditLog.changes">changes (атрибут models.AuditLog)</a>
@@ -185,16 +228,24 @@
         <li><a href="schemas.html#schemas.AuditRead.changes">(атрибут schemas.AuditRead)</a>
 </li>
       </ul></li>
+      <li><a href="schemas.html#schemas.ServiceRecordBase.check_work_and_dates">check_work_and_dates() (метод schemas.ServiceRecordBase)</a>
+</li>
       <li><a href="audit.html#audit.client_ip">client_ip() (в модуле audit)</a>
 </li>
       <li><a href="xlsx_export.html#xlsx_export.column">column() (в модуле xlsx_export)</a>
 </li>
-      <li><a href="schemas.html#schemas.RechargeMark.comment">comment (атрибут schemas.RechargeMark)</a>
-</li>
       <li><a href="models.html#models.Inspection.comments">comments (атрибут models.Inspection)</a>
 
       <ul>
+        <li><a href="models.html#models.ServiceRecord.comments">(атрибут models.ServiceRecord)</a>
+</li>
         <li><a href="schemas.html#schemas.InspectionBase.comments">(атрибут schemas.InspectionBase)</a>
+</li>
+        <li><a href="schemas.html#schemas.InspectionUpdate.comments">(атрибут schemas.InspectionUpdate)</a>
+</li>
+        <li><a href="schemas.html#schemas.ServiceRecordBase.comments">(атрибут schemas.ServiceRecordBase)</a>
+</li>
+        <li><a href="schemas.html#schemas.ServiceRecordRead.comments">(атрибут schemas.ServiceRecordRead)</a>
 </li>
       </ul></li>
       <li><a href="models.html#models.FireExtinguisher.commissioning_date">commissioning_date (атрибут models.FireExtinguisher)</a>
@@ -211,15 +262,23 @@
 </li>
       <li><a href="auth.html#auth.create_access_token">create_access_token() (в модуле auth)</a>
 </li>
-      <li><a href="routers.html#routers.employees.create_employee">create_employee() (в модуле routers.employees)</a>
+      <li><a href="backup.html#backup.create_backup">create_backup() (в модуле backup)</a>
+
+      <ul>
+        <li><a href="routers.html#routers.backups.create_backup">(в модуле routers.backups)</a>
 </li>
+      </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="routers.html#routers.employees.create_employee">create_employee() (в модуле routers.employees)</a>
+</li>
       <li><a href="routers.html#routers.extinguishers.create_extinguisher">create_extinguisher() (в модуле routers.extinguishers)</a>
 </li>
       <li><a href="routers.html#routers.inspections.create_inspection">create_inspection() (в модуле routers.inspections)</a>
 </li>
       <li><a href="routers.html#routers.locations.create_location">create_location() (в модуле routers.locations)</a>
+</li>
+      <li><a href="routers.html#routers.service_records.create_service_record">create_service_record() (в модуле routers.service_records)</a>
 </li>
       <li><a href="routers.html#routers.statuses.create_status">create_status() (в модуле routers.statuses)</a>
 </li>
@@ -236,6 +295,8 @@
 </li>
         <li><a href="models.html#models.Location.created_at">(атрибут models.Location)</a>
 </li>
+        <li><a href="models.html#models.ServiceRecord.created_at">(атрибут models.ServiceRecord)</a>
+</li>
         <li><a href="models.html#models.Status.created_at">(атрибут models.Status)</a>
 </li>
         <li><a href="models.html#models.User.created_at">(атрибут models.User)</a>
@@ -250,9 +311,17 @@
 </li>
         <li><a href="schemas.html#schemas.LocationRead.created_at">(атрибут schemas.LocationRead)</a>
 </li>
+        <li><a href="schemas.html#schemas.ServiceRecordRead.created_at">(атрибут schemas.ServiceRecordRead)</a>
+</li>
         <li><a href="schemas.html#schemas.StatusRead.created_at">(атрибут schemas.StatusRead)</a>
 </li>
         <li><a href="schemas.html#schemas.UserRead.created_at">(атрибут schemas.UserRead)</a>
+</li>
+      </ul></li>
+      <li><a href="models.html#models.ServiceRecord.created_by">created_by (атрибут models.ServiceRecord)</a>
+
+      <ul>
+        <li><a href="schemas.html#schemas.ServiceRecordRead.created_by">(атрибут schemas.ServiceRecordRead)</a>
 </li>
       </ul></li>
   </ul></td>
@@ -277,10 +346,20 @@
         <li><a href="deadlines.html#module-deadlines">module</a>
 </li>
       </ul></li>
+      <li><a href="service_logic.html#service_logic.default_next_dates">default_next_dates() (в модуле service_logic)</a>
+</li>
       <li><a href="report_data.html#report_data.defects_text">defects_text() (в модуле report_data)</a>
+</li>
+      <li><a href="routers.html#routers.employees.delete_employee">delete_employee() (в модуле routers.employees)</a>
 </li>
       <li><a href="routers.html#routers.extinguishers.delete_extinguisher">delete_extinguisher() (в модуле routers.extinguishers)</a>
 </li>
+      <li><a href="routers.html#routers.locations.delete_location">delete_location() (в модуле routers.locations)</a>
+</li>
+      <li><a href="routers.html#routers.service_records.delete_service_record">delete_service_record() (в модуле routers.service_records)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="models.html#models.Location.description">description (атрибут models.Location)</a>
 
       <ul>
@@ -288,12 +367,14 @@
 </li>
         <li><a href="schemas.html#schemas.LocationBase.description">(атрибут schemas.LocationBase)</a>
 </li>
+        <li><a href="schemas.html#schemas.LocationUpdate.description">(атрибут schemas.LocationUpdate)</a>
+</li>
         <li><a href="schemas.html#schemas.StatusBase.description">(атрибут schemas.StatusBase)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="audit.html#audit.diff">diff() (в модуле audit)</a>
+</li>
+      <li><a href="routers.html#routers.backups.download_backup">download_backup() (в модуле routers.backups)</a>
 </li>
       <li><a href="routers.html#routers.import_data.download_employees_template">download_employees_template() (в модуле routers.import_data)</a>
 </li>
@@ -336,14 +417,18 @@
       <ul>
         <li><a href="schemas.html#schemas.InspectionBase.employee_id">(атрибут schemas.InspectionBase)</a>
 </li>
+        <li><a href="schemas.html#schemas.InspectionUpdate.employee_id">(атрибут schemas.InspectionUpdate)</a>
+</li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="schemas.html#schemas.EmployeeBase">EmployeeBase (класс в schemas)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="schemas.html#schemas.EmployeeCreate">EmployeeCreate (класс в schemas)</a>
 </li>
       <li><a href="schemas.html#schemas.EmployeeRead">EmployeeRead (класс в schemas)</a>
+</li>
+      <li><a href="schemas.html#schemas.EmployeeUpdate">EmployeeUpdate (класс в schemas)</a>
 </li>
       <li><a href="status_logic.html#status_logic.ensure_default_statuses">ensure_default_statuses() (в модуле status_logic)</a>
 </li>
@@ -367,6 +452,13 @@
 </li>
       <li><a href="routers.html#routers.reports.export_journal_json">export_journal_json() (в модуле routers.reports)</a>
 </li>
+      <li>
+    export_utils
+
+      <ul>
+        <li><a href="export_utils.html#module-export_utils">module</a>
+</li>
+      </ul></li>
   </ul></td>
 </tr></table>
 
@@ -375,12 +467,26 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="auth.html#auth.LoginThrottle.failure">failure() (метод auth.LoginThrottle)</a>
 </li>
-      <li><a href="models.html#models.Inspection.fire_extinguisher">fire_extinguisher (атрибут models.Inspection)</a>
+      <li><a href="main.html#main.favicon">favicon() (в модуле main)</a>
 </li>
+      <li><a href="models.html#models.Inspection.fire_extinguisher">fire_extinguisher (атрибут models.Inspection)</a>
+
+      <ul>
+        <li><a href="models.html#models.ServiceRecord.fire_extinguisher">(атрибут models.ServiceRecord)</a>
+</li>
+      </ul></li>
       <li><a href="models.html#models.Inspection.fire_extinguisher_id">fire_extinguisher_id (атрибут models.Inspection)</a>
 
       <ul>
+        <li><a href="models.html#models.ServiceRecord.fire_extinguisher_id">(атрибут models.ServiceRecord)</a>
+</li>
         <li><a href="schemas.html#schemas.InspectionBase.fire_extinguisher_id">(атрибут schemas.InspectionBase)</a>
+</li>
+        <li><a href="schemas.html#schemas.InspectionUpdate.fire_extinguisher_id">(атрибут schemas.InspectionUpdate)</a>
+</li>
+        <li><a href="schemas.html#schemas.ServiceRecordCreate.fire_extinguisher_id">(атрибут schemas.ServiceRecordCreate)</a>
+</li>
+        <li><a href="schemas.html#schemas.ServiceRecordRead.fire_extinguisher_id">(атрибут schemas.ServiceRecordRead)</a>
 </li>
       </ul></li>
       <li><a href="models.html#models.Location.fire_extinguishers">fire_extinguishers (атрибут models.Location)</a>
@@ -393,12 +499,12 @@
 </li>
       <li><a href="schemas.html#schemas.FireExtinguisherBase">FireExtinguisherBase (класс в schemas)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="schemas.html#schemas.FireExtinguisherCreate">FireExtinguisherCreate (класс в schemas)</a>
 </li>
       <li><a href="schemas.html#schemas.FireExtinguisherRead">FireExtinguisherRead (класс в schemas)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="schemas.html#schemas.FireExtinguisherUpdate">FireExtinguisherUpdate (класс в schemas)</a>
 </li>
       <li><a href="report_data.html#report_data.fleet_summary">fleet_summary() (в модуле report_data)</a>
@@ -413,6 +519,8 @@
         <li><a href="models.html#models.User.full_name">(атрибут models.User)</a>
 </li>
         <li><a href="schemas.html#schemas.EmployeeBase.full_name">(атрибут schemas.EmployeeBase)</a>
+</li>
+        <li><a href="schemas.html#schemas.EmployeeUpdate.full_name">(атрибут schemas.EmployeeUpdate)</a>
 </li>
         <li><a href="schemas.html#schemas.UserBase.full_name">(атрибут schemas.UserBase)</a>
 </li>
@@ -470,6 +578,8 @@
       <ul>
         <li><a href="schemas.html#schemas.InspectionBase.hose_condition">(атрибут schemas.InspectionBase)</a>
 </li>
+        <li><a href="schemas.html#schemas.InspectionUpdate.hose_condition">(атрибут schemas.InspectionUpdate)</a>
+</li>
       </ul></li>
   </ul></td>
 </tr></table>
@@ -488,6 +598,8 @@
 </li>
         <li><a href="models.html#models.Location.id">(атрибут models.Location)</a>
 </li>
+        <li><a href="models.html#models.ServiceRecord.id">(атрибут models.ServiceRecord)</a>
+</li>
         <li><a href="models.html#models.Status.id">(атрибут models.Status)</a>
 </li>
         <li><a href="models.html#models.User.id">(атрибут models.User)</a>
@@ -501,6 +613,8 @@
         <li><a href="schemas.html#schemas.InspectionRead.id">(атрибут schemas.InspectionRead)</a>
 </li>
         <li><a href="schemas.html#schemas.LocationRead.id">(атрибут schemas.LocationRead)</a>
+</li>
+        <li><a href="schemas.html#schemas.ServiceRecordRead.id">(атрибут schemas.ServiceRecordRead)</a>
 </li>
         <li><a href="schemas.html#schemas.StatusRead.id">(атрибут schemas.StatusRead)</a>
 </li>
@@ -519,10 +633,12 @@
 </li>
       <li><a href="routers.html#routers.statuses.init_default_statuses">init_default_statuses() (в модуле routers.statuses)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="main.html#main.init_statuses">init_statuses() (в модуле main)</a>
 </li>
+      <li><a href="service_logic.html#service_logic.initial_recharge_record">initial_recharge_record() (в модуле service_logic)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="models.html#models.Inspection">Inspection (класс в models)</a>
 </li>
       <li><a href="models.html#models.Inspection.inspection_date">inspection_date (атрибут models.Inspection)</a>
@@ -530,14 +646,22 @@
       <ul>
         <li><a href="schemas.html#schemas.InspectionBase.inspection_date">(атрибут schemas.InspectionBase)</a>
 </li>
+        <li><a href="schemas.html#schemas.InspectionUpdate.inspection_date">(атрибут schemas.InspectionUpdate)</a>
+</li>
       </ul></li>
       <li><a href="schemas.html#schemas.InspectionCreate.inspection_not_in_future">inspection_not_in_future() (метод класса schemas.InspectionCreate)</a>
+
+      <ul>
+        <li><a href="schemas.html#schemas.InspectionUpdate.inspection_not_in_future">(метод класса schemas.InspectionUpdate)</a>
 </li>
+      </ul></li>
       <li><a href="schemas.html#schemas.InspectionBase">InspectionBase (класс в schemas)</a>
 </li>
       <li><a href="schemas.html#schemas.InspectionCreate">InspectionCreate (класс в schemas)</a>
 </li>
       <li><a href="schemas.html#schemas.InspectionRead">InspectionRead (класс в schemas)</a>
+</li>
+      <li><a href="schemas.html#schemas.InspectionReason">InspectionReason (класс в schemas)</a>
 </li>
       <li><a href="models.html#models.Employee.inspections">inspections (атрибут models.Employee)</a>
 
@@ -546,6 +670,8 @@
 </li>
       </ul></li>
       <li><a href="routers.html#routers.inspections.inspections_by_extinguisher">inspections_by_extinguisher() (в модуле routers.inspections)</a>
+</li>
+      <li><a href="schemas.html#schemas.InspectionUpdate">InspectionUpdate (класс в schemas)</a>
 </li>
       <li><a href="models.html#models.FireExtinguisher.inventory_number">inventory_number (атрибут models.FireExtinguisher)</a>
 
@@ -569,6 +695,8 @@
         <li><a href="schemas.html#schemas.UserStatusUpdate.is_active">(атрибут schemas.UserStatusUpdate)</a>
 </li>
       </ul></li>
+      <li><a href="run.html#run.is_firetrack">is_firetrack() (в модуле run)</a>
+</li>
       <li><a href="schemas.html#schemas.AuditPage.items">items (атрибут schemas.AuditPage)</a>
 </li>
   </ul></td>
@@ -614,7 +742,11 @@
       <ul>
         <li><a href="schemas.html#schemas.FireExtinguisherBase.last_recharge_date">(атрибут schemas.FireExtinguisherBase)</a>
 </li>
-        <li><a href="schemas.html#schemas.FireExtinguisherUpdate.last_recharge_date">(атрибут schemas.FireExtinguisherUpdate)</a>
+      </ul></li>
+      <li><a href="models.html#models.FireExtinguisher.last_test_date">last_test_date (атрибут models.FireExtinguisher)</a>
+
+      <ul>
+        <li><a href="schemas.html#schemas.FireExtinguisherRead.last_test_date">(атрибут schemas.FireExtinguisherRead)</a>
 </li>
       </ul></li>
       <li><a href="status_logic.html#status_logic.latest_inspections_subquery">latest_inspections_subquery() (в модуле status_logic)</a>
@@ -623,6 +755,12 @@
 </li>
       <li><a href="routers.html#routers.audit_log.list_audit">list_audit() (в модуле routers.audit_log)</a>
 </li>
+      <li><a href="backup.html#backup.list_backups">list_backups() (в модуле backup)</a>
+
+      <ul>
+        <li><a href="routers.html#routers.backups.list_backups">(в модуле routers.backups)</a>
+</li>
+      </ul></li>
       <li><a href="routers.html#routers.employees.list_employees">list_employees() (в модуле routers.employees)</a>
 </li>
       <li><a href="routers.html#routers.extinguishers.list_extinguishers">list_extinguishers() (в модуле routers.extinguishers)</a>
@@ -633,9 +771,13 @@
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="routers.html#routers.service_records.list_service_records">list_service_records() (в модуле routers.service_records)</a>
+</li>
       <li><a href="routers.html#routers.statuses.list_statuses">list_statuses() (в модуле routers.statuses)</a>
 </li>
       <li><a href="routers.html#routers.users.list_users">list_users() (в модуле routers.users)</a>
+</li>
+      <li><a href="run.html#run.local_url">local_url() (в модуле run)</a>
 </li>
       <li><a href="models.html#models.FireExtinguisher.location">location (атрибут models.FireExtinguisher)</a>
 </li>
@@ -654,6 +796,8 @@
       <li><a href="schemas.html#schemas.LocationCreate">LocationCreate (класс в schemas)</a>
 </li>
       <li><a href="schemas.html#schemas.LocationRead">LocationRead (класс в schemas)</a>
+</li>
+      <li><a href="schemas.html#schemas.LocationUpdate">LocationUpdate (класс в schemas)</a>
 </li>
       <li><a href="audit.html#audit.log">log() (в модуле audit)</a>
 </li>
@@ -674,6 +818,8 @@
         <li><a href="main.html#module-main">module</a>
 </li>
       </ul></li>
+      <li><a href="run.html#run.main">main() (в модуле run)</a>
+</li>
       <li><a href="report_data.html#report_data.maintenance_rows">maintenance_rows() (в модуле report_data)</a>
 </li>
       <li><a href="xlsx_export.html#xlsx_export.maintenance_workbook">maintenance_workbook() (в модуле xlsx_export)</a>
@@ -696,8 +842,6 @@
         <li><a href="schemas.html#schemas.FireExtinguisherUpdate.manufacturer">(атрибут schemas.FireExtinguisherUpdate)</a>
 </li>
       </ul></li>
-      <li><a href="routers.html#routers.extinguishers.mark_recharged">mark_recharged() (в модуле routers.extinguishers)</a>
-</li>
       <li><a href="db.html#db.Base.metadata">metadata (атрибут db.Base)</a>
 </li>
       <li>
@@ -718,6 +862,8 @@
 </li>
         <li><a href="schemas.html#schemas.EmployeeRead.model_config">(атрибут schemas.EmployeeRead)</a>
 </li>
+        <li><a href="schemas.html#schemas.EmployeeUpdate.model_config">(атрибут schemas.EmployeeUpdate)</a>
+</li>
         <li><a href="schemas.html#schemas.FireExtinguisherBase.model_config">(атрибут schemas.FireExtinguisherBase)</a>
 </li>
         <li><a href="schemas.html#schemas.FireExtinguisherCreate.model_config">(атрибут schemas.FireExtinguisherCreate)</a>
@@ -734,17 +880,29 @@
 </li>
         <li><a href="schemas.html#schemas.InspectionRead.model_config">(атрибут schemas.InspectionRead)</a>
 </li>
+        <li><a href="schemas.html#schemas.InspectionReason.model_config">(атрибут schemas.InspectionReason)</a>
+</li>
+        <li><a href="schemas.html#schemas.InspectionUpdate.model_config">(атрибут schemas.InspectionUpdate)</a>
+</li>
         <li><a href="schemas.html#schemas.LocationBase.model_config">(атрибут schemas.LocationBase)</a>
 </li>
         <li><a href="schemas.html#schemas.LocationCreate.model_config">(атрибут schemas.LocationCreate)</a>
 </li>
         <li><a href="schemas.html#schemas.LocationRead.model_config">(атрибут schemas.LocationRead)</a>
 </li>
+        <li><a href="schemas.html#schemas.LocationUpdate.model_config">(атрибут schemas.LocationUpdate)</a>
+</li>
         <li><a href="schemas.html#schemas.PasswordChange.model_config">(атрибут schemas.PasswordChange)</a>
 </li>
         <li><a href="schemas.html#schemas.PasswordReset.model_config">(атрибут schemas.PasswordReset)</a>
 </li>
-        <li><a href="schemas.html#schemas.RechargeMark.model_config">(атрибут schemas.RechargeMark)</a>
+        <li><a href="schemas.html#schemas.ServiceRecordBase.model_config">(атрибут schemas.ServiceRecordBase)</a>
+</li>
+        <li><a href="schemas.html#schemas.ServiceRecordCreate.model_config">(атрибут schemas.ServiceRecordCreate)</a>
+</li>
+        <li><a href="schemas.html#schemas.ServiceRecordRead.model_config">(атрибут schemas.ServiceRecordRead)</a>
+</li>
+        <li><a href="schemas.html#schemas.ServiceRecordUpdate.model_config">(атрибут schemas.ServiceRecordUpdate)</a>
 </li>
         <li><a href="schemas.html#schemas.StatusBase.model_config">(атрибут schemas.StatusBase)</a>
 </li>
@@ -786,9 +944,13 @@
 </li>
         <li><a href="auth.html#module-auth">auth</a>
 </li>
+        <li><a href="backup.html#module-backup">backup</a>
+</li>
         <li><a href="db.html#module-db">db</a>
 </li>
         <li><a href="deadlines.html#module-deadlines">deadlines</a>
+</li>
+        <li><a href="export_utils.html#module-export_utils">export_utils</a>
 </li>
         <li><a href="main.html#module-main">main</a>
 </li>
@@ -802,6 +964,8 @@
 </li>
         <li><a href="routers.html#module-routers.audit_log">routers.audit_log</a>
 </li>
+        <li><a href="routers.html#module-routers.backups">routers.backups</a>
+</li>
         <li><a href="routers.html#module-routers.employees">routers.employees</a>
 </li>
         <li><a href="routers.html#module-routers.extinguishers">routers.extinguishers</a>
@@ -814,13 +978,19 @@
 </li>
         <li><a href="routers.html#module-routers.reports">routers.reports</a>
 </li>
+        <li><a href="routers.html#module-routers.service_records">routers.service_records</a>
+</li>
         <li><a href="routers.html#module-routers.settings">routers.settings</a>
 </li>
         <li><a href="routers.html#module-routers.statuses">routers.statuses</a>
 </li>
         <li><a href="routers.html#module-routers.users">routers.users</a>
 </li>
+        <li><a href="run.html#module-run">run</a>
+</li>
         <li><a href="schemas.html#module-schemas">schemas</a>
+</li>
+        <li><a href="service_logic.html#module-service_logic">service_logic</a>
 </li>
         <li><a href="setup.html#module-setup">setup</a>
 </li>
@@ -852,6 +1022,8 @@
 </li>
         <li><a href="schemas.html#schemas.LocationBase.name">(атрибут schemas.LocationBase)</a>
 </li>
+        <li><a href="schemas.html#schemas.LocationUpdate.name">(атрибут schemas.LocationUpdate)</a>
+</li>
         <li><a href="schemas.html#schemas.StatusBase.name">(атрибут schemas.StatusBase)</a>
 </li>
       </ul></li>
@@ -863,8 +1035,6 @@
       </ul></li>
       <li><a href="xlsx_export.html#xlsx_export.new_workbook">new_workbook() (в модуле xlsx_export)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="schemas.html#schemas.InspectionCreate.next_after_inspection">next_after_inspection() (метод schemas.InspectionCreate)</a>
 </li>
       <li><a href="models.html#models.Inspection.next_inspection_date">next_inspection_date (атрибут models.Inspection)</a>
@@ -872,15 +1042,37 @@
       <ul>
         <li><a href="schemas.html#schemas.InspectionBase.next_inspection_date">(атрибут schemas.InspectionBase)</a>
 </li>
-      </ul></li>
-      <li><a href="schemas.html#schemas.FireExtinguisherRead.next_recharge_date">next_recharge_date (атрибут schemas.FireExtinguisherRead)</a>
+        <li><a href="schemas.html#schemas.InspectionUpdate.next_inspection_date">(атрибут schemas.InspectionUpdate)</a>
 </li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="models.html#models.ServiceRecord.next_recharge_date">next_recharge_date (атрибут models.ServiceRecord)</a>
+
+      <ul>
+        <li><a href="schemas.html#schemas.FireExtinguisherRead.next_recharge_date">(атрибут schemas.FireExtinguisherRead)</a>
+</li>
+        <li><a href="schemas.html#schemas.ServiceRecordBase.next_recharge_date">(атрибут schemas.ServiceRecordBase)</a>
+</li>
+        <li><a href="schemas.html#schemas.ServiceRecordRead.next_recharge_date">(атрибут schemas.ServiceRecordRead)</a>
+</li>
+      </ul></li>
+      <li><a href="models.html#models.ServiceRecord.next_test_date">next_test_date (атрибут models.ServiceRecord)</a>
+
+      <ul>
+        <li><a href="schemas.html#schemas.FireExtinguisherRead.next_test_date">(атрибут schemas.FireExtinguisherRead)</a>
+</li>
+        <li><a href="schemas.html#schemas.ServiceRecordBase.next_test_date">(атрибут schemas.ServiceRecordBase)</a>
+</li>
+        <li><a href="schemas.html#schemas.ServiceRecordRead.next_test_date">(атрибут schemas.ServiceRecordRead)</a>
+</li>
+      </ul></li>
       <li><a href="schemas.html#schemas.FireExtinguisherBase.not_in_future">not_in_future() (метод класса schemas.FireExtinguisherBase)</a>
 
       <ul>
         <li><a href="schemas.html#schemas.FireExtinguisherUpdate.not_in_future">(метод класса schemas.FireExtinguisherUpdate)</a>
 </li>
-        <li><a href="schemas.html#schemas.RechargeMark.not_in_future">(метод класса schemas.RechargeMark)</a>
+        <li><a href="schemas.html#schemas.ServiceRecordBase.not_in_future">(метод класса schemas.ServiceRecordBase)</a>
 </li>
       </ul></li>
   </ul></td>
@@ -891,6 +1083,18 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="schemas.html#schemas.PasswordChange.old_password">old_password (атрибут schemas.PasswordChange)</a>
 </li>
+      <li><a href="run.html#run.open_browser_when_ready">open_browser_when_ready() (в модуле run)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="models.html#models.ServiceRecord.organization">organization (атрибут models.ServiceRecord)</a>
+
+      <ul>
+        <li><a href="schemas.html#schemas.ServiceRecordBase.organization">(атрибут schemas.ServiceRecordBase)</a>
+</li>
+        <li><a href="schemas.html#schemas.ServiceRecordRead.organization">(атрибут schemas.ServiceRecordRead)</a>
+</li>
+      </ul></li>
   </ul></td>
 </tr></table>
 
@@ -909,12 +1113,24 @@
 </li>
       <li><a href="report_data.html#report_data.period_label">period_label() (в модуле report_data)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="run.html#run.port_is_free">port_is_free() (в модуле run)</a>
+</li>
       <li><a href="models.html#models.Employee.position">position (атрибут models.Employee)</a>
 
       <ul>
         <li><a href="schemas.html#schemas.EmployeeBase.position">(атрибут schemas.EmployeeBase)</a>
+</li>
+        <li><a href="schemas.html#schemas.EmployeeUpdate.position">(атрибут schemas.EmployeeUpdate)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="models.html#models.ServiceRecord.post_recharge_result">post_recharge_result (атрибут models.ServiceRecord)</a>
+
+      <ul>
+        <li><a href="schemas.html#schemas.ServiceRecordBase.post_recharge_result">(атрибут schemas.ServiceRecordBase)</a>
+</li>
+        <li><a href="schemas.html#schemas.ServiceRecordRead.post_recharge_result">(атрибут schemas.ServiceRecordRead)</a>
 </li>
       </ul></li>
       <li><a href="models.html#models.Inspection.pressure">pressure (атрибут models.Inspection)</a>
@@ -922,12 +1138,18 @@
       <ul>
         <li><a href="schemas.html#schemas.InspectionBase.pressure">(атрибут schemas.InspectionBase)</a>
 </li>
+        <li><a href="schemas.html#schemas.InspectionUpdate.pressure">(атрибут schemas.InspectionUpdate)</a>
+</li>
       </ul></li>
+      <li><a href="routers.html#routers.reports.print_cards">print_cards() (в модуле routers.reports)</a>
+</li>
       <li><a href="routers.html#routers.reports.print_fleet">print_fleet() (в модуле routers.reports)</a>
 </li>
       <li><a href="routers.html#routers.reports.print_journal">print_journal() (в модуле routers.reports)</a>
 </li>
       <li><a href="routers.html#routers.reports.print_maintenance">print_maintenance() (в модуле routers.reports)</a>
+</li>
+      <li><a href="backup.html#backup.prune_auto_backups">prune_auto_backups() (в модуле backup)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -941,13 +1163,21 @@
 </li>
       <li><a href="routers.html#routers.settings.read_settings">read_settings() (в модуле routers.settings)</a>
 </li>
+      <li><a href="schemas.html#schemas.InspectionReason.reason">reason (атрибут schemas.InspectionReason)</a>
+
+      <ul>
+        <li><a href="schemas.html#schemas.InspectionUpdate.reason">(атрибут schemas.InspectionUpdate)</a>
+</li>
+        <li><a href="schemas.html#schemas.ServiceRecordUpdate.reason">(атрибут schemas.ServiceRecordUpdate)</a>
+</li>
+      </ul></li>
       <li><a href="status_logic.html#status_logic.recalculate_statuses">recalculate_statuses() (в модуле status_logic)</a>
 </li>
       <li><a href="routers.html#routers.statuses.recalculate_statuses_endpoint">recalculate_statuses_endpoint() (в модуле routers.statuses)</a>
 </li>
-      <li><a href="schemas.html#schemas.RechargeMark.recharge_date">recharge_date (атрибут schemas.RechargeMark)</a>
-</li>
       <li><a href="schemas.html#schemas.FireExtinguisherRead.recharge_days_left">recharge_days_left (атрибут schemas.FireExtinguisherRead)</a>
+</li>
+      <li><a href="deadlines.html#deadlines.recharge_interval">recharge_interval() (в модуле deadlines)</a>
 </li>
       <li><a href="models.html#models.FireExtinguisher.recharge_interval_months">recharge_interval_months (атрибут models.FireExtinguisher)</a>
 
@@ -956,17 +1186,29 @@
 </li>
         <li><a href="schemas.html#schemas.FireExtinguisherUpdate.recharge_interval_months">(атрибут schemas.FireExtinguisherUpdate)</a>
 </li>
-        <li><a href="schemas.html#schemas.RechargeMark.recharge_interval_months">(атрибут schemas.RechargeMark)</a>
-</li>
       </ul></li>
       <li><a href="routers.html#routers.reports.recharge_report">recharge_report() (в модуле routers.reports)</a>
 </li>
       <li><a href="schemas.html#schemas.FireExtinguisherRead.recharge_state">recharge_state (атрибут schemas.FireExtinguisherRead)</a>
 </li>
-      <li><a href="schemas.html#schemas.RechargeMark">RechargeMark (класс в schemas)</a>
+      <li><a href="models.html#models.ServiceRecord.recharged">recharged (атрибут models.ServiceRecord)</a>
+
+      <ul>
+        <li><a href="schemas.html#schemas.ServiceRecordBase.recharged">(атрибут schemas.ServiceRecordBase)</a>
 </li>
+        <li><a href="schemas.html#schemas.ServiceRecordRead.recharged">(атрибут schemas.ServiceRecordRead)</a>
+</li>
+      </ul></li>
       <li><a href="db.html#db.Base.registry">registry (атрибут db.Base)</a>
 </li>
+      <li><a href="models.html#models.ServiceRecord.repaired">repaired (атрибут models.ServiceRecord)</a>
+
+      <ul>
+        <li><a href="schemas.html#schemas.ServiceRecordBase.repaired">(атрибут schemas.ServiceRecordBase)</a>
+</li>
+        <li><a href="schemas.html#schemas.ServiceRecordRead.repaired">(атрибут schemas.ServiceRecordRead)</a>
+</li>
+      </ul></li>
       <li>
     report_data
 
@@ -981,6 +1223,18 @@
       <li><a href="auth.html#auth.LoginThrottle.reset">reset() (метод auth.LoginThrottle)</a>
 </li>
       <li><a href="routers.html#routers.users.reset_password">reset_password() (в модуле routers.users)</a>
+</li>
+      <li><a href="backup.html#backup.resolve_backup">resolve_backup() (в модуле backup)</a>
+</li>
+      <li><a href="models.html#models.ServiceRecord.responsible">responsible (атрибут models.ServiceRecord)</a>
+
+      <ul>
+        <li><a href="schemas.html#schemas.ServiceRecordBase.responsible">(атрибут schemas.ServiceRecordBase)</a>
+</li>
+        <li><a href="schemas.html#schemas.ServiceRecordRead.responsible">(атрибут schemas.ServiceRecordRead)</a>
+</li>
+      </ul></li>
+      <li><a href="routers.html#routers.inspections.restore_inspection">restore_inspection() (в модуле routers.inspections)</a>
 </li>
       <li><a href="auth.html#auth.LoginThrottle.retry_after">retry_after() (метод auth.LoginThrottle)</a>
 </li>
@@ -1014,6 +1268,13 @@
 
       <ul>
         <li><a href="routers.html#module-routers.audit_log">module</a>
+</li>
+      </ul></li>
+      <li>
+    routers.backups
+
+      <ul>
+        <li><a href="routers.html#module-routers.backups">module</a>
 </li>
       </ul></li>
       <li>
@@ -1059,6 +1320,13 @@
 </li>
       </ul></li>
       <li>
+    routers.service_records
+
+      <ul>
+        <li><a href="routers.html#module-routers.service_records">module</a>
+</li>
+      </ul></li>
+      <li>
     routers.settings
 
       <ul>
@@ -1081,6 +1349,19 @@
       </ul></li>
       <li><a href="routers.html#routers.import_data.RowError">RowError</a>
 </li>
+      <li>
+    run
+
+      <ul>
+        <li><a href="run.html#module-run">module</a>
+</li>
+      </ul></li>
+      <li><a href="backup.html#backup.run_scheduled_backup">run_scheduled_backup() (в модуле backup)</a>
+
+      <ul>
+        <li><a href="main.html#main.run_scheduled_backup">(в модуле main)</a>
+</li>
+      </ul></li>
       <li><a href="main.html#main.run_status_recalculation">run_status_recalculation() (в модуле main)</a>
 </li>
   </ul></td>
@@ -1089,10 +1370,14 @@
 <h2 id="S">S</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="export_utils.html#export_utils.safe_cell">safe_cell() (в модуле export_utils)</a>
+</li>
       <li><a href="models.html#models.Inspection.safety_pin_condition">safety_pin_condition (атрибут models.Inspection)</a>
 
       <ul>
         <li><a href="schemas.html#schemas.InspectionBase.safety_pin_condition">(атрибут schemas.InspectionBase)</a>
+</li>
+        <li><a href="schemas.html#schemas.InspectionUpdate.safety_pin_condition">(атрибут schemas.InspectionUpdate)</a>
 </li>
       </ul></li>
       <li><a href="routers.html#routers.settings.save_settings">save_settings() (в модуле routers.settings)</a>
@@ -1109,11 +1394,31 @@
       <ul>
         <li><a href="schemas.html#schemas.InspectionBase.seal_condition">(атрибут schemas.InspectionBase)</a>
 </li>
+        <li><a href="schemas.html#schemas.InspectionUpdate.seal_condition">(атрибут schemas.InspectionUpdate)</a>
+</li>
       </ul></li>
       <li><a href="routers.html#routers.extinguishers.search_by_inventory">search_by_inventory() (в модуле routers.extinguishers)</a>
 </li>
+      <li><a href="main.html#main.security_headers">security_headers() (в модуле main)</a>
+</li>
+      <li><a href="models.html#models.FireExtinguisher.serial_number">serial_number (атрибут models.FireExtinguisher)</a>
+
+      <ul>
+        <li><a href="schemas.html#schemas.FireExtinguisherBase.serial_number">(атрибут schemas.FireExtinguisherBase)</a>
+</li>
+        <li><a href="schemas.html#schemas.FireExtinguisherUpdate.serial_number">(атрибут schemas.FireExtinguisherUpdate)</a>
+</li>
+      </ul></li>
       <li><a href="routers.html#routers.extinguishers.serialize">serialize() (в модуле routers.extinguishers)</a>
 </li>
+      <li><a href="models.html#models.ServiceRecord.service_date">service_date (атрибут models.ServiceRecord)</a>
+
+      <ul>
+        <li><a href="schemas.html#schemas.ServiceRecordBase.service_date">(атрибут schemas.ServiceRecordBase)</a>
+</li>
+        <li><a href="schemas.html#schemas.ServiceRecordRead.service_date">(атрибут schemas.ServiceRecordRead)</a>
+</li>
+      </ul></li>
       <li><a href="schemas.html#schemas.FireExtinguisherRead.service_end_date">service_end_date (атрибут schemas.FireExtinguisherRead)</a>
 </li>
       <li><a href="models.html#models.FireExtinguisher.service_life_years">service_life_years (атрибут models.FireExtinguisher)</a>
@@ -1124,7 +1429,28 @@
         <li><a href="schemas.html#schemas.FireExtinguisherUpdate.service_life_years">(атрибут schemas.FireExtinguisherUpdate)</a>
 </li>
       </ul></li>
+      <li>
+    service_logic
+
+      <ul>
+        <li><a href="service_logic.html#module-service_logic">module</a>
+</li>
+      </ul></li>
+      <li><a href="models.html#models.FireExtinguisher.service_records">service_records (атрибут models.FireExtinguisher)</a>
+</li>
       <li><a href="schemas.html#schemas.FireExtinguisherRead.service_state">service_state (атрибут schemas.FireExtinguisherRead)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="models.html#models.ServiceRecord">ServiceRecord (класс в models)</a>
+</li>
+      <li><a href="schemas.html#schemas.ServiceRecordBase">ServiceRecordBase (класс в schemas)</a>
+</li>
+      <li><a href="schemas.html#schemas.ServiceRecordCreate">ServiceRecordCreate (класс в schemas)</a>
+</li>
+      <li><a href="schemas.html#schemas.ServiceRecordRead">ServiceRecordRead (класс в schemas)</a>
+</li>
+      <li><a href="schemas.html#schemas.ServiceRecordUpdate">ServiceRecordUpdate (класс в schemas)</a>
 </li>
       <li><a href="routers.html#routers.users.set_user_status">set_user_status() (в модуле routers.users)</a>
 </li>
@@ -1135,9 +1461,9 @@
         <li><a href="setup.html#module-setup">module</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="audit.html#audit.snapshot">snapshot() (в модуле audit)</a>
+</li>
+      <li><a href="migrate.html#migrate.sqlite_file">sqlite_file() (в модуле migrate)</a>
 </li>
       <li><a href="models.html#models.FireExtinguisher.status">status (атрибут models.FireExtinguisher)</a>
 
@@ -1180,14 +1506,36 @@
         <li><a href="schemas.html#schemas.AuditRead.summary">(атрибут schemas.AuditRead)</a>
 </li>
       </ul></li>
+      <li><a href="service_logic.html#service_logic.sync_extinguisher_dates">sync_extinguisher_dates() (в модуле service_logic)</a>
+</li>
   </ul></td>
 </tr></table>
 
 <h2 id="T">T</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="models.html#models.ServiceRecord.test_result">test_result (атрибут models.ServiceRecord)</a>
+
+      <ul>
+        <li><a href="schemas.html#schemas.ServiceRecordBase.test_result">(атрибут schemas.ServiceRecordBase)</a>
+</li>
+        <li><a href="schemas.html#schemas.ServiceRecordRead.test_result">(атрибут schemas.ServiceRecordRead)</a>
+</li>
+      </ul></li>
+      <li><a href="schemas.html#schemas.FireExtinguisherRead.test_state">test_state (атрибут schemas.FireExtinguisherRead)</a>
+</li>
+      <li><a href="models.html#models.ServiceRecord.tested">tested (атрибут models.ServiceRecord)</a>
+
+      <ul>
+        <li><a href="schemas.html#schemas.ServiceRecordBase.tested">(атрибут schemas.ServiceRecordBase)</a>
+</li>
+        <li><a href="schemas.html#schemas.ServiceRecordRead.tested">(атрибут schemas.ServiceRecordRead)</a>
+</li>
+      </ul></li>
       <li><a href="xlsx_export.html#xlsx_export.to_bytes">to_bytes() (в модуле xlsx_export)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="schemas.html#schemas.Token">Token (класс в schemas)</a>
 </li>
       <li><a href="auth.html#auth.token_for">token_for() (в модуле auth)</a>
@@ -1196,8 +1544,6 @@
 </li>
       <li><a href="models.html#models.User.token_version">token_version (атрибут models.User)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="schemas.html#schemas.TokenData">TokenData (класс в schemas)</a>
 </li>
       <li><a href="schemas.html#schemas.AuditPage.total">total (атрибут schemas.AuditPage)</a>
@@ -1220,7 +1566,15 @@
 </li>
       <li><a href="routers.html#routers.reports.upcoming_inspections_report">upcoming_inspections_report() (в модуле routers.reports)</a>
 </li>
+      <li><a href="routers.html#routers.employees.update_employee">update_employee() (в модуле routers.employees)</a>
+</li>
       <li><a href="routers.html#routers.extinguishers.update_extinguisher">update_extinguisher() (в модуле routers.extinguishers)</a>
+</li>
+      <li><a href="routers.html#routers.inspections.update_inspection">update_inspection() (в модуле routers.inspections)</a>
+</li>
+      <li><a href="routers.html#routers.locations.update_location">update_location() (в модуле routers.locations)</a>
+</li>
+      <li><a href="routers.html#routers.service_records.update_service_record">update_service_record() (в модуле routers.service_records)</a>
 </li>
       <li><a href="app_settings.html#app_settings.update_settings">update_settings() (в модуле app_settings)</a>
 </li>
@@ -1238,14 +1592,14 @@
 </li>
       <li><a href="models.html#models.User">User (класс в models)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="models.html#models.AuditLog.user_agent">user_agent (атрибут models.AuditLog)</a>
 
       <ul>
         <li><a href="schemas.html#schemas.AuditRead.user_agent">(атрибут schemas.AuditRead)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="models.html#models.AuditLog.user_id">user_id (атрибут models.AuditLog)</a>
 
       <ul>
@@ -1286,14 +1640,16 @@
 </li>
       <li><a href="models.html#models.AppSetting.value">value (атрибут models.AppSetting)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="auth.html#auth.verify_password">verify_password() (в модуле auth)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="models.html#models.Inspection.visual_inspection">visual_inspection (атрибут models.Inspection)</a>
 
       <ul>
         <li><a href="schemas.html#schemas.InspectionBase.visual_inspection">(атрибут schemas.InspectionBase)</a>
+</li>
+        <li><a href="schemas.html#schemas.InspectionUpdate.visual_inspection">(атрибут schemas.InspectionUpdate)</a>
 </li>
       </ul></li>
   </ul></td>
@@ -1306,6 +1662,8 @@
 
       <ul>
         <li><a href="schemas.html#schemas.InspectionBase.weight">(атрибут schemas.InspectionBase)</a>
+</li>
+        <li><a href="schemas.html#schemas.InspectionUpdate.weight">(атрибут schemas.InspectionUpdate)</a>
 </li>
       </ul></li>
   </ul></td>

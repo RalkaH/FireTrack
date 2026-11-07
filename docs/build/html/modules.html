@@ -49,14 +49,18 @@
 <li class="toctree-l2"><a class="reference internal" href="app_settings.html">app_settings module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="audit.html">audit module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="auth.html">auth module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="backup.html">backup module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="db.html">db module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="deadlines.html">deadlines module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="export_utils.html">export_utils module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="main.html">main module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="migrate.html">migrate module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="models.html">models module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="report_data.html">report_data module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="routers.html">routers package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="run.html">run module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="schemas.html">schemas module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="service_logic.html">service_logic module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="setup.html">setup module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="status_logic.html">status_logic module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="xlsx_export.html">xlsx_export module</a></li>
@@ -127,6 +131,15 @@
 <li class="toctree-l2"><a class="reference internal" href="auth.html#auth.verify_password"><code class="docutils literal notranslate"><span class="pre">verify_password()</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="backup.html">backup module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="backup.html#backup.backup_dir"><code class="docutils literal notranslate"><span class="pre">backup_dir()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="backup.html#backup.create_backup"><code class="docutils literal notranslate"><span class="pre">create_backup()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="backup.html#backup.list_backups"><code class="docutils literal notranslate"><span class="pre">list_backups()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="backup.html#backup.prune_auto_backups"><code class="docutils literal notranslate"><span class="pre">prune_auto_backups()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="backup.html#backup.resolve_backup"><code class="docutils literal notranslate"><span class="pre">resolve_backup()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="backup.html#backup.run_scheduled_backup"><code class="docutils literal notranslate"><span class="pre">run_scheduled_backup()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="db.html">db module</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="db.html#db.Base"><code class="docutils literal notranslate"><span class="pre">Base</span></code></a><ul>
 <li class="toctree-l3"><a class="reference internal" href="db.html#db.Base.metadata"><code class="docutils literal notranslate"><span class="pre">Base.metadata</span></code></a></li>
@@ -140,19 +153,28 @@
 <li class="toctree-l2"><a class="reference internal" href="deadlines.html#deadlines.add_months"><code class="docutils literal notranslate"><span class="pre">add_months()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="deadlines.html#deadlines.agent_kind"><code class="docutils literal notranslate"><span class="pre">agent_kind()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="deadlines.html#deadlines.compute_deadlines"><code class="docutils literal notranslate"><span class="pre">compute_deadlines()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="deadlines.html#deadlines.recharge_interval"><code class="docutils literal notranslate"><span class="pre">recharge_interval()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="export_utils.html">export_utils module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="export_utils.html#export_utils.safe_cell"><code class="docutils literal notranslate"><span class="pre">safe_cell()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="main.html">main module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="main.html#main.favicon"><code class="docutils literal notranslate"><span class="pre">favicon()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="main.html#main.health_check"><code class="docutils literal notranslate"><span class="pre">health_check()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="main.html#main.init_admin"><code class="docutils literal notranslate"><span class="pre">init_admin()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="main.html#main.init_statuses"><code class="docutils literal notranslate"><span class="pre">init_statuses()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="main.html#main.lifespan"><code class="docutils literal notranslate"><span class="pre">lifespan()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="main.html#main.read_root"><code class="docutils literal notranslate"><span class="pre">read_root()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="main.html#main.run_scheduled_backup"><code class="docutils literal notranslate"><span class="pre">run_scheduled_backup()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="main.html#main.run_status_recalculation"><code class="docutils literal notranslate"><span class="pre">run_status_recalculation()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="main.html#main.security_headers"><code class="docutils literal notranslate"><span class="pre">security_headers()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="migrate.html">migrate module</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="migrate.html#migrate.backup_database"><code class="docutils literal notranslate"><span class="pre">backup_database()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="migrate.html#migrate.sqlite_file"><code class="docutils literal notranslate"><span class="pre">sqlite_file()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="migrate.html#migrate.upgrade_database"><code class="docutils literal notranslate"><span class="pre">upgrade_database()</span></code></a></li>
 </ul>
 </li>
@@ -193,12 +215,15 @@
 <li class="toctree-l3"><a class="reference internal" href="models.html#models.FireExtinguisher.inspections"><code class="docutils literal notranslate"><span class="pre">FireExtinguisher.inspections</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="models.html#models.FireExtinguisher.inventory_number"><code class="docutils literal notranslate"><span class="pre">FireExtinguisher.inventory_number</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="models.html#models.FireExtinguisher.last_recharge_date"><code class="docutils literal notranslate"><span class="pre">FireExtinguisher.last_recharge_date</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="models.html#models.FireExtinguisher.last_test_date"><code class="docutils literal notranslate"><span class="pre">FireExtinguisher.last_test_date</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="models.html#models.FireExtinguisher.location"><code class="docutils literal notranslate"><span class="pre">FireExtinguisher.location</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="models.html#models.FireExtinguisher.location_id"><code class="docutils literal notranslate"><span class="pre">FireExtinguisher.location_id</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="models.html#models.FireExtinguisher.manufacture_date"><code class="docutils literal notranslate"><span class="pre">FireExtinguisher.manufacture_date</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="models.html#models.FireExtinguisher.manufacturer"><code class="docutils literal notranslate"><span class="pre">FireExtinguisher.manufacturer</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="models.html#models.FireExtinguisher.recharge_interval_months"><code class="docutils literal notranslate"><span class="pre">FireExtinguisher.recharge_interval_months</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="models.html#models.FireExtinguisher.serial_number"><code class="docutils literal notranslate"><span class="pre">FireExtinguisher.serial_number</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="models.html#models.FireExtinguisher.service_life_years"><code class="docutils literal notranslate"><span class="pre">FireExtinguisher.service_life_years</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="models.html#models.FireExtinguisher.service_records"><code class="docutils literal notranslate"><span class="pre">FireExtinguisher.service_records</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="models.html#models.FireExtinguisher.status"><code class="docutils literal notranslate"><span class="pre">FireExtinguisher.status</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="models.html#models.FireExtinguisher.status_id"><code class="docutils literal notranslate"><span class="pre">FireExtinguisher.status_id</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="models.html#models.FireExtinguisher.type"><code class="docutils literal notranslate"><span class="pre">FireExtinguisher.type</span></code></a></li>
@@ -206,6 +231,9 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="models.html#models.Inspection"><code class="docutils literal notranslate"><span class="pre">Inspection</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="models.html#models.Inspection.annul_reason"><code class="docutils literal notranslate"><span class="pre">Inspection.annul_reason</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="models.html#models.Inspection.annulled_at"><code class="docutils literal notranslate"><span class="pre">Inspection.annulled_at</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="models.html#models.Inspection.annulled_by"><code class="docutils literal notranslate"><span class="pre">Inspection.annulled_by</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="models.html#models.Inspection.comments"><code class="docutils literal notranslate"><span class="pre">Inspection.comments</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="models.html#models.Inspection.created_at"><code class="docutils literal notranslate"><span class="pre">Inspection.created_at</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="models.html#models.Inspection.employee"><code class="docutils literal notranslate"><span class="pre">Inspection.employee</span></code></a></li>
@@ -229,6 +257,26 @@
 <li class="toctree-l3"><a class="reference internal" href="models.html#models.Location.fire_extinguishers"><code class="docutils literal notranslate"><span class="pre">Location.fire_extinguishers</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="models.html#models.Location.id"><code class="docutils literal notranslate"><span class="pre">Location.id</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="models.html#models.Location.name"><code class="docutils literal notranslate"><span class="pre">Location.name</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="models.html#models.ServiceRecord"><code class="docutils literal notranslate"><span class="pre">ServiceRecord</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="models.html#models.ServiceRecord.agent_brand"><code class="docutils literal notranslate"><span class="pre">ServiceRecord.agent_brand</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="models.html#models.ServiceRecord.comments"><code class="docutils literal notranslate"><span class="pre">ServiceRecord.comments</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="models.html#models.ServiceRecord.created_at"><code class="docutils literal notranslate"><span class="pre">ServiceRecord.created_at</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="models.html#models.ServiceRecord.created_by"><code class="docutils literal notranslate"><span class="pre">ServiceRecord.created_by</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="models.html#models.ServiceRecord.fire_extinguisher"><code class="docutils literal notranslate"><span class="pre">ServiceRecord.fire_extinguisher</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="models.html#models.ServiceRecord.fire_extinguisher_id"><code class="docutils literal notranslate"><span class="pre">ServiceRecord.fire_extinguisher_id</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="models.html#models.ServiceRecord.id"><code class="docutils literal notranslate"><span class="pre">ServiceRecord.id</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="models.html#models.ServiceRecord.next_recharge_date"><code class="docutils literal notranslate"><span class="pre">ServiceRecord.next_recharge_date</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="models.html#models.ServiceRecord.next_test_date"><code class="docutils literal notranslate"><span class="pre">ServiceRecord.next_test_date</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="models.html#models.ServiceRecord.organization"><code class="docutils literal notranslate"><span class="pre">ServiceRecord.organization</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="models.html#models.ServiceRecord.post_recharge_result"><code class="docutils literal notranslate"><span class="pre">ServiceRecord.post_recharge_result</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="models.html#models.ServiceRecord.recharged"><code class="docutils literal notranslate"><span class="pre">ServiceRecord.recharged</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="models.html#models.ServiceRecord.repaired"><code class="docutils literal notranslate"><span class="pre">ServiceRecord.repaired</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="models.html#models.ServiceRecord.responsible"><code class="docutils literal notranslate"><span class="pre">ServiceRecord.responsible</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="models.html#models.ServiceRecord.service_date"><code class="docutils literal notranslate"><span class="pre">ServiceRecord.service_date</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="models.html#models.ServiceRecord.test_result"><code class="docutils literal notranslate"><span class="pre">ServiceRecord.test_result</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="models.html#models.ServiceRecord.tested"><code class="docutils literal notranslate"><span class="pre">ServiceRecord.tested</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="models.html#models.Status"><code class="docutils literal notranslate"><span class="pre">Status</span></code></a><ul>
@@ -256,6 +304,7 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="report_data.html">report_data module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="report_data.html#report_data.card_rows"><code class="docutils literal notranslate"><span class="pre">card_rows()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="report_data.html#report_data.defects_text"><code class="docutils literal notranslate"><span class="pre">defects_text()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="report_data.html#report_data.fleet_summary"><code class="docutils literal notranslate"><span class="pre">fleet_summary()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="report_data.html#report_data.journal_rows"><code class="docutils literal notranslate"><span class="pre">journal_rows()</span></code></a></li>
@@ -272,9 +321,17 @@
 <li class="toctree-l3"><a class="reference internal" href="routers.html#routers.audit_log.list_audit"><code class="docutils literal notranslate"><span class="pre">list_audit()</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="routers.html#module-routers.backups">routers.backups module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="routers.html#routers.backups.create_backup"><code class="docutils literal notranslate"><span class="pre">create_backup()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="routers.html#routers.backups.download_backup"><code class="docutils literal notranslate"><span class="pre">download_backup()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="routers.html#routers.backups.list_backups"><code class="docutils literal notranslate"><span class="pre">list_backups()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="routers.html#module-routers.employees">routers.employees module</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="routers.html#routers.employees.create_employee"><code class="docutils literal notranslate"><span class="pre">create_employee()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="routers.html#routers.employees.delete_employee"><code class="docutils literal notranslate"><span class="pre">delete_employee()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="routers.html#routers.employees.list_employees"><code class="docutils literal notranslate"><span class="pre">list_employees()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="routers.html#routers.employees.update_employee"><code class="docutils literal notranslate"><span class="pre">update_employee()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="routers.html#module-routers.extinguishers">routers.extinguishers module</a><ul>
@@ -282,7 +339,6 @@
 <li class="toctree-l3"><a class="reference internal" href="routers.html#routers.extinguishers.delete_extinguisher"><code class="docutils literal notranslate"><span class="pre">delete_extinguisher()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="routers.html#routers.extinguishers.get_extinguisher"><code class="docutils literal notranslate"><span class="pre">get_extinguisher()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="routers.html#routers.extinguishers.list_extinguishers"><code class="docutils literal notranslate"><span class="pre">list_extinguishers()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="routers.html#routers.extinguishers.mark_recharged"><code class="docutils literal notranslate"><span class="pre">mark_recharged()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="routers.html#routers.extinguishers.search_by_inventory"><code class="docutils literal notranslate"><span class="pre">search_by_inventory()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="routers.html#routers.extinguishers.serialize"><code class="docutils literal notranslate"><span class="pre">serialize()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="routers.html#routers.extinguishers.update_extinguisher"><code class="docutils literal notranslate"><span class="pre">update_extinguisher()</span></code></a></li>
@@ -301,17 +357,23 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="routers.html#module-routers.inspections">routers.inspections module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="routers.html#routers.inspections.annul_inspection"><code class="docutils literal notranslate"><span class="pre">annul_inspection()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="routers.html#routers.inspections.create_inspection"><code class="docutils literal notranslate"><span class="pre">create_inspection()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="routers.html#routers.inspections.inspections_by_extinguisher"><code class="docutils literal notranslate"><span class="pre">inspections_by_extinguisher()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="routers.html#routers.inspections.list_inspections"><code class="docutils literal notranslate"><span class="pre">list_inspections()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="routers.html#routers.inspections.restore_inspection"><code class="docutils literal notranslate"><span class="pre">restore_inspection()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="routers.html#routers.inspections.update_inspection"><code class="docutils literal notranslate"><span class="pre">update_inspection()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="routers.html#module-routers.locations">routers.locations module</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="routers.html#routers.locations.create_location"><code class="docutils literal notranslate"><span class="pre">create_location()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="routers.html#routers.locations.delete_location"><code class="docutils literal notranslate"><span class="pre">delete_location()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="routers.html#routers.locations.list_locations"><code class="docutils literal notranslate"><span class="pre">list_locations()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="routers.html#routers.locations.update_location"><code class="docutils literal notranslate"><span class="pre">update_location()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="routers.html#module-routers.reports">routers.reports module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="routers.html#routers.reports.cards_xlsx"><code class="docutils literal notranslate"><span class="pre">cards_xlsx()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="routers.html#routers.reports.dashboard_statistics"><code class="docutils literal notranslate"><span class="pre">dashboard_statistics()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="routers.html#routers.reports.expired_list"><code class="docutils literal notranslate"><span class="pre">expired_list()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="routers.html#routers.reports.export_journal_json"><code class="docutils literal notranslate"><span class="pre">export_journal_json()</span></code></a></li>
@@ -320,12 +382,20 @@
 <li class="toctree-l3"><a class="reference internal" href="routers.html#routers.reports.journal_json"><code class="docutils literal notranslate"><span class="pre">journal_json()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="routers.html#routers.reports.journal_xlsx"><code class="docutils literal notranslate"><span class="pre">journal_xlsx()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="routers.html#routers.reports.maintenance_xlsx"><code class="docutils literal notranslate"><span class="pre">maintenance_xlsx()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="routers.html#routers.reports.print_cards"><code class="docutils literal notranslate"><span class="pre">print_cards()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="routers.html#routers.reports.print_fleet"><code class="docutils literal notranslate"><span class="pre">print_fleet()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="routers.html#routers.reports.print_journal"><code class="docutils literal notranslate"><span class="pre">print_journal()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="routers.html#routers.reports.print_maintenance"><code class="docutils literal notranslate"><span class="pre">print_maintenance()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="routers.html#routers.reports.recharge_report"><code class="docutils literal notranslate"><span class="pre">recharge_report()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="routers.html#routers.reports.upcoming_inspections"><code class="docutils literal notranslate"><span class="pre">upcoming_inspections()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="routers.html#routers.reports.upcoming_inspections_report"><code class="docutils literal notranslate"><span class="pre">upcoming_inspections_report()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="routers.html#module-routers.service_records">routers.service_records module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="routers.html#routers.service_records.create_service_record"><code class="docutils literal notranslate"><span class="pre">create_service_record()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="routers.html#routers.service_records.delete_service_record"><code class="docutils literal notranslate"><span class="pre">delete_service_record()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="routers.html#routers.service_records.list_service_records"><code class="docutils literal notranslate"><span class="pre">list_service_records()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="routers.html#routers.service_records.update_service_record"><code class="docutils literal notranslate"><span class="pre">update_service_record()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="routers.html#module-routers.settings">routers.settings module</a><ul>
@@ -349,6 +419,14 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="routers.html#module-routers">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="run.html">run module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="run.html#run.is_firetrack"><code class="docutils literal notranslate"><span class="pre">is_firetrack()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="run.html#run.local_url"><code class="docutils literal notranslate"><span class="pre">local_url()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="run.html#run.main"><code class="docutils literal notranslate"><span class="pre">main()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="run.html#run.open_browser_when_ready"><code class="docutils literal notranslate"><span class="pre">open_browser_when_ready()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="run.html#run.port_is_free"><code class="docutils literal notranslate"><span class="pre">port_is_free()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="schemas.html">schemas module</a><ul>
@@ -391,6 +469,12 @@
 <li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.EmployeeRead.model_config"><code class="docutils literal notranslate"><span class="pre">EmployeeRead.model_config</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="schemas.html#schemas.EmployeeUpdate"><code class="docutils literal notranslate"><span class="pre">EmployeeUpdate</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.EmployeeUpdate.full_name"><code class="docutils literal notranslate"><span class="pre">EmployeeUpdate.full_name</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.EmployeeUpdate.model_config"><code class="docutils literal notranslate"><span class="pre">EmployeeUpdate.model_config</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.EmployeeUpdate.position"><code class="docutils literal notranslate"><span class="pre">EmployeeUpdate.position</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="schemas.html#schemas.FireExtinguisherBase"><code class="docutils literal notranslate"><span class="pre">FireExtinguisherBase</span></code></a><ul>
 <li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.FireExtinguisherBase.capacity"><code class="docutils literal notranslate"><span class="pre">FireExtinguisherBase.capacity</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.FireExtinguisherBase.commissioning_date"><code class="docutils literal notranslate"><span class="pre">FireExtinguisherBase.commissioning_date</span></code></a></li>
@@ -402,6 +486,7 @@
 <li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.FireExtinguisherBase.model_config"><code class="docutils literal notranslate"><span class="pre">FireExtinguisherBase.model_config</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.FireExtinguisherBase.not_in_future"><code class="docutils literal notranslate"><span class="pre">FireExtinguisherBase.not_in_future()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.FireExtinguisherBase.recharge_interval_months"><code class="docutils literal notranslate"><span class="pre">FireExtinguisherBase.recharge_interval_months</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.FireExtinguisherBase.serial_number"><code class="docutils literal notranslate"><span class="pre">FireExtinguisherBase.serial_number</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.FireExtinguisherBase.service_life_years"><code class="docutils literal notranslate"><span class="pre">FireExtinguisherBase.service_life_years</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.FireExtinguisherBase.status_id"><code class="docutils literal notranslate"><span class="pre">FireExtinguisherBase.status_id</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.FireExtinguisherBase.type"><code class="docutils literal notranslate"><span class="pre">FireExtinguisherBase.type</span></code></a></li>
@@ -417,12 +502,15 @@
 <li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.FireExtinguisherRead.effective_recharge_interval_months"><code class="docutils literal notranslate"><span class="pre">FireExtinguisherRead.effective_recharge_interval_months</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.FireExtinguisherRead.effective_service_life_years"><code class="docutils literal notranslate"><span class="pre">FireExtinguisherRead.effective_service_life_years</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.FireExtinguisherRead.id"><code class="docutils literal notranslate"><span class="pre">FireExtinguisherRead.id</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.FireExtinguisherRead.last_test_date"><code class="docutils literal notranslate"><span class="pre">FireExtinguisherRead.last_test_date</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.FireExtinguisherRead.model_config"><code class="docutils literal notranslate"><span class="pre">FireExtinguisherRead.model_config</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.FireExtinguisherRead.next_recharge_date"><code class="docutils literal notranslate"><span class="pre">FireExtinguisherRead.next_recharge_date</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.FireExtinguisherRead.next_test_date"><code class="docutils literal notranslate"><span class="pre">FireExtinguisherRead.next_test_date</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.FireExtinguisherRead.recharge_days_left"><code class="docutils literal notranslate"><span class="pre">FireExtinguisherRead.recharge_days_left</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.FireExtinguisherRead.recharge_state"><code class="docutils literal notranslate"><span class="pre">FireExtinguisherRead.recharge_state</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.FireExtinguisherRead.service_end_date"><code class="docutils literal notranslate"><span class="pre">FireExtinguisherRead.service_end_date</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.FireExtinguisherRead.service_state"><code class="docutils literal notranslate"><span class="pre">FireExtinguisherRead.service_state</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.FireExtinguisherRead.test_state"><code class="docutils literal notranslate"><span class="pre">FireExtinguisherRead.test_state</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.FireExtinguisherRead.updated_at"><code class="docutils literal notranslate"><span class="pre">FireExtinguisherRead.updated_at</span></code></a></li>
 </ul>
 </li>
@@ -430,13 +518,13 @@
 <li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.FireExtinguisherUpdate.capacity"><code class="docutils literal notranslate"><span class="pre">FireExtinguisherUpdate.capacity</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.FireExtinguisherUpdate.commissioning_date"><code class="docutils literal notranslate"><span class="pre">FireExtinguisherUpdate.commissioning_date</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.FireExtinguisherUpdate.inventory_number"><code class="docutils literal notranslate"><span class="pre">FireExtinguisherUpdate.inventory_number</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.FireExtinguisherUpdate.last_recharge_date"><code class="docutils literal notranslate"><span class="pre">FireExtinguisherUpdate.last_recharge_date</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.FireExtinguisherUpdate.location_id"><code class="docutils literal notranslate"><span class="pre">FireExtinguisherUpdate.location_id</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.FireExtinguisherUpdate.manufacture_date"><code class="docutils literal notranslate"><span class="pre">FireExtinguisherUpdate.manufacture_date</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.FireExtinguisherUpdate.manufacturer"><code class="docutils literal notranslate"><span class="pre">FireExtinguisherUpdate.manufacturer</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.FireExtinguisherUpdate.model_config"><code class="docutils literal notranslate"><span class="pre">FireExtinguisherUpdate.model_config</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.FireExtinguisherUpdate.not_in_future"><code class="docutils literal notranslate"><span class="pre">FireExtinguisherUpdate.not_in_future()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.FireExtinguisherUpdate.recharge_interval_months"><code class="docutils literal notranslate"><span class="pre">FireExtinguisherUpdate.recharge_interval_months</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.FireExtinguisherUpdate.serial_number"><code class="docutils literal notranslate"><span class="pre">FireExtinguisherUpdate.serial_number</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.FireExtinguisherUpdate.service_life_years"><code class="docutils literal notranslate"><span class="pre">FireExtinguisherUpdate.service_life_years</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.FireExtinguisherUpdate.status_id"><code class="docutils literal notranslate"><span class="pre">FireExtinguisherUpdate.status_id</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.FireExtinguisherUpdate.type"><code class="docutils literal notranslate"><span class="pre">FireExtinguisherUpdate.type</span></code></a></li>
@@ -469,9 +557,34 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="schemas.html#schemas.InspectionRead"><code class="docutils literal notranslate"><span class="pre">InspectionRead</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.InspectionRead.annul_reason"><code class="docutils literal notranslate"><span class="pre">InspectionRead.annul_reason</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.InspectionRead.annulled_at"><code class="docutils literal notranslate"><span class="pre">InspectionRead.annulled_at</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.InspectionRead.annulled_by"><code class="docutils literal notranslate"><span class="pre">InspectionRead.annulled_by</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.InspectionRead.created_at"><code class="docutils literal notranslate"><span class="pre">InspectionRead.created_at</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.InspectionRead.id"><code class="docutils literal notranslate"><span class="pre">InspectionRead.id</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.InspectionRead.model_config"><code class="docutils literal notranslate"><span class="pre">InspectionRead.model_config</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="schemas.html#schemas.InspectionReason"><code class="docutils literal notranslate"><span class="pre">InspectionReason</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.InspectionReason.model_config"><code class="docutils literal notranslate"><span class="pre">InspectionReason.model_config</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.InspectionReason.reason"><code class="docutils literal notranslate"><span class="pre">InspectionReason.reason</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="schemas.html#schemas.InspectionUpdate"><code class="docutils literal notranslate"><span class="pre">InspectionUpdate</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.InspectionUpdate.comments"><code class="docutils literal notranslate"><span class="pre">InspectionUpdate.comments</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.InspectionUpdate.employee_id"><code class="docutils literal notranslate"><span class="pre">InspectionUpdate.employee_id</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.InspectionUpdate.fire_extinguisher_id"><code class="docutils literal notranslate"><span class="pre">InspectionUpdate.fire_extinguisher_id</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.InspectionUpdate.hose_condition"><code class="docutils literal notranslate"><span class="pre">InspectionUpdate.hose_condition</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.InspectionUpdate.inspection_date"><code class="docutils literal notranslate"><span class="pre">InspectionUpdate.inspection_date</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.InspectionUpdate.inspection_not_in_future"><code class="docutils literal notranslate"><span class="pre">InspectionUpdate.inspection_not_in_future()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.InspectionUpdate.model_config"><code class="docutils literal notranslate"><span class="pre">InspectionUpdate.model_config</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.InspectionUpdate.next_inspection_date"><code class="docutils literal notranslate"><span class="pre">InspectionUpdate.next_inspection_date</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.InspectionUpdate.pressure"><code class="docutils literal notranslate"><span class="pre">InspectionUpdate.pressure</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.InspectionUpdate.reason"><code class="docutils literal notranslate"><span class="pre">InspectionUpdate.reason</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.InspectionUpdate.safety_pin_condition"><code class="docutils literal notranslate"><span class="pre">InspectionUpdate.safety_pin_condition</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.InspectionUpdate.seal_condition"><code class="docutils literal notranslate"><span class="pre">InspectionUpdate.seal_condition</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.InspectionUpdate.visual_inspection"><code class="docutils literal notranslate"><span class="pre">InspectionUpdate.visual_inspection</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.InspectionUpdate.weight"><code class="docutils literal notranslate"><span class="pre">InspectionUpdate.weight</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="schemas.html#schemas.LocationBase"><code class="docutils literal notranslate"><span class="pre">LocationBase</span></code></a><ul>
@@ -490,6 +603,12 @@
 <li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.LocationRead.model_config"><code class="docutils literal notranslate"><span class="pre">LocationRead.model_config</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="schemas.html#schemas.LocationUpdate"><code class="docutils literal notranslate"><span class="pre">LocationUpdate</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.LocationUpdate.description"><code class="docutils literal notranslate"><span class="pre">LocationUpdate.description</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.LocationUpdate.model_config"><code class="docutils literal notranslate"><span class="pre">LocationUpdate.model_config</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.LocationUpdate.name"><code class="docutils literal notranslate"><span class="pre">LocationUpdate.name</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="schemas.html#schemas.PasswordChange"><code class="docutils literal notranslate"><span class="pre">PasswordChange</span></code></a><ul>
 <li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.PasswordChange.model_config"><code class="docutils literal notranslate"><span class="pre">PasswordChange.model_config</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.PasswordChange.new_password"><code class="docutils literal notranslate"><span class="pre">PasswordChange.new_password</span></code></a></li>
@@ -501,12 +620,52 @@
 <li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.PasswordReset.new_password"><code class="docutils literal notranslate"><span class="pre">PasswordReset.new_password</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="schemas.html#schemas.RechargeMark"><code class="docutils literal notranslate"><span class="pre">RechargeMark</span></code></a><ul>
-<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.RechargeMark.comment"><code class="docutils literal notranslate"><span class="pre">RechargeMark.comment</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.RechargeMark.model_config"><code class="docutils literal notranslate"><span class="pre">RechargeMark.model_config</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.RechargeMark.not_in_future"><code class="docutils literal notranslate"><span class="pre">RechargeMark.not_in_future()</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.RechargeMark.recharge_date"><code class="docutils literal notranslate"><span class="pre">RechargeMark.recharge_date</span></code></a></li>
-<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.RechargeMark.recharge_interval_months"><code class="docutils literal notranslate"><span class="pre">RechargeMark.recharge_interval_months</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="schemas.html#schemas.ServiceRecordBase"><code class="docutils literal notranslate"><span class="pre">ServiceRecordBase</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.ServiceRecordBase.agent_brand"><code class="docutils literal notranslate"><span class="pre">ServiceRecordBase.agent_brand</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.ServiceRecordBase.check_work_and_dates"><code class="docutils literal notranslate"><span class="pre">ServiceRecordBase.check_work_and_dates()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.ServiceRecordBase.comments"><code class="docutils literal notranslate"><span class="pre">ServiceRecordBase.comments</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.ServiceRecordBase.model_config"><code class="docutils literal notranslate"><span class="pre">ServiceRecordBase.model_config</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.ServiceRecordBase.next_recharge_date"><code class="docutils literal notranslate"><span class="pre">ServiceRecordBase.next_recharge_date</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.ServiceRecordBase.next_test_date"><code class="docutils literal notranslate"><span class="pre">ServiceRecordBase.next_test_date</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.ServiceRecordBase.not_in_future"><code class="docutils literal notranslate"><span class="pre">ServiceRecordBase.not_in_future()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.ServiceRecordBase.organization"><code class="docutils literal notranslate"><span class="pre">ServiceRecordBase.organization</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.ServiceRecordBase.post_recharge_result"><code class="docutils literal notranslate"><span class="pre">ServiceRecordBase.post_recharge_result</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.ServiceRecordBase.recharged"><code class="docutils literal notranslate"><span class="pre">ServiceRecordBase.recharged</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.ServiceRecordBase.repaired"><code class="docutils literal notranslate"><span class="pre">ServiceRecordBase.repaired</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.ServiceRecordBase.responsible"><code class="docutils literal notranslate"><span class="pre">ServiceRecordBase.responsible</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.ServiceRecordBase.service_date"><code class="docutils literal notranslate"><span class="pre">ServiceRecordBase.service_date</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.ServiceRecordBase.test_result"><code class="docutils literal notranslate"><span class="pre">ServiceRecordBase.test_result</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.ServiceRecordBase.tested"><code class="docutils literal notranslate"><span class="pre">ServiceRecordBase.tested</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="schemas.html#schemas.ServiceRecordCreate"><code class="docutils literal notranslate"><span class="pre">ServiceRecordCreate</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.ServiceRecordCreate.fire_extinguisher_id"><code class="docutils literal notranslate"><span class="pre">ServiceRecordCreate.fire_extinguisher_id</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.ServiceRecordCreate.model_config"><code class="docutils literal notranslate"><span class="pre">ServiceRecordCreate.model_config</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="schemas.html#schemas.ServiceRecordRead"><code class="docutils literal notranslate"><span class="pre">ServiceRecordRead</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.ServiceRecordRead.agent_brand"><code class="docutils literal notranslate"><span class="pre">ServiceRecordRead.agent_brand</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.ServiceRecordRead.comments"><code class="docutils literal notranslate"><span class="pre">ServiceRecordRead.comments</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.ServiceRecordRead.created_at"><code class="docutils literal notranslate"><span class="pre">ServiceRecordRead.created_at</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.ServiceRecordRead.created_by"><code class="docutils literal notranslate"><span class="pre">ServiceRecordRead.created_by</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.ServiceRecordRead.fire_extinguisher_id"><code class="docutils literal notranslate"><span class="pre">ServiceRecordRead.fire_extinguisher_id</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.ServiceRecordRead.id"><code class="docutils literal notranslate"><span class="pre">ServiceRecordRead.id</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.ServiceRecordRead.model_config"><code class="docutils literal notranslate"><span class="pre">ServiceRecordRead.model_config</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.ServiceRecordRead.next_recharge_date"><code class="docutils literal notranslate"><span class="pre">ServiceRecordRead.next_recharge_date</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.ServiceRecordRead.next_test_date"><code class="docutils literal notranslate"><span class="pre">ServiceRecordRead.next_test_date</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.ServiceRecordRead.organization"><code class="docutils literal notranslate"><span class="pre">ServiceRecordRead.organization</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.ServiceRecordRead.post_recharge_result"><code class="docutils literal notranslate"><span class="pre">ServiceRecordRead.post_recharge_result</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.ServiceRecordRead.recharged"><code class="docutils literal notranslate"><span class="pre">ServiceRecordRead.recharged</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.ServiceRecordRead.repaired"><code class="docutils literal notranslate"><span class="pre">ServiceRecordRead.repaired</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.ServiceRecordRead.responsible"><code class="docutils literal notranslate"><span class="pre">ServiceRecordRead.responsible</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.ServiceRecordRead.service_date"><code class="docutils literal notranslate"><span class="pre">ServiceRecordRead.service_date</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.ServiceRecordRead.test_result"><code class="docutils literal notranslate"><span class="pre">ServiceRecordRead.test_result</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.ServiceRecordRead.tested"><code class="docutils literal notranslate"><span class="pre">ServiceRecordRead.tested</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="schemas.html#schemas.ServiceRecordUpdate"><code class="docutils literal notranslate"><span class="pre">ServiceRecordUpdate</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.ServiceRecordUpdate.model_config"><code class="docutils literal notranslate"><span class="pre">ServiceRecordUpdate.model_config</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="schemas.html#schemas.ServiceRecordUpdate.reason"><code class="docutils literal notranslate"><span class="pre">ServiceRecordUpdate.reason</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="schemas.html#schemas.StatusBase"><code class="docutils literal notranslate"><span class="pre">StatusBase</span></code></a><ul>
@@ -584,6 +743,12 @@
 <li class="toctree-l2"><a class="reference internal" href="schemas.html#schemas.validate_password_strength"><code class="docutils literal notranslate"><span class="pre">validate_password_strength()</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l1"><a class="reference internal" href="service_logic.html">service_logic module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="service_logic.html#service_logic.default_next_dates"><code class="docutils literal notranslate"><span class="pre">default_next_dates()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="service_logic.html#service_logic.initial_recharge_record"><code class="docutils literal notranslate"><span class="pre">initial_recharge_record()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="service_logic.html#service_logic.sync_extinguisher_dates"><code class="docutils literal notranslate"><span class="pre">sync_extinguisher_dates()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="setup.html">setup module</a></li>
 <li class="toctree-l1"><a class="reference internal" href="status_logic.html">status_logic module</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="status_logic.html#status_logic.compute_status_name"><code class="docutils literal notranslate"><span class="pre">compute_status_name()</span></code></a></li>
@@ -597,6 +762,7 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="xlsx_export.html">xlsx_export module</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="xlsx_export.html#xlsx_export.add_table_sheet"><code class="docutils literal notranslate"><span class="pre">add_table_sheet()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="xlsx_export.html#xlsx_export.cards_workbook"><code class="docutils literal notranslate"><span class="pre">cards_workbook()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="xlsx_export.html#xlsx_export.column"><code class="docutils literal notranslate"><span class="pre">column()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="xlsx_export.html#xlsx_export.fleet_workbook"><code class="docutils literal notranslate"><span class="pre">fleet_workbook()</span></code></a></li>
 <li class="toctree-l2"><a class="reference internal" href="xlsx_export.html#xlsx_export.journal_workbook"><code class="docutils literal notranslate"><span class="pre">journal_workbook()</span></code></a></li>

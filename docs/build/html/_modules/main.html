@@ -70,7 +70,7 @@
            <div itemprop="articleBody">
              
   <h1>Исходный код main</h1><div class="highlight"><pre>
-<span></span><span class="c1"># main.py (v1.4) uvicorn main:app</span>
+<span></span><span class="c1"># main.py (v1.5) uvicorn main:app</span>
 <span class="sd">"""</span>
 <span class="sd">Главный модуль приложения FireTrack.</span>
 <span class="sd">Инициализирует FastAPI, подключает маршрутизаторы (роутеры),</span>
@@ -81,7 +81,8 @@
 
 <span class="sd">При работе сервера статусы огнетушителей пересчитываются автоматически:</span>
 <span class="sd">при запуске и далее раз в час (интервал задается переменной</span>
-<span class="sd">окружения ``STATUS_RECALC_INTERVAL_MINUTES``).</span>
+<span class="sd">окружения ``STATUS_RECALC_INTERVAL_MINUTES``). Раз в сутки делается</span>
+<span class="sd">резервная копия базы (см. ``backup.py``).</span>
 <span class="sd">"""</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
@@ -91,10 +92,12 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timezone</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">fastapi</span><span class="w"> </span><span class="kn">import</span> <span class="n">FastAPI</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fastapi</span><span class="w"> </span><span class="kn">import</span> <span class="n">FastAPI</span><span class="p">,</span> <span class="n">Request</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">fastapi.responses</span><span class="w"> </span><span class="kn">import</span> <span class="n">FileResponse</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">fastapi.staticfiles</span><span class="w"> </span><span class="kn">import</span> <span class="n">StaticFiles</span>
 
+<span class="kn">import</span><span class="w"> </span><span class="nn">backup</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">app_settings</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_settings</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">db</span><span class="w"> </span><span class="kn">import</span> <span class="n">SessionLocal</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">migrate</span><span class="w"> </span><span class="kn">import</span> <span class="n">upgrade_database</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">models</span><span class="w"> </span><span class="kn">import</span> <span class="n">User</span>
@@ -109,6 +112,8 @@
     <span class="n">users</span><span class="p">,</span>
     <span class="n">audit_log</span><span class="p">,</span>
     <span class="n">settings</span><span class="p">,</span>
+    <span class="n">service_records</span><span class="p">,</span>
+    <span class="n">backups</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">auth</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">auth_router</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">auth</span><span class="w"> </span><span class="kn">import</span> <span class="n">DEFAULT_ADMIN_PASSWORD</span><span class="p">,</span> <span class="n">ROLE_ADMIN</span><span class="p">,</span> <span class="n">get_password_hash</span><span class="p">,</span> <span class="n">verify_password</span>
@@ -119,6 +124,17 @@
 
 <span class="n">BASE_DIR</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span><span class="o">.</span><span class="n">parent</span>
 <span class="n">RECALC_INTERVAL_MINUTES</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">"STATUS_RECALC_INTERVAL_MINUTES"</span><span class="p">,</span> <span class="s2">"60"</span><span class="p">))</span>
+<span class="n">BACKUP_CHECK_INTERVAL_SECONDS</span> <span class="o">=</span> <span class="mi">3600</span>
+
+<span class="c1"># Интерфейс не загружает ничего со сторонних сайтов и работает без интернета.</span>
+<span class="c1"># 'unsafe-inline' нужен обработчикам onclick и встроенным стилям.</span>
+<span class="n">CONTENT_SECURITY_POLICY</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="s2">"default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; "</span>
+    <span class="s2">"img-src 'self' data:; font-src 'self'; connect-src 'self'; object-src 'none'; "</span>
+    <span class="s2">"base-uri 'self'; form-action 'self'; frame-ancestors 'none'"</span>
+<span class="p">)</span>
+<span class="c1"># Встроенная документация API грузит Swagger и ReDoc с CDN</span>
+<span class="n">CSP_EXEMPT_PATHS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"/docs"</span><span class="p">,</span> <span class="s2">"/redoc"</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="init_admin">
@@ -197,6 +213,29 @@
 
 
 
+<div class="viewcode-block" id="run_scheduled_backup">
+<a class="viewcode-back" href="../main.html#main.run_scheduled_backup">[документация]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">run_scheduled_backup</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Делает суточную копию базы. Ошибка копии не должна мешать работе сервера."""</span>
+    <span class="n">db</span> <span class="o">=</span> <span class="n">SessionLocal</span><span class="p">()</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">keep</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">get_settings</span><span class="p">(</span><span class="n">db</span><span class="p">)[</span><span class="s2">"backup_keep_count"</span><span class="p">])</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="n">db</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">backup</span><span class="o">.</span><span class="n">run_scheduled_backup</span><span class="p">(</span><span class="n">keep</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>  <span class="c1"># noqa: BLE001 - сервер должен работать и без копии</span>
+        <span class="n">logger</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span><span class="s2">"Не удалось создать автокопию базы"</span><span class="p">)</span></div>
+
+
+
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_backup_loop</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Фоновая задача: раз в час проверяет, пора ли делать суточную копию."""</span>
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">BACKUP_CHECK_INTERVAL_SECONDS</span><span class="p">)</span>
+        <span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">to_thread</span><span class="p">(</span><span class="n">run_scheduled_backup</span><span class="p">)</span>
+
+
 <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">_recalc_loop</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Фоновая задача: периодически пересчитывает статусы."""</span>
     <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
@@ -218,20 +257,50 @@
     <span class="n">init_admin</span><span class="p">()</span>
     <span class="n">init_statuses</span><span class="p">()</span>
     <span class="n">run_status_recalculation</span><span class="p">()</span>
-    <span class="n">task</span> <span class="o">=</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">create_task</span><span class="p">(</span><span class="n">_recalc_loop</span><span class="p">())</span>
+    <span class="n">run_scheduled_backup</span><span class="p">()</span>
+    <span class="n">tasks</span> <span class="o">=</span> <span class="p">[</span><span class="n">asyncio</span><span class="o">.</span><span class="n">create_task</span><span class="p">(</span><span class="n">_recalc_loop</span><span class="p">()),</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">create_task</span><span class="p">(</span><span class="n">_backup_loop</span><span class="p">())]</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="k">yield</span>
     <span class="k">finally</span><span class="p">:</span>
-        <span class="n">task</span><span class="o">.</span><span class="n">cancel</span><span class="p">()</span></div>
+        <span class="k">for</span> <span class="n">task</span> <span class="ow">in</span> <span class="n">tasks</span><span class="p">:</span>
+            <span class="n">task</span><span class="o">.</span><span class="n">cancel</span><span class="p">()</span></div>
 
 
 
 <span class="n">app</span> <span class="o">=</span> <span class="n">FastAPI</span><span class="p">(</span>
     <span class="n">title</span><span class="o">=</span><span class="s2">"Система отметки проверки средств пожаротушения"</span><span class="p">,</span>
     <span class="n">description</span><span class="o">=</span><span class="s2">"API для управления огнетушителями и проверками"</span><span class="p">,</span>
-    <span class="n">version</span><span class="o">=</span><span class="s2">"1.4.0"</span><span class="p">,</span>
+    <span class="n">version</span><span class="o">=</span><span class="s2">"1.5.0"</span><span class="p">,</span>
     <span class="n">lifespan</span><span class="o">=</span><span class="n">lifespan</span><span class="p">,</span>
 <span class="p">)</span>
+
+
+<div class="viewcode-block" id="security_headers">
+<a class="viewcode-back" href="../main.html#main.security_headers">[документация]</a>
+<span class="nd">@app</span><span class="o">.</span><span class="n">middleware</span><span class="p">(</span><span class="s2">"http"</span><span class="p">)</span>
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">security_headers</span><span class="p">(</span><span class="n">request</span><span class="p">:</span> <span class="n">Request</span><span class="p">,</span> <span class="n">call_next</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Добавляет заголовки безопасности ко всем ответам.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        request (Request): Запрос.</span>
+<span class="sd">        call_next: Следующий обработчик.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Response: Ответ с заголовками.</span>
+<span class="sd">    """</span>
+    <span class="n">response</span> <span class="o">=</span> <span class="k">await</span> <span class="n">call_next</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+    <span class="n">response</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="s2">"X-Content-Type-Options"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"nosniff"</span>
+    <span class="n">response</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="s2">"X-Frame-Options"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"DENY"</span>
+    <span class="n">response</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="s2">"Referrer-Policy"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"same-origin"</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">request</span><span class="o">.</span><span class="n">url</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">CSP_EXEMPT_PATHS</span><span class="p">):</span>
+        <span class="n">response</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="s2">"Content-Security-Policy"</span><span class="p">]</span> <span class="o">=</span> <span class="n">CONTENT_SECURITY_POLICY</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">request</span><span class="o">.</span><span class="n">url</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"/static"</span><span class="p">):</span>
+        <span class="c1"># Данные API не должны оседать в кэше браузера</span>
+        <span class="n">response</span><span class="o">.</span><span class="n">headers</span><span class="p">[</span><span class="s2">"Cache-Control"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"no-store"</span>
+    <span class="k">return</span> <span class="n">response</span></div>
+
+
 
 <span class="n">app</span><span class="o">.</span><span class="n">mount</span><span class="p">(</span><span class="s2">"/static"</span><span class="p">,</span> <span class="n">StaticFiles</span><span class="p">(</span><span class="n">directory</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">BASE_DIR</span> <span class="o">/</span> <span class="s2">"static"</span><span class="p">)),</span> <span class="n">name</span><span class="o">=</span><span class="s2">"static"</span><span class="p">)</span>
 
@@ -246,6 +315,8 @@
 <span class="n">app</span><span class="o">.</span><span class="n">include_router</span><span class="p">(</span><span class="n">users</span><span class="o">.</span><span class="n">router</span><span class="p">)</span>
 <span class="n">app</span><span class="o">.</span><span class="n">include_router</span><span class="p">(</span><span class="n">audit_log</span><span class="o">.</span><span class="n">router</span><span class="p">)</span>
 <span class="n">app</span><span class="o">.</span><span class="n">include_router</span><span class="p">(</span><span class="n">settings</span><span class="o">.</span><span class="n">router</span><span class="p">)</span>
+<span class="n">app</span><span class="o">.</span><span class="n">include_router</span><span class="p">(</span><span class="n">service_records</span><span class="o">.</span><span class="n">router</span><span class="p">)</span>
+<span class="n">app</span><span class="o">.</span><span class="n">include_router</span><span class="p">(</span><span class="n">backups</span><span class="o">.</span><span class="n">router</span><span class="p">)</span>
 <span class="n">app</span><span class="o">.</span><span class="n">include_router</span><span class="p">(</span><span class="n">auth_router</span><span class="o">.</span><span class="n">router</span><span class="p">)</span>
 
 
@@ -261,6 +332,15 @@
 <span class="sd">        dict: Словарь со статусом 'ok', если сервер работает.</span>
 <span class="sd">    """</span>
     <span class="k">return</span> <span class="p">{</span><span class="s2">"status"</span><span class="p">:</span> <span class="s2">"ok"</span><span class="p">}</span></div>
+
+
+
+<div class="viewcode-block" id="favicon">
+<a class="viewcode-back" href="../main.html#main.favicon">[документация]</a>
+<span class="nd">@app</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"/favicon.ico"</span><span class="p">,</span> <span class="n">include_in_schema</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">favicon</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">"""Значок приложения."""</span>
+    <span class="k">return</span> <span class="n">FileResponse</span><span class="p">(</span><span class="n">BASE_DIR</span> <span class="o">/</span> <span class="s2">"static"</span> <span class="o">/</span> <span class="s2">"favicon.ico"</span><span class="p">)</span></div>
 
 
 

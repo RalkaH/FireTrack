@@ -12,6 +12,14 @@ routers.audit\_log module
    :show-inheritance:
    :undoc-members:
 
+routers.backups module
+----------------------
+
+.. automodule:: routers.backups
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
 routers.employees module
 ------------------------
 
@@ -56,6 +64,14 @@ routers.reports module
 ----------------------
 
 .. automodule:: routers.reports
+   :members:
+   :show-inheritance:
+   :undoc-members:
+
+routers.service\_records module
+-------------------------------
+
+.. automodule:: routers.service_records
    :members:
    :show-inheritance:
    :undoc-members:

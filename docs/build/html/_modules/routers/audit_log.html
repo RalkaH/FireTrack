@@ -70,7 +70,7 @@
            <div itemprop="articleBody">
              
   <h1>Исходный код routers.audit_log</h1><div class="highlight"><pre>
-<span></span><span class="c1"># routers/audit_log.py (v1.0)</span>
+<span></span><span class="c1"># routers/audit_log.py (v1.1)</span>
 <span class="sd">"""</span>
 <span class="sd">Просмотр журнала действий (только для администратора).</span>
 
@@ -93,6 +93,7 @@
 <span class="kn">import</span><span class="w"> </span><span class="nn">audit</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">auth</span><span class="w"> </span><span class="kn">import</span> <span class="n">ROLE_ADMIN</span><span class="p">,</span> <span class="n">get_current_active_user</span><span class="p">,</span> <span class="n">require_role</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">db</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_db</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">export_utils</span><span class="w"> </span><span class="kn">import</span> <span class="n">safe_cell</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">models</span><span class="w"> </span><span class="kn">import</span> <span class="n">AuditLog</span><span class="p">,</span> <span class="n">User</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">schemas</span><span class="w"> </span><span class="kn">import</span> <span class="n">AuditPage</span>
 
@@ -247,12 +248,12 @@
     <span class="n">writer</span><span class="o">.</span><span class="n">writerow</span><span class="p">([</span><span class="s2">"ID"</span><span class="p">,</span> <span class="s2">"Время (UTC)"</span><span class="p">,</span> <span class="s2">"Пользователь"</span><span class="p">,</span> <span class="s2">"ID пользователя"</span><span class="p">,</span> <span class="s2">"Действие"</span><span class="p">,</span>
                      <span class="s2">"Тип объекта"</span><span class="p">,</span> <span class="s2">"ID объекта"</span><span class="p">,</span> <span class="s2">"Описание"</span><span class="p">,</span> <span class="s2">"Изменения"</span><span class="p">,</span> <span class="s2">"IP"</span><span class="p">,</span> <span class="s2">"User-Agent"</span><span class="p">])</span>
     <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">:</span>
-        <span class="n">writer</span><span class="o">.</span><span class="n">writerow</span><span class="p">([</span>
+        <span class="n">writer</span><span class="o">.</span><span class="n">writerow</span><span class="p">([</span><span class="n">safe_cell</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="p">(</span>
             <span class="n">e</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">_utc_iso</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">created_at</span><span class="p">),</span> <span class="n">e</span><span class="o">.</span><span class="n">username</span><span class="p">,</span> <span class="n">e</span><span class="o">.</span><span class="n">user_id</span><span class="p">,</span>
             <span class="n">audit</span><span class="o">.</span><span class="n">ACTION_LABELS</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">action</span><span class="p">,</span> <span class="n">e</span><span class="o">.</span><span class="n">action</span><span class="p">),</span>
             <span class="n">audit</span><span class="o">.</span><span class="n">ENTITY_LABELS</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">entity_type</span><span class="p">,</span> <span class="n">e</span><span class="o">.</span><span class="n">entity_type</span><span class="p">),</span> <span class="n">e</span><span class="o">.</span><span class="n">entity_id</span><span class="p">,</span>
             <span class="n">e</span><span class="o">.</span><span class="n">summary</span><span class="p">,</span> <span class="n">e</span><span class="o">.</span><span class="n">changes</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">,</span> <span class="n">e</span><span class="o">.</span><span class="n">ip</span><span class="p">,</span> <span class="n">e</span><span class="o">.</span><span class="n">user_agent</span><span class="p">,</span>
-        <span class="p">])</span>
+        <span class="p">)])</span>
 
     <span class="n">audit</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">current_user</span><span class="p">,</span> <span class="n">audit</span><span class="o">.</span><span class="n">ACTION_EXPORT</span><span class="p">,</span>
               <span class="sa">f</span><span class="s2">"Выгрузка журнала действий в CSV (</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">rows</span><span class="p">)</span><span class="si">}</span><span class="s2"> записей)"</span><span class="p">,</span>

@@ -70,11 +70,11 @@
            <div itemprop="articleBody">
              
   <h1>Исходный код models</h1><div class="highlight"><pre>
-<span></span><span class="c1"># models.py (v1.2)</span>
+<span></span><span class="c1"># models.py (v1.3)</span>
 <span class="sd">"""</span>
 <span class="sd">Модуль описания ORM-моделей системы FireTrack.</span>
 <span class="sd">Определяет таблицы для локаций, статусов, огнетушителей, сотрудников, проверок,</span>
-<span class="sd">пользователей, журнала действий и настроек.</span>
+<span class="sd">записей о техническом обслуживании, пользователей, журнала действий и настроек.</span>
 
 <span class="sd">Схема базы меняется только через миграции Alembic (папка ``migrations``).</span>
 <span class="sd">Если добавляете колонку здесь, создайте для нее новую ревизию.</span>
@@ -136,6 +136,8 @@
 <span class="sd">    и задаются в настройках (модуль ``deadlines``). Колонки</span>
 <span class="sd">    ``recharge_interval_months`` и ``service_life_years`` позволяют</span>
 <span class="sd">    переопределить их для конкретного экземпляра (например, по паспорту).</span>
+<span class="sd">    ``last_recharge_date`` и ``last_test_date`` не вводятся напрямую, а</span>
+<span class="sd">    поддерживаются по истории ``ServiceRecords`` (модуль ``service_logic``).</span>
 <span class="sd">    """</span>
     <span class="n">__tablename__</span> <span class="o">=</span> <span class="s2">"FireExtinguishers"</span>
     <span class="nb">id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Integer</span><span class="p">,</span> <span class="n">primary_key</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -152,11 +154,15 @@
     <span class="n">last_recharge_date</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Date</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">recharge_interval_months</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Integer</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">service_life_years</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Integer</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">serial_number</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">String</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">last_test_date</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Date</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
     <span class="n">location</span> <span class="o">=</span> <span class="n">relationship</span><span class="p">(</span><span class="s2">"Location"</span><span class="p">,</span> <span class="n">back_populates</span><span class="o">=</span><span class="s2">"fire_extinguishers"</span><span class="p">)</span>
     <span class="n">status</span> <span class="o">=</span> <span class="n">relationship</span><span class="p">(</span><span class="s2">"Status"</span><span class="p">,</span> <span class="n">back_populates</span><span class="o">=</span><span class="s2">"fire_extinguishers"</span><span class="p">)</span>
     <span class="n">inspections</span> <span class="o">=</span> <span class="n">relationship</span><span class="p">(</span>
-        <span class="s2">"Inspection"</span><span class="p">,</span> <span class="n">back_populates</span><span class="o">=</span><span class="s2">"fire_extinguisher"</span><span class="p">)</span></div>
+        <span class="s2">"Inspection"</span><span class="p">,</span> <span class="n">back_populates</span><span class="o">=</span><span class="s2">"fire_extinguisher"</span><span class="p">)</span>
+    <span class="n">service_records</span> <span class="o">=</span> <span class="n">relationship</span><span class="p">(</span>
+        <span class="s2">"ServiceRecord"</span><span class="p">,</span> <span class="n">back_populates</span><span class="o">=</span><span class="s2">"fire_extinguisher"</span><span class="p">)</span></div>
 
 
 
@@ -177,7 +183,12 @@
 <div class="viewcode-block" id="Inspection">
 <a class="viewcode-back" href="../models.html#models.Inspection">[документация]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">Inspection</span><span class="p">(</span><span class="n">Base</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""Модель записи о проведенной проверке оборудования."""</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Модель записи о проведенной проверке оборудования.</span>
+
+<span class="sd">    Ошибочная проверка не удаляется, а аннулируется с указанием причины:</span>
+<span class="sd">    она остается в истории, но не участвует в расчете статусов и отчетах.</span>
+<span class="sd">    """</span>
     <span class="n">__tablename__</span> <span class="o">=</span> <span class="s2">"Inspections"</span>
     <span class="nb">id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Integer</span><span class="p">,</span> <span class="n">primary_key</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">fire_extinguisher_id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Integer</span><span class="p">,</span> <span class="n">ForeignKey</span><span class="p">(</span>
@@ -193,10 +204,45 @@
     <span class="n">comments</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">String</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">next_inspection_date</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Date</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
     <span class="n">created_at</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">DateTime</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">annulled_at</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">DateTime</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">annulled_by</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">String</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">annul_reason</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">String</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
     <span class="n">fire_extinguisher</span> <span class="o">=</span> <span class="n">relationship</span><span class="p">(</span>
         <span class="s2">"FireExtinguisher"</span><span class="p">,</span> <span class="n">back_populates</span><span class="o">=</span><span class="s2">"inspections"</span><span class="p">)</span>
     <span class="n">employee</span> <span class="o">=</span> <span class="n">relationship</span><span class="p">(</span><span class="s2">"Employee"</span><span class="p">,</span> <span class="n">back_populates</span><span class="o">=</span><span class="s2">"inspections"</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="ServiceRecord">
+<a class="viewcode-back" href="../models.html#models.ServiceRecord">[документация]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ServiceRecord</span><span class="p">(</span><span class="n">Base</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Запись о техническом обслуживании: испытание, перезарядка или ремонт.</span>
+
+<span class="sd">    Поля соответствуют графам формы А.2 приложения А ГОСТ Р 59641-2021.</span>
+<span class="sd">    """</span>
+    <span class="n">__tablename__</span> <span class="o">=</span> <span class="s2">"ServiceRecords"</span>
+
+    <span class="nb">id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Integer</span><span class="p">,</span> <span class="n">primary_key</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">fire_extinguisher_id</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span>
+        <span class="n">Integer</span><span class="p">,</span> <span class="n">ForeignKey</span><span class="p">(</span><span class="s2">"FireExtinguishers.id"</span><span class="p">),</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">service_date</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Date</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">tested</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Boolean</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">server_default</span><span class="o">=</span><span class="n">text</span><span class="p">(</span><span class="s2">"0"</span><span class="p">))</span>
+    <span class="n">recharged</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Boolean</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">server_default</span><span class="o">=</span><span class="n">text</span><span class="p">(</span><span class="s2">"0"</span><span class="p">))</span>
+    <span class="n">repaired</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Boolean</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">server_default</span><span class="o">=</span><span class="n">text</span><span class="p">(</span><span class="s2">"0"</span><span class="p">))</span>
+    <span class="n">organization</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">String</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">test_result</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">String</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">next_test_date</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Date</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">agent_brand</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">String</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">post_recharge_result</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">String</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">next_recharge_date</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">Date</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">responsible</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">String</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">comments</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">String</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">created_at</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">DateTime</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">created_by</span> <span class="o">=</span> <span class="n">Column</span><span class="p">(</span><span class="n">String</span><span class="p">,</span> <span class="n">nullable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">fire_extinguisher</span> <span class="o">=</span> <span class="n">relationship</span><span class="p">(</span><span class="s2">"FireExtinguisher"</span><span class="p">,</span> <span class="n">back_populates</span><span class="o">=</span><span class="s2">"service_records"</span><span class="p">)</span></div>
 
 
 

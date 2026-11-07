@@ -70,22 +70,23 @@
            <div itemprop="articleBody">
              
   <h1>Исходный код routers.employees</h1><div class="highlight"><pre>
-<span></span><span class="c1"># routers/employees.py (v1.2)</span>
+<span></span><span class="c1"># routers/employees.py (v1.3)</span>
 <span class="sd">"""</span>
 <span class="sd">Модуль для управления сотрудниками.</span>
-<span class="sd">Содержит маршруты для получения списка сотрудников и добавления новых.</span>
+<span class="sd">Позволяет добавлять, исправлять и удалять сотрудников и получать их список.</span>
+<span class="sd">Сотрудника, который проводил проверки, удалить нельзя: журнал должен оставаться полным.</span>
 <span class="sd">"""</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timezone</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">fastapi</span><span class="w"> </span><span class="kn">import</span> <span class="n">APIRouter</span><span class="p">,</span> <span class="n">Depends</span><span class="p">,</span> <span class="n">Request</span><span class="p">,</span> <span class="n">status</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fastapi</span><span class="w"> </span><span class="kn">import</span> <span class="n">APIRouter</span><span class="p">,</span> <span class="n">Depends</span><span class="p">,</span> <span class="n">HTTPException</span><span class="p">,</span> <span class="n">Request</span><span class="p">,</span> <span class="n">status</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">sqlalchemy.orm</span><span class="w"> </span><span class="kn">import</span> <span class="n">Session</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">audit</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">auth</span><span class="w"> </span><span class="kn">import</span> <span class="n">EDITOR_ROLES</span><span class="p">,</span> <span class="n">get_current_active_user</span><span class="p">,</span> <span class="n">require_role</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">auth</span><span class="w"> </span><span class="kn">import</span> <span class="n">EDITOR_ROLES</span><span class="p">,</span> <span class="n">ROLE_ADMIN</span><span class="p">,</span> <span class="n">get_current_active_user</span><span class="p">,</span> <span class="n">require_role</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">db</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_db</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Employee</span><span class="p">,</span> <span class="n">User</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">schemas</span><span class="w"> </span><span class="kn">import</span> <span class="n">EmployeeCreate</span><span class="p">,</span> <span class="n">EmployeeRead</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Employee</span><span class="p">,</span> <span class="n">Inspection</span><span class="p">,</span> <span class="n">User</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">schemas</span><span class="w"> </span><span class="kn">import</span> <span class="n">EmployeeCreate</span><span class="p">,</span> <span class="n">EmployeeRead</span><span class="p">,</span> <span class="n">EmployeeUpdate</span>
 
 <span class="n">router</span> <span class="o">=</span> <span class="n">APIRouter</span><span class="p">(</span>
     <span class="n">prefix</span><span class="o">=</span><span class="s2">"/employees"</span><span class="p">,</span>
@@ -148,6 +149,95 @@
     <span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
     <span class="n">db</span><span class="o">.</span><span class="n">refresh</span><span class="p">(</span><span class="n">emp</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">emp</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_get_or_404</span><span class="p">(</span><span class="n">db</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span> <span class="n">employee_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Employee</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Возвращает сотрудника или 404."""</span>
+    <span class="n">emp</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">Employee</span><span class="p">,</span> <span class="n">employee_id</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">emp</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_404_NOT_FOUND</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="s2">"Сотрудник не найден"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">emp</span>
+
+
+<div class="viewcode-block" id="update_employee">
+<a class="viewcode-back" href="../../routers.html#routers.employees.update_employee">[документация]</a>
+<span class="nd">@router</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="s2">"/</span><span class="si">{employee_id}</span><span class="s2">"</span><span class="p">,</span> <span class="n">response_model</span><span class="o">=</span><span class="n">EmployeeRead</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">update_employee</span><span class="p">(</span>
+    <span class="n">employee_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">data</span><span class="p">:</span> <span class="n">EmployeeUpdate</span><span class="p">,</span>
+    <span class="n">request</span><span class="p">:</span> <span class="n">Request</span><span class="p">,</span>
+    <span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">),</span>
+    <span class="n">current_user</span><span class="p">:</span> <span class="n">User</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">require_role</span><span class="p">(</span><span class="n">EDITOR_ROLES</span><span class="p">)),</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Исправить ФИО или должность сотрудника.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        employee_id (int): ID сотрудника.</span>
+<span class="sd">        data (EmployeeUpdate): Новые значения.</span>
+<span class="sd">        request (Request): Запрос (для журнала).</span>
+<span class="sd">        db (Session): Сессия базы данных.</span>
+<span class="sd">        current_user (User): Инженер или администратор.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Employee: Обновленный сотрудник.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        HTTPException: Если сотрудник не найден (404) или поле пустое (400).</span>
+<span class="sd">    """</span>
+    <span class="n">emp</span> <span class="o">=</span> <span class="n">_get_or_404</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">employee_id</span><span class="p">)</span>
+    <span class="n">before</span> <span class="o">=</span> <span class="n">audit</span><span class="o">.</span><span class="n">snapshot</span><span class="p">(</span><span class="n">emp</span><span class="p">,</span> <span class="p">(</span><span class="s2">"full_name"</span><span class="p">,</span> <span class="s2">"position"</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">field</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">model_dump</span><span class="p">(</span><span class="n">exclude_unset</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exclude_none</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="n">value</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">value</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_400_BAD_REQUEST</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="s2">"Поле не может быть пустым"</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">emp</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+    <span class="n">changes</span> <span class="o">=</span> <span class="n">audit</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">before</span><span class="p">,</span> <span class="n">audit</span><span class="o">.</span><span class="n">snapshot</span><span class="p">(</span><span class="n">emp</span><span class="p">,</span> <span class="p">(</span><span class="s2">"full_name"</span><span class="p">,</span> <span class="s2">"position"</span><span class="p">)))</span>
+    <span class="k">if</span> <span class="n">changes</span><span class="p">:</span>
+        <span class="n">audit</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">current_user</span><span class="p">,</span> <span class="n">audit</span><span class="o">.</span><span class="n">ACTION_UPDATE</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"Изменен сотрудник «</span><span class="si">{</span><span class="n">emp</span><span class="o">.</span><span class="n">full_name</span><span class="si">}</span><span class="s2">»"</span><span class="p">,</span>
+                  <span class="n">entity_type</span><span class="o">=</span><span class="s2">"employee"</span><span class="p">,</span> <span class="n">entity_id</span><span class="o">=</span><span class="n">emp</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">changes</span><span class="o">=</span><span class="n">changes</span><span class="p">)</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">refresh</span><span class="p">(</span><span class="n">emp</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">emp</span></div>
+
+
+
+<div class="viewcode-block" id="delete_employee">
+<a class="viewcode-back" href="../../routers.html#routers.employees.delete_employee">[документация]</a>
+<span class="nd">@router</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="s2">"/</span><span class="si">{employee_id}</span><span class="s2">"</span><span class="p">,</span> <span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_204_NO_CONTENT</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">delete_employee</span><span class="p">(</span>
+    <span class="n">employee_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">request</span><span class="p">:</span> <span class="n">Request</span><span class="p">,</span>
+    <span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">),</span>
+    <span class="n">current_user</span><span class="p">:</span> <span class="n">User</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">require_role</span><span class="p">([</span><span class="n">ROLE_ADMIN</span><span class="p">])),</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Удалить сотрудника, который не проводил проверок (только администратор).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        employee_id (int): ID сотрудника.</span>
+<span class="sd">        request (Request): Запрос (для журнала).</span>
+<span class="sd">        db (Session): Сессия базы данных.</span>
+<span class="sd">        current_user (User): Администратор.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        None</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        HTTPException: Если у сотрудника есть проверки в журнале (409).</span>
+<span class="sd">    """</span>
+    <span class="n">emp</span> <span class="o">=</span> <span class="n">_get_or_404</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">employee_id</span><span class="p">)</span>
+    <span class="n">used</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Inspection</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">Inspection</span><span class="o">.</span><span class="n">employee_id</span> <span class="o">==</span> <span class="n">employee_id</span><span class="p">)</span><span class="o">.</span><span class="n">count</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">used</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_409_CONFLICT</span><span class="p">,</span>
+                            <span class="n">detail</span><span class="o">=</span><span class="sa">f</span><span class="s2">"Нельзя удалить: за сотрудником в журнале проверок: </span><span class="si">{</span><span class="n">used</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="n">audit</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">current_user</span><span class="p">,</span> <span class="n">audit</span><span class="o">.</span><span class="n">ACTION_DELETE</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"Удален сотрудник «</span><span class="si">{</span><span class="n">emp</span><span class="o">.</span><span class="n">full_name</span><span class="si">}</span><span class="s2">»"</span><span class="p">,</span>
+              <span class="n">entity_type</span><span class="o">=</span><span class="s2">"employee"</span><span class="p">,</span> <span class="n">entity_id</span><span class="o">=</span><span class="n">emp</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+              <span class="n">changes</span><span class="o">=</span><span class="p">{</span><span class="s2">"full_name"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"old"</span><span class="p">:</span> <span class="n">emp</span><span class="o">.</span><span class="n">full_name</span><span class="p">,</span> <span class="s2">"new"</span><span class="p">:</span> <span class="kc">None</span><span class="p">},</span>
+                       <span class="s2">"position"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"old"</span><span class="p">:</span> <span class="n">emp</span><span class="o">.</span><span class="n">position</span><span class="p">,</span> <span class="s2">"new"</span><span class="p">:</span> <span class="kc">None</span><span class="p">}})</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">emp</span><span class="p">)</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span></div>
 
 </pre></div>
 

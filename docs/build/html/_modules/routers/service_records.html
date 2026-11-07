@@ -1,0 +1,323 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="ru" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>routers.service_records &mdash; документация FireTrack 1</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=47a0e12c"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../_static/translations.js?v=cd1d70c9"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Алфавитный указатель" href="../../genindex.html" />
+    <link rel="search" title="Поиск" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            FireTrack
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Поиск в документации" aria-label="Поиск в документации" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Меню навигации">
+              <p class="caption" role="heading"><span class="caption-text">Содержание:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">FireExtinguishers</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Меню навигации для мобильных устройств" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">FireTrack</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Навигация по страницам">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Код модуля</a></li>
+      <li class="breadcrumb-item active">routers.service_records</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Исходный код routers.service_records</h1><div class="highlight"><pre>
+<span></span><span class="c1"># routers/service_records.py (v1.0)</span>
+<span class="sd">"""</span>
+<span class="sd">История технического обслуживания огнетушителей: испытания, перезарядка, ремонт.</span>
+
+<span class="sd">Записи соответствуют графам формы А.2 приложения А ГОСТ Р 59641-2021.</span>
+<span class="sd">Добавлять записи могут инженер и администратор, исправлять и удалять</span>
+<span class="sd">только администратор. Даты последней перезарядки и испытания в карточке</span>
+<span class="sd">огнетушителя пересчитываются по истории, затем пересчитывается статус.</span>
+<span class="sd">"""</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">date</span><span class="p">,</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timezone</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">fastapi</span><span class="w"> </span><span class="kn">import</span> <span class="n">APIRouter</span><span class="p">,</span> <span class="n">Depends</span><span class="p">,</span> <span class="n">HTTPException</span><span class="p">,</span> <span class="n">Query</span><span class="p">,</span> <span class="n">Request</span><span class="p">,</span> <span class="n">status</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sqlalchemy.orm</span><span class="w"> </span><span class="kn">import</span> <span class="n">Session</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">audit</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">app_settings</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_settings</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">auth</span><span class="w"> </span><span class="kn">import</span> <span class="n">EDITOR_ROLES</span><span class="p">,</span> <span class="n">ROLE_ADMIN</span><span class="p">,</span> <span class="n">get_current_active_user</span><span class="p">,</span> <span class="n">require_role</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">db</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_db</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">models</span><span class="w"> </span><span class="kn">import</span> <span class="n">FireExtinguisher</span><span class="p">,</span> <span class="n">ServiceRecord</span><span class="p">,</span> <span class="n">User</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">schemas</span><span class="w"> </span><span class="kn">import</span> <span class="n">ServiceRecordCreate</span><span class="p">,</span> <span class="n">ServiceRecordRead</span><span class="p">,</span> <span class="n">ServiceRecordUpdate</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">service_logic</span><span class="w"> </span><span class="kn">import</span> <span class="n">default_next_dates</span><span class="p">,</span> <span class="n">sync_extinguisher_dates</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">status_logic</span><span class="w"> </span><span class="kn">import</span> <span class="n">STATUS_DECOMMISSIONED</span><span class="p">,</span> <span class="n">recalculate_statuses</span>
+
+<span class="n">router</span> <span class="o">=</span> <span class="n">APIRouter</span><span class="p">(</span>
+    <span class="n">prefix</span><span class="o">=</span><span class="s2">"/service-records"</span><span class="p">,</span>
+    <span class="n">tags</span><span class="o">=</span><span class="p">[</span><span class="s2">"Service records"</span><span class="p">],</span>
+    <span class="n">dependencies</span><span class="o">=</span><span class="p">[</span><span class="n">Depends</span><span class="p">(</span><span class="n">get_current_active_user</span><span class="p">)],</span>
+<span class="p">)</span>
+
+<span class="n">AUDIT_FIELDS</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="s2">"fire_extinguisher_id"</span><span class="p">,</span> <span class="s2">"service_date"</span><span class="p">,</span> <span class="s2">"tested"</span><span class="p">,</span> <span class="s2">"recharged"</span><span class="p">,</span> <span class="s2">"repaired"</span><span class="p">,</span> <span class="s2">"organization"</span><span class="p">,</span>
+    <span class="s2">"test_result"</span><span class="p">,</span> <span class="s2">"next_test_date"</span><span class="p">,</span> <span class="s2">"agent_brand"</span><span class="p">,</span> <span class="s2">"post_recharge_result"</span><span class="p">,</span>
+    <span class="s2">"next_recharge_date"</span><span class="p">,</span> <span class="s2">"responsible"</span><span class="p">,</span> <span class="s2">"comments"</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">EDITABLE_FIELDS</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">f</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">AUDIT_FIELDS</span> <span class="k">if</span> <span class="n">f</span> <span class="o">!=</span> <span class="s2">"fire_extinguisher_id"</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_work_text</span><span class="p">(</span><span class="n">record</span><span class="p">:</span> <span class="n">ServiceRecord</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Виды выполненных работ одной строкой."""</span>
+    <span class="n">works</span> <span class="o">=</span> <span class="p">[</span><span class="n">name</span> <span class="k">for</span> <span class="n">flag</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="p">((</span><span class="n">record</span><span class="o">.</span><span class="n">tested</span><span class="p">,</span> <span class="s2">"испытание"</span><span class="p">),</span> <span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">recharged</span><span class="p">,</span> <span class="s2">"перезарядка"</span><span class="p">),</span>
+                                     <span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">repaired</span><span class="p">,</span> <span class="s2">"ремонт"</span><span class="p">))</span> <span class="k">if</span> <span class="n">flag</span><span class="p">]</span>
+    <span class="k">return</span> <span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">works</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_get_or_404</span><span class="p">(</span><span class="n">db</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span> <span class="n">record_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ServiceRecord</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Возвращает запись или 404."""</span>
+    <span class="n">record</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">ServiceRecord</span><span class="p">,</span> <span class="n">record_id</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">record</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_404_NOT_FOUND</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="s2">"Запись о ТО не найдена"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">record</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_apply</span><span class="p">(</span><span class="n">record</span><span class="p">:</span> <span class="n">ServiceRecord</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">fe</span><span class="p">:</span> <span class="n">FireExtinguisher</span><span class="p">,</span> <span class="n">settings</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Переносит поля формы в запись и подставляет следующие сроки по умолчанию."""</span>
+    <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">EDITABLE_FIELDS</span><span class="p">:</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">field</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">value</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="ow">or</span> <span class="kc">None</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">else</span> <span class="n">value</span><span class="p">)</span>
+    <span class="n">defaults</span> <span class="o">=</span> <span class="n">default_next_dates</span><span class="p">(</span><span class="n">fe</span><span class="p">,</span> <span class="n">settings</span><span class="p">,</span> <span class="n">record</span><span class="o">.</span><span class="n">service_date</span><span class="p">,</span> <span class="n">record</span><span class="o">.</span><span class="n">tested</span><span class="p">,</span> <span class="n">record</span><span class="o">.</span><span class="n">recharged</span><span class="p">)</span>
+    <span class="n">record</span><span class="o">.</span><span class="n">next_test_date</span> <span class="o">=</span> <span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">next_test_date</span> <span class="ow">or</span> <span class="n">defaults</span><span class="p">[</span><span class="s2">"next_test_date"</span><span class="p">])</span> <span class="k">if</span> <span class="n">record</span><span class="o">.</span><span class="n">tested</span> <span class="k">else</span> <span class="kc">None</span>
+    <span class="n">record</span><span class="o">.</span><span class="n">next_recharge_date</span> <span class="o">=</span> <span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">next_recharge_date</span> <span class="ow">or</span> <span class="n">defaults</span><span class="p">[</span><span class="s2">"next_recharge_date"</span><span class="p">])</span> <span class="k">if</span> <span class="n">record</span><span class="o">.</span><span class="n">recharged</span> <span class="k">else</span> <span class="kc">None</span>
+
+
+<div class="viewcode-block" id="list_service_records">
+<a class="viewcode-back" href="../../routers.html#routers.service_records.list_service_records">[документация]</a>
+<span class="nd">@router</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"/"</span><span class="p">,</span> <span class="n">response_model</span><span class="o">=</span><span class="n">List</span><span class="p">[</span><span class="n">ServiceRecordRead</span><span class="p">])</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">list_service_records</span><span class="p">(</span>
+    <span class="n">extinguisher_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="n">Query</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"Фильтр по огнетушителю"</span><span class="p">),</span>
+    <span class="n">date_from</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">date</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">date_to</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">date</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">),</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    История ТО, новые записи сверху.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        extinguisher_id (Optional[int]): ID огнетушителя.</span>
+<span class="sd">        date_from (Optional[date]): С даты.</span>
+<span class="sd">        date_to (Optional[date]): По дату.</span>
+<span class="sd">        db (Session): Сессия базы данных.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        List[ServiceRecord]: Записи о ТО.</span>
+<span class="sd">    """</span>
+    <span class="n">query</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">ServiceRecord</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">extinguisher_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">ServiceRecord</span><span class="o">.</span><span class="n">fire_extinguisher_id</span> <span class="o">==</span> <span class="n">extinguisher_id</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">date_from</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">ServiceRecord</span><span class="o">.</span><span class="n">service_date</span> <span class="o">&gt;=</span> <span class="n">date_from</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">date_to</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">ServiceRecord</span><span class="o">.</span><span class="n">service_date</span> <span class="o">&lt;=</span> <span class="n">date_to</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">query</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="n">ServiceRecord</span><span class="o">.</span><span class="n">service_date</span><span class="o">.</span><span class="n">desc</span><span class="p">(),</span> <span class="n">ServiceRecord</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">desc</span><span class="p">())</span><span class="o">.</span><span class="n">all</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="create_service_record">
+<a class="viewcode-back" href="../../routers.html#routers.service_records.create_service_record">[документация]</a>
+<span class="nd">@router</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s2">"/"</span><span class="p">,</span> <span class="n">response_model</span><span class="o">=</span><span class="n">ServiceRecordRead</span><span class="p">,</span> <span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_201_CREATED</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">create_service_record</span><span class="p">(</span>
+    <span class="n">data</span><span class="p">:</span> <span class="n">ServiceRecordCreate</span><span class="p">,</span>
+    <span class="n">request</span><span class="p">:</span> <span class="n">Request</span><span class="p">,</span>
+    <span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">),</span>
+    <span class="n">current_user</span><span class="p">:</span> <span class="n">User</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">require_role</span><span class="p">(</span><span class="n">EDITOR_ROLES</span><span class="p">)),</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Добавить запись о ТО. Статус огнетушителя пересчитывается (кроме списанного).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        data (ServiceRecordCreate): Данные записи.</span>
+<span class="sd">        request (Request): Запрос (для журнала).</span>
+<span class="sd">        db (Session): Сессия базы данных.</span>
+<span class="sd">        current_user (User): Инженер или администратор.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        ServiceRecord: Созданная запись.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        HTTPException: Если огнетушитель не найден (400).</span>
+<span class="sd">    """</span>
+    <span class="n">fe</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">FireExtinguisher</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">fire_extinguisher_id</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">fe</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_400_BAD_REQUEST</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="s2">"Огнетушитель не найден"</span><span class="p">)</span>
+
+    <span class="n">record</span> <span class="o">=</span> <span class="n">ServiceRecord</span><span class="p">(</span>
+        <span class="n">fire_extinguisher_id</span><span class="o">=</span><span class="n">fe</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+        <span class="n">created_at</span><span class="o">=</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">),</span>
+        <span class="n">created_by</span><span class="o">=</span><span class="n">current_user</span><span class="o">.</span><span class="n">username</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">_apply</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">fe</span><span class="p">,</span> <span class="n">get_settings</span><span class="p">(</span><span class="n">db</span><span class="p">))</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">record</span><span class="p">)</span>
+    <span class="n">sync_extinguisher_dates</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">fe</span><span class="p">)</span>
+    <span class="n">audit</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">current_user</span><span class="p">,</span> <span class="n">audit</span><span class="o">.</span><span class="n">ACTION_CREATE</span><span class="p">,</span>
+              <span class="sa">f</span><span class="s2">"ТО огнетушителя </span><span class="si">{</span><span class="n">fe</span><span class="o">.</span><span class="n">inventory_number</span><span class="si">}</span><span class="s2"> от </span><span class="si">{</span><span class="n">record</span><span class="o">.</span><span class="n">service_date</span><span class="si">:</span><span class="s2">%d.%m.%Y</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">_work_text</span><span class="p">(</span><span class="n">record</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
+              <span class="n">entity_type</span><span class="o">=</span><span class="s2">"service_record"</span><span class="p">,</span> <span class="n">entity_id</span><span class="o">=</span><span class="n">record</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+              <span class="n">changes</span><span class="o">=</span><span class="n">audit</span><span class="o">.</span><span class="n">diff</span><span class="p">({},</span> <span class="n">audit</span><span class="o">.</span><span class="n">snapshot</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="n">AUDIT_FIELDS</span><span class="p">)))</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">refresh</span><span class="p">(</span><span class="n">record</span><span class="p">)</span>
+    <span class="n">recalculate_statuses</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">extinguisher_ids</span><span class="o">=</span><span class="p">[</span><span class="n">fe</span><span class="o">.</span><span class="n">id</span><span class="p">],</span> <span class="n">keep_manual</span><span class="o">=</span><span class="p">[</span><span class="n">STATUS_DECOMMISSIONED</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">record</span></div>
+
+
+
+<div class="viewcode-block" id="update_service_record">
+<a class="viewcode-back" href="../../routers.html#routers.service_records.update_service_record">[документация]</a>
+<span class="nd">@router</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="s2">"/</span><span class="si">{record_id}</span><span class="s2">"</span><span class="p">,</span> <span class="n">response_model</span><span class="o">=</span><span class="n">ServiceRecordRead</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">update_service_record</span><span class="p">(</span>
+    <span class="n">record_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">data</span><span class="p">:</span> <span class="n">ServiceRecordUpdate</span><span class="p">,</span>
+    <span class="n">request</span><span class="p">:</span> <span class="n">Request</span><span class="p">,</span>
+    <span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">),</span>
+    <span class="n">current_user</span><span class="p">:</span> <span class="n">User</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">require_role</span><span class="p">([</span><span class="n">ROLE_ADMIN</span><span class="p">])),</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Исправить запись о ТО (только администратор, с указанием причины).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        record_id (int): ID записи.</span>
+<span class="sd">        data (ServiceRecordUpdate): Новые значения и причина.</span>
+<span class="sd">        request (Request): Запрос (для журнала).</span>
+<span class="sd">        db (Session): Сессия базы данных.</span>
+<span class="sd">        current_user (User): Администратор.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        ServiceRecord: Обновленная запись.</span>
+<span class="sd">    """</span>
+    <span class="n">record</span> <span class="o">=</span> <span class="n">_get_or_404</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">record_id</span><span class="p">)</span>
+    <span class="n">fe</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">FireExtinguisher</span><span class="p">,</span> <span class="n">record</span><span class="o">.</span><span class="n">fire_extinguisher_id</span><span class="p">)</span>
+    <span class="n">before</span> <span class="o">=</span> <span class="n">audit</span><span class="o">.</span><span class="n">snapshot</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="n">AUDIT_FIELDS</span><span class="p">)</span>
+    <span class="n">_apply</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">fe</span><span class="p">,</span> <span class="n">get_settings</span><span class="p">(</span><span class="n">db</span><span class="p">))</span>
+    <span class="n">changes</span> <span class="o">=</span> <span class="n">audit</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">before</span><span class="p">,</span> <span class="n">audit</span><span class="o">.</span><span class="n">snapshot</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="n">AUDIT_FIELDS</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">changes</span><span class="p">:</span>
+        <span class="n">sync_extinguisher_dates</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">fe</span><span class="p">)</span>
+        <span class="n">audit</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">current_user</span><span class="p">,</span> <span class="n">audit</span><span class="o">.</span><span class="n">ACTION_UPDATE</span><span class="p">,</span>
+                  <span class="sa">f</span><span class="s2">"Исправлена запись о ТО огнетушителя </span><span class="si">{</span><span class="n">fe</span><span class="o">.</span><span class="n">inventory_number</span><span class="si">}</span><span class="s2">. Причина: </span><span class="si">{</span><span class="n">data</span><span class="o">.</span><span class="n">reason</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
+                  <span class="n">entity_type</span><span class="o">=</span><span class="s2">"service_record"</span><span class="p">,</span> <span class="n">entity_id</span><span class="o">=</span><span class="n">record</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">changes</span><span class="o">=</span><span class="n">changes</span><span class="p">)</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">refresh</span><span class="p">(</span><span class="n">record</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">changes</span><span class="p">:</span>
+        <span class="n">recalculate_statuses</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">extinguisher_ids</span><span class="o">=</span><span class="p">[</span><span class="n">fe</span><span class="o">.</span><span class="n">id</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">record</span></div>
+
+
+
+<div class="viewcode-block" id="delete_service_record">
+<a class="viewcode-back" href="../../routers.html#routers.service_records.delete_service_record">[документация]</a>
+<span class="nd">@router</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="s2">"/</span><span class="si">{record_id}</span><span class="s2">"</span><span class="p">,</span> <span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_204_NO_CONTENT</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">delete_service_record</span><span class="p">(</span>
+    <span class="n">record_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">request</span><span class="p">:</span> <span class="n">Request</span><span class="p">,</span>
+    <span class="n">reason</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Query</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">min_length</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">max_length</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"Причина удаления"</span><span class="p">),</span>
+    <span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">),</span>
+    <span class="n">current_user</span><span class="p">:</span> <span class="n">User</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">require_role</span><span class="p">([</span><span class="n">ROLE_ADMIN</span><span class="p">])),</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Удалить ошибочную запись о ТО (только администратор, с указанием причины).</span>
+
+<span class="sd">    Содержимое записи сохраняется в журнале действий.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        record_id (int): ID записи.</span>
+<span class="sd">        request (Request): Запрос (для журнала).</span>
+<span class="sd">        reason (str): Причина удаления.</span>
+<span class="sd">        db (Session): Сессия базы данных.</span>
+<span class="sd">        current_user (User): Администратор.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        None</span>
+<span class="sd">    """</span>
+    <span class="n">record</span> <span class="o">=</span> <span class="n">_get_or_404</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">record_id</span><span class="p">)</span>
+    <span class="n">fe</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">FireExtinguisher</span><span class="p">,</span> <span class="n">record</span><span class="o">.</span><span class="n">fire_extinguisher_id</span><span class="p">)</span>
+    <span class="n">card</span> <span class="o">=</span> <span class="n">audit</span><span class="o">.</span><span class="n">snapshot</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="n">AUDIT_FIELDS</span><span class="p">)</span>
+    <span class="n">audit</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">current_user</span><span class="p">,</span> <span class="n">audit</span><span class="o">.</span><span class="n">ACTION_DELETE</span><span class="p">,</span>
+              <span class="sa">f</span><span class="s2">"Удалена запись о ТО огнетушителя </span><span class="si">{</span><span class="n">fe</span><span class="o">.</span><span class="n">inventory_number</span><span class="si">}</span><span class="s2"> от "</span>
+              <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">record</span><span class="o">.</span><span class="n">service_date</span><span class="si">:</span><span class="s2">%d.%m.%Y</span><span class="si">}</span><span class="s2">. Причина: </span><span class="si">{</span><span class="n">reason</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
+              <span class="n">entity_type</span><span class="o">=</span><span class="s2">"service_record"</span><span class="p">,</span> <span class="n">entity_id</span><span class="o">=</span><span class="n">record</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+              <span class="n">changes</span><span class="o">=</span><span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="p">{</span><span class="s2">"old"</span><span class="p">:</span> <span class="n">v</span><span class="p">,</span> <span class="s2">"new"</span><span class="p">:</span> <span class="kc">None</span><span class="p">}</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">card</span><span class="o">.</span><span class="n">items</span><span class="p">()})</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">record</span><span class="p">)</span>
+    <span class="n">sync_extinguisher_dates</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">fe</span><span class="p">)</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+    <span class="n">recalculate_statuses</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">extinguisher_ids</span><span class="o">=</span><span class="p">[</span><span class="n">fe</span><span class="o">.</span><span class="n">id</span><span class="p">])</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Авторские права 2026, Ralka. </p>
+  </div>
+
+  Собрано при помощи <a href="https://www.sphinx-doc.org/">Sphinx</a> с использованием
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">темы,</a>
+    предоставленной <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

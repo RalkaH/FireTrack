@@ -70,7 +70,7 @@
            <div itemprop="articleBody">
              
   <h1>Исходный код audit</h1><div class="highlight"><pre>
-<span></span><span class="c1"># audit.py (v1.0)</span>
+<span></span><span class="c1"># audit.py (v1.1)</span>
 <span class="sd">"""</span>
 <span class="sd">Журнал действий пользователей (аудит).</span>
 
@@ -109,6 +109,9 @@
 <span class="n">ACTION_UNBLOCK</span> <span class="o">=</span> <span class="s2">"unblock"</span>
 <span class="n">ACTION_RECALCULATE</span> <span class="o">=</span> <span class="s2">"recalculate"</span>
 <span class="n">ACTION_EXPORT</span> <span class="o">=</span> <span class="s2">"export"</span>
+<span class="n">ACTION_ANNUL</span> <span class="o">=</span> <span class="s2">"annul"</span>
+<span class="n">ACTION_RESTORE</span> <span class="o">=</span> <span class="s2">"restore"</span>
+<span class="n">ACTION_BACKUP</span> <span class="o">=</span> <span class="s2">"backup"</span>
 
 <span class="n">ACTION_LABELS</span> <span class="o">=</span> <span class="p">{</span>
     <span class="n">ACTION_CREATE</span><span class="p">:</span> <span class="s2">"Создание"</span><span class="p">,</span>
@@ -123,11 +126,16 @@
     <span class="n">ACTION_UNBLOCK</span><span class="p">:</span> <span class="s2">"Разблокировка"</span><span class="p">,</span>
     <span class="n">ACTION_RECALCULATE</span><span class="p">:</span> <span class="s2">"Пересчет статусов"</span><span class="p">,</span>
     <span class="n">ACTION_EXPORT</span><span class="p">:</span> <span class="s2">"Выгрузка"</span><span class="p">,</span>
+    <span class="n">ACTION_ANNUL</span><span class="p">:</span> <span class="s2">"Аннулирование"</span><span class="p">,</span>
+    <span class="n">ACTION_RESTORE</span><span class="p">:</span> <span class="s2">"Восстановление"</span><span class="p">,</span>
+    <span class="n">ACTION_BACKUP</span><span class="p">:</span> <span class="s2">"Резервная копия"</span><span class="p">,</span>
 <span class="p">}</span>
 
 <span class="n">ENTITY_LABELS</span> <span class="o">=</span> <span class="p">{</span>
     <span class="s2">"extinguisher"</span><span class="p">:</span> <span class="s2">"Огнетушитель"</span><span class="p">,</span>
     <span class="s2">"inspection"</span><span class="p">:</span> <span class="s2">"Проверка"</span><span class="p">,</span>
+    <span class="s2">"service_record"</span><span class="p">:</span> <span class="s2">"Запись о ТО"</span><span class="p">,</span>
+    <span class="s2">"backup"</span><span class="p">:</span> <span class="s2">"Резервная копия"</span><span class="p">,</span>
     <span class="s2">"location"</span><span class="p">:</span> <span class="s2">"Место"</span><span class="p">,</span>
     <span class="s2">"employee"</span><span class="p">:</span> <span class="s2">"Сотрудник"</span><span class="p">,</span>
     <span class="s2">"status"</span><span class="p">:</span> <span class="s2">"Статус"</span><span class="p">,</span>

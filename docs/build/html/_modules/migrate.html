@@ -70,7 +70,7 @@
            <div itemprop="articleBody">
              
   <h1>Исходный код migrate</h1><div class="highlight"><pre>
-<span></span><span class="c1"># migrate.py (v1.0)</span>
+<span></span><span class="c1"># migrate.py (v1.1)</span>
 <span class="sd">"""</span>
 <span class="sd">Обновление схемы базы данных через Alembic.</span>
 
@@ -117,7 +117,9 @@
     <span class="k">return</span> <span class="n">cfg</span>
 
 
-<span class="k">def</span><span class="w"> </span><span class="nf">_sqlite_file</span><span class="p">(</span><span class="n">engine</span><span class="p">:</span> <span class="n">Engine</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
+<div class="viewcode-block" id="sqlite_file">
+<a class="viewcode-back" href="../migrate.html#migrate.sqlite_file">[документация]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">sqlite_file</span><span class="p">(</span><span class="n">engine</span><span class="p">:</span> <span class="n">Engine</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Path</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">"""Возвращает путь к файлу SQLite или None для других баз и баз в памяти."""</span>
     <span class="n">url</span> <span class="o">=</span> <span class="n">engine</span><span class="o">.</span><span class="n">url</span>
     <span class="k">if</span> <span class="n">url</span><span class="o">.</span><span class="n">get_backend_name</span><span class="p">()</span> <span class="o">!=</span> <span class="s2">"sqlite"</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">url</span><span class="o">.</span><span class="n">database</span> <span class="ow">or</span> <span class="n">url</span><span class="o">.</span><span class="n">database</span> <span class="o">==</span> <span class="s2">":memory:"</span><span class="p">:</span>
@@ -125,7 +127,8 @@
     <span class="n">path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">url</span><span class="o">.</span><span class="n">database</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">path</span><span class="o">.</span><span class="n">is_absolute</span><span class="p">():</span>
         <span class="n">path</span> <span class="o">=</span> <span class="n">Path</span><span class="o">.</span><span class="n">cwd</span><span class="p">()</span> <span class="o">/</span> <span class="n">path</span>
-    <span class="k">return</span> <span class="n">path</span>
+    <span class="k">return</span> <span class="n">path</span></div>
+
 
 
 <div class="viewcode-block" id="backup_database">
@@ -141,7 +144,7 @@
 <span class="sd">    Returns:</span>
 <span class="sd">        Optional[Path]: Путь к копии или None, если копировать нечего.</span>
 <span class="sd">    """</span>
-    <span class="n">source</span> <span class="o">=</span> <span class="n">_sqlite_file</span><span class="p">(</span><span class="n">engine</span><span class="p">)</span>
+    <span class="n">source</span> <span class="o">=</span> <span class="n">sqlite_file</span><span class="p">(</span><span class="n">engine</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">source</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">source</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
         <span class="k">return</span> <span class="kc">None</span>
     <span class="n">BACKUP_DIR</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>

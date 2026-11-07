@@ -1,0 +1,202 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="ru" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>service_logic module &mdash; документация FireTrack 1</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=47a0e12c"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="_static/translations.js?v=cd1d70c9"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Алфавитный указатель" href="genindex.html" />
+    <link rel="search" title="Поиск" href="search.html" />
+    <link rel="next" title="setup module" href="setup.html" />
+    <link rel="prev" title="schemas module" href="schemas.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            FireTrack
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Поиск в документации" aria-label="Поиск в документации" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Меню навигации">
+              <p class="caption" role="heading"><span class="caption-text">Содержание:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">FireExtinguishers</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="app_settings.html">app_settings module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="audit.html">audit module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="auth.html">auth module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="backup.html">backup module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="db.html">db module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="deadlines.html">deadlines module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="export_utils.html">export_utils module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="main.html">main module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="migrate.html">migrate module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="models.html">models module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="report_data.html">report_data module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="routers.html">routers package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="run.html">run module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="schemas.html">schemas module</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">service_logic module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#service_logic.default_next_dates"><code class="docutils literal notranslate"><span class="pre">default_next_dates()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#service_logic.initial_recharge_record"><code class="docutils literal notranslate"><span class="pre">initial_recharge_record()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#service_logic.sync_extinguisher_dates"><code class="docutils literal notranslate"><span class="pre">sync_extinguisher_dates()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="setup.html">setup module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="status_logic.html">status_logic module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="xlsx_export.html">xlsx_export module</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Меню навигации для мобильных устройств" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">FireTrack</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Навигация по страницам">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">FireExtinguishers</a></li>
+      <li class="breadcrumb-item active">service_logic module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/service_logic.rst.txt" rel="nofollow"> Просмотреть исходный код страницы</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-service_logic">
+<span id="service-logic-module"></span><h1>service_logic module<a class="headerlink" href="#module-service_logic" title="Ссылка на этот заголовок"></a></h1>
+<p>История технического обслуживания огнетушителей.</p>
+<p>Каждое испытание, перезарядка и ремонт хранятся отдельной записью
+(таблица <code class="docutils literal notranslate"><span class="pre">ServiceRecords</span></code>, графы формы А.2 ГОСТ Р 59641-2021). Даты
+последней перезарядки и последнего испытания в карточке огнетушителя
+вычисляются по этой истории, поэтому исправление или удаление записи
+автоматически исправляет и сроки.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="service_logic.default_next_dates">
+<span class="sig-prename descclassname"><span class="pre">service_logic.</span></span><span class="sig-name descname"><span class="pre">default_next_dates</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fe</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="models.html#models.FireExtinguisher" title="models.FireExtinguisher"><span class="pre">FireExtinguisher</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">settings</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">service_date</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">date</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tested</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">recharged</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">date</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/service_logic.html#default_next_dates"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#service_logic.default_next_dates" title="Ссылка на это определение"></a></dt>
+<dd><p>Считает сроки следующего испытания и перезарядки после выполненных работ.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Параметры<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fe</strong> (<a class="reference internal" href="models.html#models.FireExtinguisher" title="models.FireExtinguisher"><em>FireExtinguisher</em></a>) – Огнетушитель.</p></li>
+<li><p><strong>settings</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em>) – Настройки приложения.</p></li>
+<li><p><strong>service_date</strong> (<em>date</em>) – Дата работ.</p></li>
+<li><p><strong>tested</strong> (<em>bool</em>) – Проведено испытание.</p></li>
+<li><p><strong>recharged</strong> (<em>bool</em>) – Проведена перезарядка.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Результат<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">next_test_date</span></code> и <code class="docutils literal notranslate"><span class="pre">next_recharge_date</span></code>
+(None, если такие работы не проводились или интервал неизвестен).</p>
+</dd>
+<dt class="field-odd">Тип результата<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Dict[str, Optional[date]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="service_logic.initial_recharge_record">
+<span class="sig-prename descclassname"><span class="pre">service_logic.</span></span><span class="sig-name descname"><span class="pre">initial_recharge_record</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fe</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="models.html#models.FireExtinguisher" title="models.FireExtinguisher"><span class="pre">FireExtinguisher</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">settings</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">recharge_date</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">date</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">username</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="models.html#models.ServiceRecord" title="models.ServiceRecord"><span class="pre">ServiceRecord</span></a></span></span><a class="reference internal" href="_modules/service_logic.html#initial_recharge_record"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#service_logic.initial_recharge_record" title="Ссылка на это определение"></a></dt>
+<dd><p>Запись о перезарядке, известной на момент постановки огнетушителя на учет.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Параметры<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fe</strong> (<a class="reference internal" href="models.html#models.FireExtinguisher" title="models.FireExtinguisher"><em>FireExtinguisher</em></a>) – Огнетушитель (может быть еще не сохранен).</p></li>
+<li><p><strong>settings</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em>) – Настройки приложения.</p></li>
+<li><p><strong>recharge_date</strong> (<em>date</em>) – Дата последней перезарядки из карточки или файла.</p></li>
+<li><p><strong>username</strong> (<em>Optional</em><em>[</em><em>str</em><em>]</em>) – Кто добавил.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Результат<span class="colon">:</span></dt>
+<dd class="field-even"><p>Запись, привязанная к огнетушителю.</p>
+</dd>
+<dt class="field-odd">Тип результата<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="models.html#models.ServiceRecord" title="models.ServiceRecord">ServiceRecord</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="service_logic.sync_extinguisher_dates">
+<span class="sig-prename descclassname"><span class="pre">service_logic.</span></span><span class="sig-name descname"><span class="pre">sync_extinguisher_dates</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Session</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fe</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="models.html#models.FireExtinguisher" title="models.FireExtinguisher"><span class="pre">FireExtinguisher</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="_modules/service_logic.html#sync_extinguisher_dates"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#service_logic.sync_extinguisher_dates" title="Ссылка на это определение"></a></dt>
+<dd><p>Обновляет в карточке даты последней перезарядки и испытания по истории (без commit).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Параметры<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>db</strong> (<em>Session</em>) – Сессия базы данных.</p></li>
+<li><p><strong>fe</strong> (<a class="reference internal" href="models.html#models.FireExtinguisher" title="models.FireExtinguisher"><em>FireExtinguisher</em></a>) – Огнетушитель.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Нижняя область">
+        <a href="schemas.html" class="btn btn-neutral float-left" title="schemas module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Предыдущая</a>
+        <a href="setup.html" class="btn btn-neutral float-right" title="setup module" accesskey="n" rel="next">Следующая <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Авторские права 2026, Ralka. </p>
+  </div>
+
+  Собрано при помощи <a href="https://www.sphinx-doc.org/">Sphinx</a> с использованием
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">темы,</a>
+    предоставленной <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

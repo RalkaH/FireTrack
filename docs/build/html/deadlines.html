@@ -20,7 +20,7 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Алфавитный указатель" href="genindex.html" />
     <link rel="search" title="Поиск" href="search.html" />
-    <link rel="next" title="main module" href="main.html" />
+    <link rel="next" title="export_utils module" href="export_utils.html" />
     <link rel="prev" title="db module" href="db.html" /> 
 </head>
 
@@ -49,19 +49,24 @@
 <li class="toctree-l2"><a class="reference internal" href="app_settings.html">app_settings module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="audit.html">audit module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="auth.html">auth module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="backup.html">backup module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="db.html">db module</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">deadlines module</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#deadlines.add_months"><code class="docutils literal notranslate"><span class="pre">add_months()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#deadlines.agent_kind"><code class="docutils literal notranslate"><span class="pre">agent_kind()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#deadlines.compute_deadlines"><code class="docutils literal notranslate"><span class="pre">compute_deadlines()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#deadlines.recharge_interval"><code class="docutils literal notranslate"><span class="pre">recharge_interval()</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="export_utils.html">export_utils module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="main.html">main module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="migrate.html">migrate module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="models.html">models module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="report_data.html">report_data module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="routers.html">routers package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="run.html">run module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="schemas.html">schemas module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="service_logic.html">service_logic module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="setup.html">setup module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="status_logic.html">status_logic module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="xlsx_export.html">xlsx_export module</a></li>
@@ -98,18 +103,21 @@
 <span id="deadlines-module"></span><h1>deadlines module<a class="headerlink" href="#module-deadlines" title="Ссылка на этот заголовок"></a></h1>
 <p>Сроки перезарядки и срок службы огнетушителей.</p>
 <p>Плановые осмотры считаются по журналу проверок (<code class="docutils literal notranslate"><span class="pre">status_logic</span></code>), а здесь
-считаются два других срока:</p>
+считаются три других срока:</p>
 <ol class="arabic simple">
 <li><p><strong>Перезарядка.</strong> Интервал зависит от вида огнетушащего вещества (ОТВ),
 который определяется по префиксу типа: ОВ и ОВЭ (вода), ОВП (пена),
 ОП (порошок), ОУ (углекислота), ОХ (хладон). Интервалы по умолчанию
-берутся из настроек (таблица 1 СП 9.13130.2009) и могут быть
+берутся из настроек (таблица 1 ГОСТ Р 59641-2021) и могут быть
 переопределены в карточке огнетушителя. Отсчет ведется от даты
 последней перезарядки, а если ее нет, от даты изготовления
 (новый огнетушитель заряжен на заводе) или ввода в эксплуатацию.</p></li>
 <li><p><strong>Срок службы.</strong> По умолчанию 10 лет (п. 5.53 ГОСТ Р 51057-2001),
 отсчитывается от даты изготовления. После него огнетушитель списывают
 или продлевают срок по решению организации, проводящей ТО.</p></li>
+<li><p><strong>Испытания.</strong> Разрядка, осмотр и испытания на прочность один раз в пять
+лет (п. 5.1.9 и 5.1.11.2 ГОСТ Р 59641-2021). Отсчет от последнего испытания,
+а если его нет, от даты изготовления или ввода в эксплуатацию.</p></li>
 </ol>
 <dl class="py function">
 <dt class="sig sig-object py" id="deadlines.add_months">
@@ -163,10 +171,32 @@
 </dd>
 <dt class="field-even">Результат<span class="colon">:</span></dt>
 <dd class="field-even"><p>Вид ОТВ, интервал, база отсчета, дата следующей
-перезарядки, конец срока службы, их состояния и остаток в днях.</p>
+перезарядки, конец срока службы, следующие испытания, их состояния
+и остаток в днях.</p>
 </dd>
 <dt class="field-odd">Тип результата<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Dict[str, Any]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="deadlines.recharge_interval">
+<span class="sig-prename descclassname"><span class="pre">deadlines.</span></span><span class="sig-name descname"><span class="pre">recharge_interval</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fe</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">settings</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="reference internal" href="_modules/deadlines.html#recharge_interval"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#deadlines.recharge_interval" title="Ссылка на это определение"></a></dt>
+<dd><p>Интервал перезарядки огнетушителя в месяцах.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Параметры<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fe</strong> (<a class="reference internal" href="models.html#models.FireExtinguisher" title="models.FireExtinguisher"><em>FireExtinguisher</em></a>) – Огнетушитель.</p></li>
+<li><p><strong>settings</strong> (<em>Dict</em><em>[</em><em>str</em><em>, </em><em>Any</em><em>]</em>) – Настройки приложения.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Результат<span class="colon">:</span></dt>
+<dd class="field-even"><p>Значение из карточки, иначе по виду ОТВ из настроек,
+либо None, если вид ОТВ определить не удалось.</p>
+</dd>
+<dt class="field-odd">Тип результата<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Optional[int]</p>
 </dd>
 </dl>
 </dd></dl>
@@ -178,7 +208,7 @@
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Нижняя область">
         <a href="db.html" class="btn btn-neutral float-left" title="db module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Предыдущая</a>
-        <a href="main.html" class="btn btn-neutral float-right" title="main module" accesskey="n" rel="next">Следующая <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="export_utils.html" class="btn btn-neutral float-right" title="export_utils module" accesskey="n" rel="next">Следующая <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

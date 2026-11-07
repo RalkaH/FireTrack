@@ -20,7 +20,7 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Алфавитный указатель" href="genindex.html" />
     <link rel="search" title="Поиск" href="search.html" />
-    <link rel="next" title="schemas module" href="schemas.html" />
+    <link rel="next" title="run module" href="run.html" />
     <link rel="prev" title="report_data module" href="report_data.html" /> 
 </head>
 
@@ -49,8 +49,10 @@
 <li class="toctree-l2"><a class="reference internal" href="app_settings.html">app_settings module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="audit.html">audit module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="auth.html">auth module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="backup.html">backup module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="db.html">db module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="deadlines.html">deadlines module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="export_utils.html">export_utils module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="main.html">main module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="migrate.html">migrate module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="models.html">models module</a></li>
@@ -63,9 +65,17 @@
 <li class="toctree-l4"><a class="reference internal" href="#routers.audit_log.list_audit"><code class="docutils literal notranslate"><span class="pre">list_audit()</span></code></a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="#module-routers.backups">routers.backups module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#routers.backups.create_backup"><code class="docutils literal notranslate"><span class="pre">create_backup()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#routers.backups.download_backup"><code class="docutils literal notranslate"><span class="pre">download_backup()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#routers.backups.list_backups"><code class="docutils literal notranslate"><span class="pre">list_backups()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="#module-routers.employees">routers.employees module</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#routers.employees.create_employee"><code class="docutils literal notranslate"><span class="pre">create_employee()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#routers.employees.delete_employee"><code class="docutils literal notranslate"><span class="pre">delete_employee()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#routers.employees.list_employees"><code class="docutils literal notranslate"><span class="pre">list_employees()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#routers.employees.update_employee"><code class="docutils literal notranslate"><span class="pre">update_employee()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#module-routers.extinguishers">routers.extinguishers module</a><ul>
@@ -73,7 +83,6 @@
 <li class="toctree-l4"><a class="reference internal" href="#routers.extinguishers.delete_extinguisher"><code class="docutils literal notranslate"><span class="pre">delete_extinguisher()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#routers.extinguishers.get_extinguisher"><code class="docutils literal notranslate"><span class="pre">get_extinguisher()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#routers.extinguishers.list_extinguishers"><code class="docutils literal notranslate"><span class="pre">list_extinguishers()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#routers.extinguishers.mark_recharged"><code class="docutils literal notranslate"><span class="pre">mark_recharged()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#routers.extinguishers.search_by_inventory"><code class="docutils literal notranslate"><span class="pre">search_by_inventory()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#routers.extinguishers.serialize"><code class="docutils literal notranslate"><span class="pre">serialize()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#routers.extinguishers.update_extinguisher"><code class="docutils literal notranslate"><span class="pre">update_extinguisher()</span></code></a></li>
@@ -92,17 +101,23 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#module-routers.inspections">routers.inspections module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#routers.inspections.annul_inspection"><code class="docutils literal notranslate"><span class="pre">annul_inspection()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#routers.inspections.create_inspection"><code class="docutils literal notranslate"><span class="pre">create_inspection()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#routers.inspections.inspections_by_extinguisher"><code class="docutils literal notranslate"><span class="pre">inspections_by_extinguisher()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#routers.inspections.list_inspections"><code class="docutils literal notranslate"><span class="pre">list_inspections()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#routers.inspections.restore_inspection"><code class="docutils literal notranslate"><span class="pre">restore_inspection()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#routers.inspections.update_inspection"><code class="docutils literal notranslate"><span class="pre">update_inspection()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#module-routers.locations">routers.locations module</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#routers.locations.create_location"><code class="docutils literal notranslate"><span class="pre">create_location()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#routers.locations.delete_location"><code class="docutils literal notranslate"><span class="pre">delete_location()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#routers.locations.list_locations"><code class="docutils literal notranslate"><span class="pre">list_locations()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#routers.locations.update_location"><code class="docutils literal notranslate"><span class="pre">update_location()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#module-routers.reports">routers.reports module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#routers.reports.cards_xlsx"><code class="docutils literal notranslate"><span class="pre">cards_xlsx()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#routers.reports.dashboard_statistics"><code class="docutils literal notranslate"><span class="pre">dashboard_statistics()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#routers.reports.expired_list"><code class="docutils literal notranslate"><span class="pre">expired_list()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#routers.reports.export_journal_json"><code class="docutils literal notranslate"><span class="pre">export_journal_json()</span></code></a></li>
@@ -111,12 +126,20 @@
 <li class="toctree-l4"><a class="reference internal" href="#routers.reports.journal_json"><code class="docutils literal notranslate"><span class="pre">journal_json()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#routers.reports.journal_xlsx"><code class="docutils literal notranslate"><span class="pre">journal_xlsx()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#routers.reports.maintenance_xlsx"><code class="docutils literal notranslate"><span class="pre">maintenance_xlsx()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#routers.reports.print_cards"><code class="docutils literal notranslate"><span class="pre">print_cards()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#routers.reports.print_fleet"><code class="docutils literal notranslate"><span class="pre">print_fleet()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#routers.reports.print_journal"><code class="docutils literal notranslate"><span class="pre">print_journal()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#routers.reports.print_maintenance"><code class="docutils literal notranslate"><span class="pre">print_maintenance()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#routers.reports.recharge_report"><code class="docutils literal notranslate"><span class="pre">recharge_report()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#routers.reports.upcoming_inspections"><code class="docutils literal notranslate"><span class="pre">upcoming_inspections()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#routers.reports.upcoming_inspections_report"><code class="docutils literal notranslate"><span class="pre">upcoming_inspections_report()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-routers.service_records">routers.service_records module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#routers.service_records.create_service_record"><code class="docutils literal notranslate"><span class="pre">create_service_record()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#routers.service_records.delete_service_record"><code class="docutils literal notranslate"><span class="pre">delete_service_record()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#routers.service_records.list_service_records"><code class="docutils literal notranslate"><span class="pre">list_service_records()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#routers.service_records.update_service_record"><code class="docutils literal notranslate"><span class="pre">update_service_record()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#module-routers.settings">routers.settings module</a><ul>
@@ -142,7 +165,9 @@
 <li class="toctree-l3"><a class="reference internal" href="#module-routers">Module contents</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="run.html">run module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="schemas.html">schemas module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="service_logic.html">service_logic module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="setup.html">setup module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="status_logic.html">status_logic module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="xlsx_export.html">xlsx_export module</a></li>
@@ -231,10 +256,81 @@ ID объекта и поиск по тексту описания или IP. Р
 </dd></dl>
 
 </section>
+<section id="module-routers.backups">
+<span id="routers-backups-module"></span><h2>routers.backups module<a class="headerlink" href="#module-routers.backups" title="Ссылка на этот заголовок"></a></h2>
+<p>Резервные копии базы в админке (только администратор).</p>
+<p>Копию можно создать и скачать. В копии есть хеши паролей, поэтому каждое
+скачивание пишется в журнал действий. Восстановление из копии намеренно
+делается вручную при остановленном сервере (см. README).</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="routers.backups.create_backup">
+<span class="sig-prename descclassname"><span class="pre">routers.backups.</span></span><span class="sig-name descname"><span class="pre">create_backup</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">request</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Request</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Session</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Depends(dependency=&lt;function</span> <span class="pre">get_db&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scope</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">current_user</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="models.html#models.User" title="models.User"><span class="pre">User</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Depends(dependency=&lt;function</span> <span class="pre">require_role.&lt;locals&gt;.role_checker&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scope</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None)</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/routers/backups.html#create_backup"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#routers.backups.create_backup" title="Ссылка на это определение"></a></dt>
+<dd><p>Создать резервную копию сейчас.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Параметры<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>request</strong> (<em>Request</em>) – Запрос (для журнала).</p></li>
+<li><p><strong>db</strong> (<em>Session</em>) – Сессия базы данных.</p></li>
+<li><p><strong>current_user</strong> (<a class="reference internal" href="models.html#models.User" title="models.User"><em>User</em></a>) – Администратор.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Результат<span class="colon">:</span></dt>
+<dd class="field-even"><p>Имя созданного файла.</p>
+</dd>
+<dt class="field-odd">Тип результата<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+<dt class="field-even">Исключение<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>HTTPException</strong> – Если база хранится не в файле SQLite (400).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="routers.backups.download_backup">
+<span class="sig-prename descclassname"><span class="pre">routers.backups.</span></span><span class="sig-name descname"><span class="pre">download_backup</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">request</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Request</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Session</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Depends(dependency=&lt;function</span> <span class="pre">get_db&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scope</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">current_user</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="models.html#models.User" title="models.User"><span class="pre">User</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Depends(dependency=&lt;function</span> <span class="pre">require_role.&lt;locals&gt;.role_checker&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scope</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None)</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/routers/backups.html#download_backup"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#routers.backups.download_backup" title="Ссылка на это определение"></a></dt>
+<dd><p>Скачать резервную копию.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Параметры<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> (<em>str</em>) – Имя файла из списка копий.</p></li>
+<li><p><strong>request</strong> (<em>Request</em>) – Запрос (для журнала).</p></li>
+<li><p><strong>db</strong> (<em>Session</em>) – Сессия базы данных.</p></li>
+<li><p><strong>current_user</strong> (<a class="reference internal" href="models.html#models.User" title="models.User"><em>User</em></a>) – Администратор.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Результат<span class="colon">:</span></dt>
+<dd class="field-even"><p>Файл копии.</p>
+</dd>
+<dt class="field-odd">Тип результата<span class="colon">:</span></dt>
+<dd class="field-odd"><p>FileResponse</p>
+</dd>
+<dt class="field-even">Исключение<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>HTTPException</strong> – Если такого файла нет или имя недопустимо (404).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="routers.backups.list_backups">
+<span class="sig-prename descclassname"><span class="pre">routers.backups.</span></span><span class="sig-name descname"><span class="pre">list_backups</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/routers/backups.html#list_backups"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#routers.backups.list_backups" title="Ссылка на это определение"></a></dt>
+<dd><p>Список резервных копий, новые сверху.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Результат<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Имя, тип (auto, manual, migration), размер и время создания.</p>
+</dd>
+<dt class="field-even">Тип результата<span class="colon">:</span></dt>
+<dd class="field-even"><p>list</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
 <section id="module-routers.employees">
 <span id="routers-employees-module"></span><h2>routers.employees module<a class="headerlink" href="#module-routers.employees" title="Ссылка на этот заголовок"></a></h2>
 <p>Модуль для управления сотрудниками.
-Содержит маршруты для получения списка сотрудников и добавления новых.</p>
+Позволяет добавлять, исправлять и удалять сотрудников и получать их список.
+Сотрудника, который проводил проверки, удалить нельзя: журнал должен оставаться полным.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="routers.employees.create_employee">
 <span class="sig-prename descclassname"><span class="pre">routers.employees.</span></span><span class="sig-name descname"><span class="pre">create_employee</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="schemas.html#schemas.EmployeeCreate" title="schemas.EmployeeCreate"><span class="pre">EmployeeCreate</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">request</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Request</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Session</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Depends(dependency=&lt;function</span> <span class="pre">get_db&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scope</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">current_user</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="models.html#models.User" title="models.User"><span class="pre">User</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Depends(dependency=&lt;function</span> <span class="pre">require_role.&lt;locals&gt;.role_checker&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scope</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None)</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/routers/employees.html#create_employee"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#routers.employees.create_employee" title="Ссылка на это определение"></a></dt>
@@ -256,6 +352,28 @@ ID объекта и поиск по тексту описания или IP. Р
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="routers.employees.delete_employee">
+<span class="sig-prename descclassname"><span class="pre">routers.employees.</span></span><span class="sig-name descname"><span class="pre">delete_employee</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">employee_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">request</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Request</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Session</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Depends(dependency=&lt;function</span> <span class="pre">get_db&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scope</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">current_user</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="models.html#models.User" title="models.User"><span class="pre">User</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Depends(dependency=&lt;function</span> <span class="pre">require_role.&lt;locals&gt;.role_checker&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scope</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None)</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/routers/employees.html#delete_employee"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#routers.employees.delete_employee" title="Ссылка на это определение"></a></dt>
+<dd><p>Удалить сотрудника, который не проводил проверок (только администратор).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Параметры<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>employee_id</strong> (<em>int</em>) – ID сотрудника.</p></li>
+<li><p><strong>request</strong> (<em>Request</em>) – Запрос (для журнала).</p></li>
+<li><p><strong>db</strong> (<em>Session</em>) – Сессия базы данных.</p></li>
+<li><p><strong>current_user</strong> (<a class="reference internal" href="models.html#models.User" title="models.User"><em>User</em></a>) – Администратор.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Результат<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+<dt class="field-odd">Исключение<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>HTTPException</strong> – Если у сотрудника есть проверки в журнале (409).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="routers.employees.list_employees">
 <span class="sig-prename descclassname"><span class="pre">routers.employees.</span></span><span class="sig-name descname"><span class="pre">list_employees</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Session</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Depends(dependency=&lt;function</span> <span class="pre">get_db&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scope</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None)</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/routers/employees.html#list_employees"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#routers.employees.list_employees" title="Ссылка на это определение"></a></dt>
 <dd><p>Получить полный список всех сотрудников.</p>
@@ -272,12 +390,38 @@ ID объекта и поиск по тексту описания или IP. Р
 </dl>
 </dd></dl>
 
+<dl class="py function">
+<dt class="sig sig-object py" id="routers.employees.update_employee">
+<span class="sig-prename descclassname"><span class="pre">routers.employees.</span></span><span class="sig-name descname"><span class="pre">update_employee</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">employee_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="schemas.html#schemas.EmployeeUpdate" title="schemas.EmployeeUpdate"><span class="pre">EmployeeUpdate</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">request</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Request</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Session</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Depends(dependency=&lt;function</span> <span class="pre">get_db&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scope</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">current_user</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="models.html#models.User" title="models.User"><span class="pre">User</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Depends(dependency=&lt;function</span> <span class="pre">require_role.&lt;locals&gt;.role_checker&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scope</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None)</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/routers/employees.html#update_employee"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#routers.employees.update_employee" title="Ссылка на это определение"></a></dt>
+<dd><p>Исправить ФИО или должность сотрудника.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Параметры<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>employee_id</strong> (<em>int</em>) – ID сотрудника.</p></li>
+<li><p><strong>data</strong> (<a class="reference internal" href="schemas.html#schemas.EmployeeUpdate" title="schemas.EmployeeUpdate"><em>EmployeeUpdate</em></a>) – Новые значения.</p></li>
+<li><p><strong>request</strong> (<em>Request</em>) – Запрос (для журнала).</p></li>
+<li><p><strong>db</strong> (<em>Session</em>) – Сессия базы данных.</p></li>
+<li><p><strong>current_user</strong> (<a class="reference internal" href="models.html#models.User" title="models.User"><em>User</em></a>) – Инженер или администратор.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Результат<span class="colon">:</span></dt>
+<dd class="field-even"><p>Обновленный сотрудник.</p>
+</dd>
+<dt class="field-odd">Тип результата<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="models.html#models.Employee" title="models.Employee">Employee</a></p>
+</dd>
+<dt class="field-even">Исключение<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>HTTPException</strong> – Если сотрудник не найден (404) или поле пустое (400).</p>
+</dd>
+</dl>
+</dd></dl>
+
 </section>
 <section id="module-routers.extinguishers">
 <span id="routers-extinguishers-module"></span><h2>routers.extinguishers module<a class="headerlink" href="#module-routers.extinguishers" title="Ссылка на этот заголовок"></a></h2>
 <p>Модуль для управления огнетушителями (CRUD операции).
-Включает фильтрацию, поиск по инвентарному номеру, создание, обновление,
-удаление оборудования и отметку о перезарядке.</p>
+Включает фильтрацию, поиск по инвентарному номеру, создание, обновление
+и удаление оборудования. История ТО находится в <code class="docutils literal notranslate"><span class="pre">routers.service_records</span></code>.</p>
 <p>В каждом ответе есть вычисляемые сроки: вид ОТВ, дата следующей
 перезарядки и конец срока службы (см. модуль <code class="docutils literal notranslate"><span class="pre">deadlines</span></code>).
 Все изменения пишутся в журнал действий.</p>
@@ -310,7 +454,7 @@ ID объекта и поиск по тексту описания или IP. Р
 <dl class="py function">
 <dt class="sig sig-object py" id="routers.extinguishers.delete_extinguisher">
 <span class="sig-prename descclassname"><span class="pre">routers.extinguishers.</span></span><span class="sig-name descname"><span class="pre">delete_extinguisher</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">extinguisher_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">request</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Request</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Session</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Depends(dependency=&lt;function</span> <span class="pre">get_db&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scope</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">current_user</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="models.html#models.User" title="models.User"><span class="pre">User</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Depends(dependency=&lt;function</span> <span class="pre">require_role.&lt;locals&gt;.role_checker&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scope</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None)</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/routers/extinguishers.html#delete_extinguisher"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#routers.extinguishers.delete_extinguisher" title="Ссылка на это определение"></a></dt>
-<dd><p>Полностью удалить огнетушитель и всю историю его проверок (каскадное удаление).
+<dd><p>Полностью удалить огнетушитель, историю его проверок и ТО (каскадное удаление).
 Доступно ИСКЛЮЧИТЕЛЬНО администраторам.</p>
 <p>В журнал действий сохраняется карточка огнетушителя и число удаленных
 проверок, чтобы удаление можно было восстановить по журналу.</p>
@@ -372,32 +516,6 @@ ID объекта и поиск по тексту описания или IP. Р
 </dd>
 <dt class="field-odd">Тип результата<span class="colon">:</span></dt>
 <dd class="field-odd"><p>List[dict]</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="routers.extinguishers.mark_recharged">
-<span class="sig-prename descclassname"><span class="pre">routers.extinguishers.</span></span><span class="sig-name descname"><span class="pre">mark_recharged</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">extinguisher_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="schemas.html#schemas.RechargeMark" title="schemas.RechargeMark"><span class="pre">RechargeMark</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">request</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Request</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Session</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Depends(dependency=&lt;function</span> <span class="pre">get_db&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scope</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">current_user</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="models.html#models.User" title="models.User"><span class="pre">User</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Depends(dependency=&lt;function</span> <span class="pre">require_role.&lt;locals&gt;.role_checker&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scope</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None)</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/routers/extinguishers.html#mark_recharged"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#routers.extinguishers.mark_recharged" title="Ссылка на это определение"></a></dt>
-<dd><p>Отметить перезарядку огнетушителя.</p>
-<p>Сохраняет дату перезарядки (и, если указан, новый интервал по паспорту),
-пишет событие в журнал действий и пересчитывает статус
-(кроме списанных огнетушителей).</p>
-<dl class="field-list simple">
-<dt class="field-odd">Параметры<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>extinguisher_id</strong> (<em>int</em>) – ID огнетушителя.</p></li>
-<li><p><strong>data</strong> (<a class="reference internal" href="schemas.html#schemas.RechargeMark" title="schemas.RechargeMark"><em>RechargeMark</em></a>) – Дата перезарядки, интервал и комментарий.</p></li>
-<li><p><strong>request</strong> (<em>Request</em>) – Запрос (для журнала).</p></li>
-<li><p><strong>db</strong> (<em>Session</em>) – Сессия базы данных.</p></li>
-<li><p><strong>current_user</strong> (<a class="reference internal" href="models.html#models.User" title="models.User"><em>User</em></a>) – Инженер или администратор.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Результат<span class="colon">:</span></dt>
-<dd class="field-even"><p>Огнетушитель с новыми сроками.</p>
-</dd>
-<dt class="field-odd">Тип результата<span class="colon">:</span></dt>
-<dd class="field-odd"><p>dict</p>
 </dd>
 </dl>
 </dd></dl>
@@ -579,7 +697,7 @@ ID объекта и поиск по тексту описания или IP. Р
 <dd><p>Импорт реестра огнетушителей из загружаемого CSV-файла.</p>
 <p>Связывает огнетушители с существующими локациями и статусами по их названиям.
 Формат колонок: inventory_number;type;capacity;manufacturer;manufacture_date;commissioning_date;location_name;status_name
-Необязательные колонки сроков: last_recharge_date;recharge_interval_months;service_life_years</p>
+Необязательные колонки: serial_number;last_recharge_date;recharge_interval_months;service_life_years</p>
 <dl class="field-list simple">
 <dt class="field-odd">Параметры<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -646,15 +764,45 @@ ID объекта и поиск по тексту описания или IP. Р
 <span id="routers-inspections-module"></span><h2>routers.inspections module<a class="headerlink" href="#module-routers.inspections" title="Ссылка на этот заголовок"></a></h2>
 <p>Модуль для управления процессом проверок огнетушителей.
 Содержит маршруты для создания новых записей о проверках,
-а также получения истории обслуживания оборудования.</p>
+получения истории обслуживания, а также исправления ошибок.</p>
+<p>Ошибочную проверку администратор исправляет или аннулирует с указанием
+причины. Запись не удаляется: журнал должен оставаться полным, а все
+действия видны в журнале действий.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="routers.inspections.annul_inspection">
+<span class="sig-prename descclassname"><span class="pre">routers.inspections.</span></span><span class="sig-name descname"><span class="pre">annul_inspection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inspection_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="schemas.html#schemas.InspectionReason" title="schemas.InspectionReason"><span class="pre">InspectionReason</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">request</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Request</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Session</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Depends(dependency=&lt;function</span> <span class="pre">get_db&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scope</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">current_user</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="models.html#models.User" title="models.User"><span class="pre">User</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Depends(dependency=&lt;function</span> <span class="pre">require_role.&lt;locals&gt;.role_checker&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scope</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None)</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/routers/inspections.html#annul_inspection"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#routers.inspections.annul_inspection" title="Ссылка на это определение"></a></dt>
+<dd><p>Аннулировать ошибочную проверку (только администратор, с указанием причины).</p>
+<p>Запись остается в истории, но не участвует в статусах и отчетах.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Параметры<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>inspection_id</strong> (<em>int</em>) – ID проверки.</p></li>
+<li><p><strong>data</strong> (<a class="reference internal" href="schemas.html#schemas.InspectionReason" title="schemas.InspectionReason"><em>InspectionReason</em></a>) – Причина.</p></li>
+<li><p><strong>request</strong> (<em>Request</em>) – Запрос (для журнала).</p></li>
+<li><p><strong>db</strong> (<em>Session</em>) – Сессия базы данных.</p></li>
+<li><p><strong>current_user</strong> (<a class="reference internal" href="models.html#models.User" title="models.User"><em>User</em></a>) – Администратор.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Результат<span class="colon">:</span></dt>
+<dd class="field-even"><p>Аннулированная проверка.</p>
+</dd>
+<dt class="field-odd">Тип результата<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="models.html#models.Inspection" title="models.Inspection">Inspection</a></p>
+</dd>
+<dt class="field-even">Исключение<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>HTTPException</strong> – Проверка не найдена (404) или уже аннулирована (400).</p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py function">
 <dt class="sig sig-object py" id="routers.inspections.create_inspection">
 <span class="sig-prename descclassname"><span class="pre">routers.inspections.</span></span><span class="sig-name descname"><span class="pre">create_inspection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="schemas.html#schemas.InspectionCreate" title="schemas.InspectionCreate"><span class="pre">InspectionCreate</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">request</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Request</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Session</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Depends(dependency=&lt;function</span> <span class="pre">get_db&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scope</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">current_user</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="models.html#models.User" title="models.User"><span class="pre">User</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Depends(dependency=&lt;function</span> <span class="pre">require_role.&lt;locals&gt;.role_checker&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scope</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None)</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/routers/inspections.html#create_inspection"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#routers.inspections.create_inspection" title="Ссылка на это определение"></a></dt>
 <dd><p>Зарегистрировать новую проверку огнетушителя.
 Проверяет существование огнетушителя и сотрудника, сохраняет результаты
 проверки и пересчитывает статус огнетушителя по ее итогам.
-Если дата следующей проверки не указана, она рассчитывается автоматически
-(через 180 дней).</p>
+Если дата следующей проверки не указана, она рассчитывается по настройке
+<code class="docutils literal notranslate"><span class="pre">inspection_interval_months</span></code> (по умолчанию ежегодно, п. 5.1.1 ГОСТ Р 59641-2021).</p>
 <p>Статус списанного огнетушителя не меняется.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Параметры<span class="colon">:</span></dt>
@@ -699,7 +847,7 @@ ID объекта и поиск по тексту описания или IP. Р
 
 <dl class="py function">
 <dt class="sig sig-object py" id="routers.inspections.list_inspections">
-<span class="sig-prename descclassname"><span class="pre">routers.inspections.</span></span><span class="sig-name descname"><span class="pre">list_inspections</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">date_from</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">date</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">date_to</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">date</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Session</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Depends(dependency=&lt;function</span> <span class="pre">get_db&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scope</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None)</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/routers/inspections.html#list_inspections"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#routers.inspections.list_inspections" title="Ссылка на это определение"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">routers.inspections.</span></span><span class="sig-name descname"><span class="pre">list_inspections</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">date_from</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">date</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">date_to</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">date</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_annulled</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Session</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Depends(dependency=&lt;function</span> <span class="pre">get_db&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scope</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None)</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/routers/inspections.html#list_inspections"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#routers.inspections.list_inspections" title="Ссылка на это определение"></a></dt>
 <dd><p>Получить общий журнал проверок всех огнетушителей.
 Позволяет фильтровать результаты по периоду дат.</p>
 <dl class="field-list simple">
@@ -707,6 +855,7 @@ ID объекта и поиск по тексту описания или IP. Р
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>date_from</strong> (<em>Optional</em><em>[</em><em>date</em><em>]</em>) – Фильтр «с даты» (включительно).</p></li>
 <li><p><strong>date_to</strong> (<em>Optional</em><em>[</em><em>date</em><em>]</em>) – Фильтр «по дату» (включительно).</p></li>
+<li><p><strong>include_annulled</strong> (<em>bool</em>) – Показывать и аннулированные проверки.</p></li>
 <li><p><strong>db</strong> (<em>Session</em>) – Сессия базы данных.</p></li>
 </ul>
 </dd>
@@ -719,11 +868,65 @@ ID объекта и поиск по тексту описания или IP. Р
 </dl>
 </dd></dl>
 
+<dl class="py function">
+<dt class="sig sig-object py" id="routers.inspections.restore_inspection">
+<span class="sig-prename descclassname"><span class="pre">routers.inspections.</span></span><span class="sig-name descname"><span class="pre">restore_inspection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inspection_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="schemas.html#schemas.InspectionReason" title="schemas.InspectionReason"><span class="pre">InspectionReason</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">request</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Request</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Session</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Depends(dependency=&lt;function</span> <span class="pre">get_db&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scope</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">current_user</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="models.html#models.User" title="models.User"><span class="pre">User</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Depends(dependency=&lt;function</span> <span class="pre">require_role.&lt;locals&gt;.role_checker&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scope</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None)</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/routers/inspections.html#restore_inspection"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#routers.inspections.restore_inspection" title="Ссылка на это определение"></a></dt>
+<dd><p>Восстановить аннулированную проверку (только администратор).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Параметры<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>inspection_id</strong> (<em>int</em>) – ID проверки.</p></li>
+<li><p><strong>data</strong> (<a class="reference internal" href="schemas.html#schemas.InspectionReason" title="schemas.InspectionReason"><em>InspectionReason</em></a>) – Причина.</p></li>
+<li><p><strong>request</strong> (<em>Request</em>) – Запрос (для журнала).</p></li>
+<li><p><strong>db</strong> (<em>Session</em>) – Сессия базы данных.</p></li>
+<li><p><strong>current_user</strong> (<a class="reference internal" href="models.html#models.User" title="models.User"><em>User</em></a>) – Администратор.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Результат<span class="colon">:</span></dt>
+<dd class="field-even"><p>Восстановленная проверка.</p>
+</dd>
+<dt class="field-odd">Тип результата<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="models.html#models.Inspection" title="models.Inspection">Inspection</a></p>
+</dd>
+<dt class="field-even">Исключение<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>HTTPException</strong> – Проверка не найдена (404) или не аннулирована (400).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="routers.inspections.update_inspection">
+<span class="sig-prename descclassname"><span class="pre">routers.inspections.</span></span><span class="sig-name descname"><span class="pre">update_inspection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inspection_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="schemas.html#schemas.InspectionUpdate" title="schemas.InspectionUpdate"><span class="pre">InspectionUpdate</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">request</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Request</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Session</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Depends(dependency=&lt;function</span> <span class="pre">get_db&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scope</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">current_user</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="models.html#models.User" title="models.User"><span class="pre">User</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Depends(dependency=&lt;function</span> <span class="pre">require_role.&lt;locals&gt;.role_checker&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scope</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None)</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/routers/inspections.html#update_inspection"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#routers.inspections.update_inspection" title="Ссылка на это определение"></a></dt>
+<dd><p>Исправить ошибочную проверку (только администратор, с указанием причины).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Параметры<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>inspection_id</strong> (<em>int</em>) – ID проверки.</p></li>
+<li><p><strong>data</strong> (<a class="reference internal" href="schemas.html#schemas.InspectionUpdate" title="schemas.InspectionUpdate"><em>InspectionUpdate</em></a>) – Изменяемые поля и причина.</p></li>
+<li><p><strong>request</strong> (<em>Request</em>) – Запрос (для журнала).</p></li>
+<li><p><strong>db</strong> (<em>Session</em>) – Сессия базы данных.</p></li>
+<li><p><strong>current_user</strong> (<a class="reference internal" href="models.html#models.User" title="models.User"><em>User</em></a>) – Администратор.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Результат<span class="colon">:</span></dt>
+<dd class="field-even"><p>Исправленная проверка.</p>
+</dd>
+<dt class="field-odd">Тип результата<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="models.html#models.Inspection" title="models.Inspection">Inspection</a></p>
+</dd>
+<dt class="field-even">Исключение<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>HTTPException</strong> – Проверка не найдена (404), аннулирована, ссылается на
+    несуществующие объекты или даты противоречат друг другу (400).</p>
+</dd>
+</dl>
+</dd></dl>
+
 </section>
 <section id="module-routers.locations">
 <span id="routers-locations-module"></span><h2>routers.locations module<a class="headerlink" href="#module-routers.locations" title="Ссылка на этот заголовок"></a></h2>
 <p>Модуль управления местами расположения (локациями).
-Предоставляет возможности добавления новых кабинетов/этажей и получения их списка.</p>
+Позволяет добавлять, исправлять и удалять места и получать их список.
+Место, в котором есть огнетушители, удалить нельзя.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="routers.locations.create_location">
 <span class="sig-prename descclassname"><span class="pre">routers.locations.</span></span><span class="sig-name descname"><span class="pre">create_location</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="schemas.html#schemas.LocationCreate" title="schemas.LocationCreate"><span class="pre">LocationCreate</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">request</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Request</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Session</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Depends(dependency=&lt;function</span> <span class="pre">get_db&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scope</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">current_user</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="models.html#models.User" title="models.User"><span class="pre">User</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Depends(dependency=&lt;function</span> <span class="pre">require_role.&lt;locals&gt;.role_checker&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scope</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None)</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/routers/locations.html#create_location"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#routers.locations.create_location" title="Ссылка на это определение"></a></dt>
@@ -748,6 +951,28 @@ ID объекта и поиск по тексту описания или IP. Р
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="routers.locations.delete_location">
+<span class="sig-prename descclassname"><span class="pre">routers.locations.</span></span><span class="sig-name descname"><span class="pre">delete_location</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">location_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">request</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Request</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Session</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Depends(dependency=&lt;function</span> <span class="pre">get_db&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scope</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">current_user</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="models.html#models.User" title="models.User"><span class="pre">User</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Depends(dependency=&lt;function</span> <span class="pre">require_role.&lt;locals&gt;.role_checker&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scope</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None)</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/routers/locations.html#delete_location"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#routers.locations.delete_location" title="Ссылка на это определение"></a></dt>
+<dd><p>Удалить место, в котором нет огнетушителей (только администратор).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Параметры<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>location_id</strong> (<em>int</em>) – ID места.</p></li>
+<li><p><strong>request</strong> (<em>Request</em>) – Запрос (для журнала).</p></li>
+<li><p><strong>db</strong> (<em>Session</em>) – Сессия базы данных.</p></li>
+<li><p><strong>current_user</strong> (<a class="reference internal" href="models.html#models.User" title="models.User"><em>User</em></a>) – Администратор.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Результат<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+<dt class="field-odd">Исключение<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>HTTPException</strong> – Если в этом месте есть огнетушители (409).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="routers.locations.list_locations">
 <span class="sig-prename descclassname"><span class="pre">routers.locations.</span></span><span class="sig-name descname"><span class="pre">list_locations</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Session</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Depends(dependency=&lt;function</span> <span class="pre">get_db&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scope</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None)</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/routers/locations.html#list_locations"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#routers.locations.list_locations" title="Ссылка на это определение"></a></dt>
 <dd><p>Получить список всех зарегистрированных локаций.</p>
@@ -764,6 +989,32 @@ ID объекта и поиск по тексту описания или IP. Р
 </dl>
 </dd></dl>
 
+<dl class="py function">
+<dt class="sig sig-object py" id="routers.locations.update_location">
+<span class="sig-prename descclassname"><span class="pre">routers.locations.</span></span><span class="sig-name descname"><span class="pre">update_location</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">location_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="schemas.html#schemas.LocationUpdate" title="schemas.LocationUpdate"><span class="pre">LocationUpdate</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">request</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Request</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Session</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Depends(dependency=&lt;function</span> <span class="pre">get_db&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scope</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">current_user</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="models.html#models.User" title="models.User"><span class="pre">User</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Depends(dependency=&lt;function</span> <span class="pre">require_role.&lt;locals&gt;.role_checker&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scope</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None)</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/routers/locations.html#update_location"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#routers.locations.update_location" title="Ссылка на это определение"></a></dt>
+<dd><p>Исправить название или описание места.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Параметры<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>location_id</strong> (<em>int</em>) – ID места.</p></li>
+<li><p><strong>data</strong> (<a class="reference internal" href="schemas.html#schemas.LocationUpdate" title="schemas.LocationUpdate"><em>LocationUpdate</em></a>) – Новые значения.</p></li>
+<li><p><strong>request</strong> (<em>Request</em>) – Запрос (для журнала).</p></li>
+<li><p><strong>db</strong> (<em>Session</em>) – Сессия базы данных.</p></li>
+<li><p><strong>current_user</strong> (<a class="reference internal" href="models.html#models.User" title="models.User"><em>User</em></a>) – Инженер или администратор.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Результат<span class="colon">:</span></dt>
+<dd class="field-even"><p>Обновленное место.</p>
+</dd>
+<dt class="field-odd">Тип результата<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="models.html#models.Location" title="models.Location">Location</a></p>
+</dd>
+<dt class="field-even">Исключение<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>HTTPException</strong> – Если место не найдено (404) или название занято (400).</p>
+</dd>
+</dl>
+</dd></dl>
+
 </section>
 <section id="module-routers.reports">
 <span id="routers-reports-module"></span><h2>routers.reports module<a class="headerlink" href="#module-routers.reports" title="Ссылка на этот заголовок"></a></h2>
@@ -773,10 +1024,25 @@ ID объекта и поиск по тексту описания или IP. Р
 <p>Все сроки считаются по ПОСЛЕДНЕЙ проверке каждого огнетушителя, поэтому
 старые записи журнала не попадают в «предстоящие» и не завышают счетчики.
 Списанные огнетушители в предстоящие проверки не попадают.</p>
-<p>Отчеты для печати (журнал проверок, журнал ТО по форме Г.2
-СП 9.13130.2009, состояние парка) отдаются в двух видах: XLSX-файлом
-и JSON для страницы печати <code class="docutils literal notranslate"><span class="pre">/static/print.html</span></code>. Данные для обоих
-готовит модуль <code class="docutils literal notranslate"><span class="pre">report_data</span></code>.</p>
+<p>Отчеты для печати (журнал проверок, журнал ТО и ремонта по форме А.2 и
+карточки учета по форме А.1 ГОСТ Р 59641-2021, состояние парка) отдаются
+в двух видах: XLSX-файлом и JSON для страницы печати <code class="docutils literal notranslate"><span class="pre">/static/print.html</span></code>.
+Данные для обоих готовит модуль <code class="docutils literal notranslate"><span class="pre">report_data</span></code>. Аннулированные проверки
+в журналы и выгрузки не попадают.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="routers.reports.cards_xlsx">
+<span class="sig-prename descclassname"><span class="pre">routers.reports.</span></span><span class="sig-name descname"><span class="pre">cards_xlsx</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">request</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Request</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extinguisher_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Query(None)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Session</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Depends(dependency=&lt;function</span> <span class="pre">get_db&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scope</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">current_user</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="models.html#models.User" title="models.User"><span class="pre">User</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Depends(dependency=&lt;function</span> <span class="pre">get_current_active_user&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scope</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None)</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/routers/reports.html#cards_xlsx"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#routers.reports.cards_xlsx" title="Ссылка на это определение"></a></dt>
+<dd><p>Карточки учета по форме А.1 ГОСТ Р 59641-2021 в Excel.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Результат<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Файл XLSX.</p>
+</dd>
+<dt class="field-even">Тип результата<span class="colon">:</span></dt>
+<dd class="field-even"><p>Response</p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py function">
 <dt class="sig sig-object py" id="routers.reports.dashboard_statistics">
 <span class="sig-prename descclassname"><span class="pre">routers.reports.</span></span><span class="sig-name descname"><span class="pre">dashboard_statistics</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Session</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Depends(dependency=&lt;function</span> <span class="pre">get_db&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scope</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None)</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/routers/reports.html#dashboard_statistics"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#routers.reports.dashboard_statistics" title="Ссылка на это определение"></a></dt>
@@ -919,13 +1185,27 @@ ID объекта и поиск по тексту описания или IP. Р
 <dl class="py function">
 <dt class="sig sig-object py" id="routers.reports.maintenance_xlsx">
 <span class="sig-prename descclassname"><span class="pre">routers.reports.</span></span><span class="sig-name descname"><span class="pre">maintenance_xlsx</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">request</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Request</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">date_from</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">date</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">date_to</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">date</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Session</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Depends(dependency=&lt;function</span> <span class="pre">get_db&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scope</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">current_user</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="models.html#models.User" title="models.User"><span class="pre">User</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Depends(dependency=&lt;function</span> <span class="pre">get_current_active_user&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scope</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None)</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/routers/reports.html#maintenance_xlsx"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#routers.reports.maintenance_xlsx" title="Ссылка на это определение"></a></dt>
-<dd><p>Журнал ТО огнетушителей (форма Г.2 СП 9.13130.2009) в Excel.</p>
+<dd><p>Журнал ТО и ремонта (форма А.2 ГОСТ Р 59641-2021) в Excel.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Результат<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Файл XLSX.</p>
 </dd>
 <dt class="field-even">Тип результата<span class="colon">:</span></dt>
 <dd class="field-even"><p>Response</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="routers.reports.print_cards">
+<span class="sig-prename descclassname"><span class="pre">routers.reports.</span></span><span class="sig-name descname"><span class="pre">print_cards</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">extinguisher_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Query(None)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Session</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Depends(dependency=&lt;function</span> <span class="pre">get_db&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scope</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None)</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/routers/reports.html#print_cards"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#routers.reports.print_cards" title="Ссылка на это определение"></a></dt>
+<dd><p>Карточки учета по форме А.1 ГОСТ Р 59641-2021 для страницы печати.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Результат<span class="colon">:</span></dt>
+<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">header</span></code> и <code class="docutils literal notranslate"><span class="pre">cards</span></code>.</p>
+</dd>
+<dt class="field-even">Тип результата<span class="colon">:</span></dt>
+<dd class="field-even"><p>dict</p>
 </dd>
 </dl>
 </dd></dl>
@@ -961,7 +1241,7 @@ ID объекта и поиск по тексту описания или IP. Р
 <dl class="py function">
 <dt class="sig sig-object py" id="routers.reports.print_maintenance">
 <span class="sig-prename descclassname"><span class="pre">routers.reports.</span></span><span class="sig-name descname"><span class="pre">print_maintenance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">date_from</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">date</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">date_to</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">date</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Session</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Depends(dependency=&lt;function</span> <span class="pre">get_db&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scope</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None)</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/routers/reports.html#print_maintenance"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#routers.reports.print_maintenance" title="Ссылка на это определение"></a></dt>
-<dd><p>Журнал ТО огнетушителей по форме Г.2 СП 9.13130.2009 для страницы печати.</p>
+<dd><p>Журнал ТО и ремонта по форме А.2 ГОСТ Р 59641-2021 для страницы печати.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Результат<span class="colon">:</span></dt>
 <dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">header</span></code>, <code class="docutils literal notranslate"><span class="pre">period</span></code> и <code class="docutils literal notranslate"><span class="pre">rows</span></code>.</p>
@@ -1025,6 +1305,105 @@ ID объекта и поиск по тексту описания или IP. Р
 </dd>
 <dt class="field-odd">Тип результата<span class="colon">:</span></dt>
 <dd class="field-odd"><p>list</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-routers.service_records">
+<span id="routers-service-records-module"></span><h2>routers.service_records module<a class="headerlink" href="#module-routers.service_records" title="Ссылка на этот заголовок"></a></h2>
+<p>История технического обслуживания огнетушителей: испытания, перезарядка, ремонт.</p>
+<p>Записи соответствуют графам формы А.2 приложения А ГОСТ Р 59641-2021.
+Добавлять записи могут инженер и администратор, исправлять и удалять
+только администратор. Даты последней перезарядки и испытания в карточке
+огнетушителя пересчитываются по истории, затем пересчитывается статус.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="routers.service_records.create_service_record">
+<span class="sig-prename descclassname"><span class="pre">routers.service_records.</span></span><span class="sig-name descname"><span class="pre">create_service_record</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="schemas.html#schemas.ServiceRecordCreate" title="schemas.ServiceRecordCreate"><span class="pre">ServiceRecordCreate</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">request</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Request</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Session</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Depends(dependency=&lt;function</span> <span class="pre">get_db&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scope</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">current_user</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="models.html#models.User" title="models.User"><span class="pre">User</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Depends(dependency=&lt;function</span> <span class="pre">require_role.&lt;locals&gt;.role_checker&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scope</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None)</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/routers/service_records.html#create_service_record"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#routers.service_records.create_service_record" title="Ссылка на это определение"></a></dt>
+<dd><p>Добавить запись о ТО. Статус огнетушителя пересчитывается (кроме списанного).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Параметры<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>data</strong> (<a class="reference internal" href="schemas.html#schemas.ServiceRecordCreate" title="schemas.ServiceRecordCreate"><em>ServiceRecordCreate</em></a>) – Данные записи.</p></li>
+<li><p><strong>request</strong> (<em>Request</em>) – Запрос (для журнала).</p></li>
+<li><p><strong>db</strong> (<em>Session</em>) – Сессия базы данных.</p></li>
+<li><p><strong>current_user</strong> (<a class="reference internal" href="models.html#models.User" title="models.User"><em>User</em></a>) – Инженер или администратор.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Результат<span class="colon">:</span></dt>
+<dd class="field-even"><p>Созданная запись.</p>
+</dd>
+<dt class="field-odd">Тип результата<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="models.html#models.ServiceRecord" title="models.ServiceRecord">ServiceRecord</a></p>
+</dd>
+<dt class="field-even">Исключение<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>HTTPException</strong> – Если огнетушитель не найден (400).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="routers.service_records.delete_service_record">
+<span class="sig-prename descclassname"><span class="pre">routers.service_records.</span></span><span class="sig-name descname"><span class="pre">delete_service_record</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">record_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">request</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Request</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reason</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Query(PydanticUndefined)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Session</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Depends(dependency=&lt;function</span> <span class="pre">get_db&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scope</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">current_user</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="models.html#models.User" title="models.User"><span class="pre">User</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Depends(dependency=&lt;function</span> <span class="pre">require_role.&lt;locals&gt;.role_checker&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scope</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None)</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/routers/service_records.html#delete_service_record"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#routers.service_records.delete_service_record" title="Ссылка на это определение"></a></dt>
+<dd><p>Удалить ошибочную запись о ТО (только администратор, с указанием причины).</p>
+<p>Содержимое записи сохраняется в журнале действий.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Параметры<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>record_id</strong> (<em>int</em>) – ID записи.</p></li>
+<li><p><strong>request</strong> (<em>Request</em>) – Запрос (для журнала).</p></li>
+<li><p><strong>reason</strong> (<em>str</em>) – Причина удаления.</p></li>
+<li><p><strong>db</strong> (<em>Session</em>) – Сессия базы данных.</p></li>
+<li><p><strong>current_user</strong> (<a class="reference internal" href="models.html#models.User" title="models.User"><em>User</em></a>) – Администратор.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Результат<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="routers.service_records.list_service_records">
+<span class="sig-prename descclassname"><span class="pre">routers.service_records.</span></span><span class="sig-name descname"><span class="pre">list_service_records</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">extinguisher_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Query(None)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">date_from</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">date</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">date_to</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">date</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Session</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Depends(dependency=&lt;function</span> <span class="pre">get_db&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scope</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None)</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/routers/service_records.html#list_service_records"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#routers.service_records.list_service_records" title="Ссылка на это определение"></a></dt>
+<dd><p>История ТО, новые записи сверху.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Параметры<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>extinguisher_id</strong> (<em>Optional</em><em>[</em><em>int</em><em>]</em>) – ID огнетушителя.</p></li>
+<li><p><strong>date_from</strong> (<em>Optional</em><em>[</em><em>date</em><em>]</em>) – С даты.</p></li>
+<li><p><strong>date_to</strong> (<em>Optional</em><em>[</em><em>date</em><em>]</em>) – По дату.</p></li>
+<li><p><strong>db</strong> (<em>Session</em>) – Сессия базы данных.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Результат<span class="colon">:</span></dt>
+<dd class="field-even"><p>Записи о ТО.</p>
+</dd>
+<dt class="field-odd">Тип результата<span class="colon">:</span></dt>
+<dd class="field-odd"><p>List[<a class="reference internal" href="models.html#models.ServiceRecord" title="models.ServiceRecord">ServiceRecord</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="routers.service_records.update_service_record">
+<span class="sig-prename descclassname"><span class="pre">routers.service_records.</span></span><span class="sig-name descname"><span class="pre">update_service_record</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">record_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="schemas.html#schemas.ServiceRecordUpdate" title="schemas.ServiceRecordUpdate"><span class="pre">ServiceRecordUpdate</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">request</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Request</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">db</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Session</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Depends(dependency=&lt;function</span> <span class="pre">get_db&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scope</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">current_user</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="models.html#models.User" title="models.User"><span class="pre">User</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Depends(dependency=&lt;function</span> <span class="pre">require_role.&lt;locals&gt;.role_checker&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_cache</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scope</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None)</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/routers/service_records.html#update_service_record"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#routers.service_records.update_service_record" title="Ссылка на это определение"></a></dt>
+<dd><p>Исправить запись о ТО (только администратор, с указанием причины).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Параметры<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>record_id</strong> (<em>int</em>) – ID записи.</p></li>
+<li><p><strong>data</strong> (<a class="reference internal" href="schemas.html#schemas.ServiceRecordUpdate" title="schemas.ServiceRecordUpdate"><em>ServiceRecordUpdate</em></a>) – Новые значения и причина.</p></li>
+<li><p><strong>request</strong> (<em>Request</em>) – Запрос (для журнала).</p></li>
+<li><p><strong>db</strong> (<em>Session</em>) – Сессия базы данных.</p></li>
+<li><p><strong>current_user</strong> (<a class="reference internal" href="models.html#models.User" title="models.User"><em>User</em></a>) – Администратор.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Результат<span class="colon">:</span></dt>
+<dd class="field-even"><p>Обновленная запись.</p>
+</dd>
+<dt class="field-odd">Тип результата<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="models.html#models.ServiceRecord" title="models.ServiceRecord">ServiceRecord</a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -1319,7 +1698,7 @@ ID объекта и поиск по тексту описания или IP. Р
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Нижняя область">
         <a href="report_data.html" class="btn btn-neutral float-left" title="report_data module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Предыдущая</a>
-        <a href="schemas.html" class="btn btn-neutral float-right" title="schemas module" accesskey="n" rel="next">Следующая <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="run.html" class="btn btn-neutral float-right" title="run module" accesskey="n" rel="next">Следующая <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

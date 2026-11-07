@@ -70,7 +70,7 @@
            <div itemprop="articleBody">
              
   <h1>Исходный код report_data</h1><div class="highlight"><pre>
-<span></span><span class="c1"># report_data.py (v1.0)</span>
+<span></span><span class="c1"># report_data.py (v1.1)</span>
 <span class="sd">"""</span>
 <span class="sd">Данные для отчетов.</span>
 
@@ -81,10 +81,15 @@
 <span class="sd">Отчеты:</span>
 
 <span class="sd">1. :func:`journal_rows` — журнал проверок за период.</span>
-<span class="sd">2. :func:`maintenance_rows` — журнал технического обслуживания огнетушителей</span>
-<span class="sd">   по рекомендуемой форме Г.2 приложения Г СП 9.13130.2009.</span>
-<span class="sd">3. :func:`fleet_summary` — состояние парка: сводка по статусам и местам,</span>
-<span class="sd">   проблемные огнетушители, ближайшие проверки, перезарядки и сроки службы.</span>
+<span class="sd">2. :func:`maintenance_rows` — записи о техническом обслуживании и ремонте для</span>
+<span class="sd">   Журнала эксплуатации систем противопожарной защиты по форме А.2</span>
+<span class="sd">   приложения А ГОСТ Р 59641-2021.</span>
+<span class="sd">3. :func:`card_rows` — карточки учета огнетушителей по форме А.1.</span>
+<span class="sd">4. :func:`fleet_summary` — состояние парка: сводка по статусам и местам,</span>
+<span class="sd">   проблемные огнетушители, ближайшие проверки, перезарядки, испытания</span>
+<span class="sd">   и сроки службы.</span>
+
+<span class="sd">Аннулированные проверки в отчеты не попадают.</span>
 <span class="sd">"""</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">date</span><span class="p">,</span> <span class="n">timedelta</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
@@ -93,7 +98,7 @@
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">app_settings</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_settings</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">deadlines</span><span class="w"> </span><span class="kn">import</span> <span class="n">STATE_OVERDUE</span><span class="p">,</span> <span class="n">STATE_SOON</span><span class="p">,</span> <span class="n">compute_deadlines</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Employee</span><span class="p">,</span> <span class="n">FireExtinguisher</span><span class="p">,</span> <span class="n">Inspection</span><span class="p">,</span> <span class="n">Location</span><span class="p">,</span> <span class="n">Status</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Employee</span><span class="p">,</span> <span class="n">FireExtinguisher</span><span class="p">,</span> <span class="n">Inspection</span><span class="p">,</span> <span class="n">Location</span><span class="p">,</span> <span class="n">ServiceRecord</span><span class="p">,</span> <span class="n">Status</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">status_logic</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
     <span class="n">DEFECT_VALUES</span><span class="p">,</span>
     <span class="n">STATUS_DECOMMISSIONED</span><span class="p">,</span>
@@ -137,6 +142,7 @@
         <span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">FireExtinguisher</span><span class="p">,</span> <span class="n">Inspection</span><span class="o">.</span><span class="n">fire_extinguisher_id</span> <span class="o">==</span> <span class="n">FireExtinguisher</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
         <span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">Location</span><span class="p">,</span> <span class="n">FireExtinguisher</span><span class="o">.</span><span class="n">location_id</span> <span class="o">==</span> <span class="n">Location</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
         <span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">Employee</span><span class="p">,</span> <span class="n">Inspection</span><span class="o">.</span><span class="n">employee_id</span> <span class="o">==</span> <span class="n">Employee</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">Inspection</span><span class="o">.</span><span class="n">annulled_at</span><span class="o">.</span><span class="n">is_</span><span class="p">(</span><span class="kc">None</span><span class="p">))</span>
     <span class="p">)</span>
     <span class="k">if</span> <span class="n">date_from</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">Inspection</span><span class="o">.</span><span class="n">inspection_date</span> <span class="o">&gt;=</span> <span class="n">date_from</span><span class="p">)</span>
@@ -196,23 +202,46 @@
 
 
 
+<span class="k">def</span><span class="w"> </span><span class="nf">_inspection_result</span><span class="p">(</span><span class="n">insp</span><span class="p">:</span> <span class="n">Inspection</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Результаты осмотра одной строкой для графы журнала."""</span>
+    <span class="n">parts</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">label</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="p">((</span><span class="s2">"внешний осмотр"</span><span class="p">,</span> <span class="n">insp</span><span class="o">.</span><span class="n">visual_inspection</span><span class="p">),</span> <span class="p">(</span><span class="s2">"пломба"</span><span class="p">,</span> <span class="n">insp</span><span class="o">.</span><span class="n">seal_condition</span><span class="p">),</span>
+                         <span class="p">(</span><span class="s2">"чека"</span><span class="p">,</span> <span class="n">insp</span><span class="o">.</span><span class="n">safety_pin_condition</span><span class="p">),</span> <span class="p">(</span><span class="s2">"шланг"</span><span class="p">,</span> <span class="n">insp</span><span class="o">.</span><span class="n">hose_condition</span><span class="p">)):</span>
+        <span class="k">if</span> <span class="n">value</span><span class="p">:</span>
+            <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">label</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">value</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">insp</span><span class="o">.</span><span class="n">pressure</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"давление </span><span class="si">{</span><span class="n">insp</span><span class="o">.</span><span class="n">pressure</span><span class="si">:</span><span class="s2">g</span><span class="si">}</span><span class="s2"> МПа"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">insp</span><span class="o">.</span><span class="n">weight</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="sa">f</span><span class="s2">"масса </span><span class="si">{</span><span class="n">insp</span><span class="o">.</span><span class="n">weight</span><span class="si">:</span><span class="s2">g</span><span class="si">}</span><span class="s2"> кг"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">insp</span><span class="o">.</span><span class="n">comments</span><span class="p">:</span>
+        <span class="n">parts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">insp</span><span class="o">.</span><span class="n">comments</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+    <span class="k">return</span> <span class="s2">"; "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">"Замечаний нет"</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_work_text</span><span class="p">(</span><span class="n">record</span><span class="p">:</span> <span class="n">ServiceRecord</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Дата, виды работ и организация для графы журнала."""</span>
+    <span class="n">works</span> <span class="o">=</span> <span class="p">[</span><span class="n">name</span> <span class="k">for</span> <span class="n">flag</span><span class="p">,</span> <span class="n">name</span> <span class="ow">in</span> <span class="p">((</span><span class="n">record</span><span class="o">.</span><span class="n">tested</span><span class="p">,</span> <span class="s2">"испытание"</span><span class="p">),</span> <span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">recharged</span><span class="p">,</span> <span class="s2">"перезарядка"</span><span class="p">),</span>
+                                     <span class="p">(</span><span class="n">record</span><span class="o">.</span><span class="n">repaired</span><span class="p">,</span> <span class="s2">"ремонт"</span><span class="p">))</span> <span class="k">if</span> <span class="n">flag</span><span class="p">]</span>
+    <span class="n">text</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">record</span><span class="o">.</span><span class="n">service_date</span><span class="si">:</span><span class="s2">%d.%m.%Y</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="s1">', '</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">works</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span>
+    <span class="k">return</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">text</span><span class="si">}</span><span class="s2">; </span><span class="si">{</span><span class="n">record</span><span class="o">.</span><span class="n">organization</span><span class="si">}</span><span class="s2">"</span> <span class="k">if</span> <span class="n">record</span><span class="o">.</span><span class="n">organization</span> <span class="k">else</span> <span class="n">text</span>
+
+
 <div class="viewcode-block" id="maintenance_rows">
 <a class="viewcode-back" href="../report_data.html#report_data.maintenance_rows">[документация]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">maintenance_rows</span><span class="p">(</span><span class="n">db</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span> <span class="n">date_from</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">date</span><span class="p">],</span> <span class="n">date_to</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">date</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
 <span class="w">    </span><span class="sd">"""</span>
-<span class="sd">    Журнал ТО огнетушителей по форме Г.2 СП 9.13130.2009.</span>
+<span class="sd">    Записи журнала по форме А.2 приложения А ГОСТ Р 59641-2021.</span>
 
-<span class="sd">    Колонки формы: «№ и марка огнетушителя», «Техническое обслуживание</span>
-<span class="sd">    (вид и дата)» с подколонками «Проверка узлов огнетушителя», «Проверка</span>
-<span class="sd">    качества ОТВ», «Проверка индикатора давления», «Перезарядка</span>
-<span class="sd">    огнетушителя», «Испытание узлов огнетушителя», затем «Замечания</span>
-<span class="sd">    о техническом состоянии», «Принятые меры» и «Должность, фамилия,</span>
-<span class="sd">    инициалы и подпись ответственного лица».</span>
+<span class="sd">    Графы формы: номер и марка огнетушителя; дата проведения испытания,</span>
+<span class="sd">    перезарядки, ремонта и организация; результаты осмотра и испытания на</span>
+<span class="sd">    прочность; срок следующего планового испытания; дата проведения</span>
+<span class="sd">    перезарядки; марка (концентрация) заряженного ОТВ; результат осмотра</span>
+<span class="sd">    после перезарядки; дата следующей плановой перезарядки; должность,</span>
+<span class="sd">    фамилия, инициалы и подпись ответственного лица.</span>
 
-<span class="sd">    Каждая проверка из журнала дает строку: осмотр узлов (дата), масса</span>
-<span class="sd">    в колонке качества ОТВ, давление в колонке индикатора. Перезарядки</span>
-<span class="sd">    за период добавляются отдельными строками по дате последней</span>
-<span class="sd">    перезарядки. «Принятые меры» и подпись заполняются от руки.</span>
+<span class="sd">    По п. 5.1.1 стандарта ТО включает проверку, испытания и перезарядку,</span>
+<span class="sd">    поэтому в журнал попадают и проверки, и записи об испытаниях,</span>
+<span class="sd">    перезарядке и ремонте. Подпись ставится от руки.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        db (Session): Сессия базы данных.</span>
@@ -224,44 +253,89 @@
 <span class="sd">    """</span>
     <span class="n">rows</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">insp</span><span class="p">,</span> <span class="n">fe</span><span class="p">,</span> <span class="n">_loc</span><span class="p">,</span> <span class="n">emp</span> <span class="ow">in</span> <span class="n">_journal_query</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">date_from</span><span class="p">,</span> <span class="n">date_to</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
-        <span class="n">day</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">insp</span><span class="o">.</span><span class="n">inspection_date</span><span class="si">:</span><span class="s2">%d.%m.%Y</span><span class="si">}</span><span class="s2">"</span>
-        <span class="n">remarks</span> <span class="o">=</span> <span class="p">[</span><span class="n">r</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="p">(</span><span class="n">defects_text</span><span class="p">(</span><span class="n">insp</span><span class="p">),</span> <span class="p">(</span><span class="n">insp</span><span class="o">.</span><span class="n">comments</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span> <span class="k">if</span> <span class="n">r</span><span class="p">]</span>
         <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
             <span class="s2">"date"</span><span class="p">:</span> <span class="n">insp</span><span class="o">.</span><span class="n">inspection_date</span><span class="p">,</span>
             <span class="s2">"extinguisher"</span><span class="p">:</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">fe</span><span class="o">.</span><span class="n">inventory_number</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">fe</span><span class="o">.</span><span class="n">type</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
-            <span class="s2">"units_check"</span><span class="p">:</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">day</span><span class="si">}</span><span class="s2">, осмотр"</span><span class="p">,</span>
-            <span class="s2">"agent_check"</span><span class="p">:</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">day</span><span class="si">}</span><span class="s2">, масса </span><span class="si">{</span><span class="n">insp</span><span class="o">.</span><span class="n">weight</span><span class="si">:</span><span class="s2">g</span><span class="si">}</span><span class="s2"> кг"</span> <span class="k">if</span> <span class="n">insp</span><span class="o">.</span><span class="n">weight</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="s2">""</span><span class="p">,</span>
-            <span class="s2">"pressure_check"</span><span class="p">:</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">day</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">insp</span><span class="o">.</span><span class="n">pressure</span><span class="si">:</span><span class="s2">g</span><span class="si">}</span><span class="s2"> МПа"</span> <span class="k">if</span> <span class="n">insp</span><span class="o">.</span><span class="n">pressure</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="s2">""</span><span class="p">,</span>
-            <span class="s2">"recharge"</span><span class="p">:</span> <span class="s2">""</span><span class="p">,</span>
-            <span class="s2">"units_test"</span><span class="p">:</span> <span class="s2">""</span><span class="p">,</span>
-            <span class="s2">"remarks"</span><span class="p">:</span> <span class="s2">"; "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">remarks</span><span class="p">)</span> <span class="ow">or</span> <span class="s2">"Замечаний нет"</span><span class="p">,</span>
-            <span class="s2">"measures"</span><span class="p">:</span> <span class="s2">""</span><span class="p">,</span>
+            <span class="s2">"work"</span><span class="p">:</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">insp</span><span class="o">.</span><span class="n">inspection_date</span><span class="si">:</span><span class="s2">%d.%m.%Y</span><span class="si">}</span><span class="s2">, проверка"</span><span class="p">,</span>
+            <span class="s2">"test_result"</span><span class="p">:</span> <span class="n">_inspection_result</span><span class="p">(</span><span class="n">insp</span><span class="p">),</span>
+            <span class="s2">"next_test_date"</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">"recharge_date"</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">"agent_brand"</span><span class="p">:</span> <span class="s2">""</span><span class="p">,</span>
+            <span class="s2">"post_recharge_result"</span><span class="p">:</span> <span class="s2">""</span><span class="p">,</span>
+            <span class="s2">"next_recharge_date"</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
             <span class="s2">"responsible"</span><span class="p">:</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">emp</span><span class="o">.</span><span class="n">position</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">emp</span><span class="o">.</span><span class="n">full_name</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
         <span class="p">})</span>
 
-    <span class="n">recharge_query</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">FireExtinguisher</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">FireExtinguisher</span><span class="o">.</span><span class="n">last_recharge_date</span><span class="o">.</span><span class="n">isnot</span><span class="p">(</span><span class="kc">None</span><span class="p">))</span>
+    <span class="n">query</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">ServiceRecord</span><span class="p">,</span> <span class="n">FireExtinguisher</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">FireExtinguisher</span><span class="p">,</span> <span class="n">ServiceRecord</span><span class="o">.</span><span class="n">fire_extinguisher_id</span> <span class="o">==</span> <span class="n">FireExtinguisher</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+    <span class="p">)</span>
     <span class="k">if</span> <span class="n">date_from</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">recharge_query</span> <span class="o">=</span> <span class="n">recharge_query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">FireExtinguisher</span><span class="o">.</span><span class="n">last_recharge_date</span> <span class="o">&gt;=</span> <span class="n">date_from</span><span class="p">)</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">ServiceRecord</span><span class="o">.</span><span class="n">service_date</span> <span class="o">&gt;=</span> <span class="n">date_from</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">date_to</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">recharge_query</span> <span class="o">=</span> <span class="n">recharge_query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">FireExtinguisher</span><span class="o">.</span><span class="n">last_recharge_date</span> <span class="o">&lt;=</span> <span class="n">date_to</span><span class="p">)</span>
-    <span class="k">for</span> <span class="n">fe</span> <span class="ow">in</span> <span class="n">recharge_query</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">ServiceRecord</span><span class="o">.</span><span class="n">service_date</span> <span class="o">&lt;=</span> <span class="n">date_to</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">record</span><span class="p">,</span> <span class="n">fe</span> <span class="ow">in</span> <span class="n">query</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
         <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
-            <span class="s2">"date"</span><span class="p">:</span> <span class="n">fe</span><span class="o">.</span><span class="n">last_recharge_date</span><span class="p">,</span>
+            <span class="s2">"date"</span><span class="p">:</span> <span class="n">record</span><span class="o">.</span><span class="n">service_date</span><span class="p">,</span>
             <span class="s2">"extinguisher"</span><span class="p">:</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">fe</span><span class="o">.</span><span class="n">inventory_number</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">fe</span><span class="o">.</span><span class="n">type</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
-            <span class="s2">"units_check"</span><span class="p">:</span> <span class="s2">""</span><span class="p">,</span>
-            <span class="s2">"agent_check"</span><span class="p">:</span> <span class="s2">""</span><span class="p">,</span>
-            <span class="s2">"pressure_check"</span><span class="p">:</span> <span class="s2">""</span><span class="p">,</span>
-            <span class="s2">"recharge"</span><span class="p">:</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">fe</span><span class="o">.</span><span class="n">last_recharge_date</span><span class="si">:</span><span class="s2">%d.%m.%Y</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
-            <span class="s2">"units_test"</span><span class="p">:</span> <span class="s2">""</span><span class="p">,</span>
-            <span class="s2">"remarks"</span><span class="p">:</span> <span class="s2">""</span><span class="p">,</span>
-            <span class="s2">"measures"</span><span class="p">:</span> <span class="s2">""</span><span class="p">,</span>
-            <span class="s2">"responsible"</span><span class="p">:</span> <span class="s2">""</span><span class="p">,</span>
+            <span class="s2">"work"</span><span class="p">:</span> <span class="n">_work_text</span><span class="p">(</span><span class="n">record</span><span class="p">),</span>
+            <span class="s2">"test_result"</span><span class="p">:</span> <span class="n">record</span><span class="o">.</span><span class="n">test_result</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">,</span>
+            <span class="s2">"next_test_date"</span><span class="p">:</span> <span class="n">record</span><span class="o">.</span><span class="n">next_test_date</span><span class="p">,</span>
+            <span class="s2">"recharge_date"</span><span class="p">:</span> <span class="n">record</span><span class="o">.</span><span class="n">service_date</span> <span class="k">if</span> <span class="n">record</span><span class="o">.</span><span class="n">recharged</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">"agent_brand"</span><span class="p">:</span> <span class="n">record</span><span class="o">.</span><span class="n">agent_brand</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">,</span>
+            <span class="s2">"post_recharge_result"</span><span class="p">:</span> <span class="n">record</span><span class="o">.</span><span class="n">post_recharge_result</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">,</span>
+            <span class="s2">"next_recharge_date"</span><span class="p">:</span> <span class="n">record</span><span class="o">.</span><span class="n">next_recharge_date</span><span class="p">,</span>
+            <span class="s2">"responsible"</span><span class="p">:</span> <span class="n">record</span><span class="o">.</span><span class="n">responsible</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">,</span>
         <span class="p">})</span>
 
     <span class="n">rows</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">r</span><span class="p">:</span> <span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="s2">"date"</span><span class="p">],</span> <span class="n">r</span><span class="p">[</span><span class="s2">"extinguisher"</span><span class="p">]))</span>
     <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
         <span class="n">row</span><span class="p">[</span><span class="s2">"n"</span><span class="p">]</span> <span class="o">=</span> <span class="n">n</span>
     <span class="k">return</span> <span class="n">rows</span></div>
+
+
+
+<div class="viewcode-block" id="card_rows">
+<a class="viewcode-back" href="../report_data.html#report_data.card_rows">[документация]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">card_rows</span><span class="p">(</span><span class="n">db</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span> <span class="n">extinguisher_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Карточки учета огнетушителей по форме А.1 приложения А ГОСТ Р 59641-2021.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        db (Session): Сессия базы данных.</span>
+<span class="sd">        extinguisher_id (Optional[int]): Один огнетушитель. Если не указан,</span>
+<span class="sd">            карточки всех огнетушителей, кроме списанных.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        List[Dict[str, Any]]: Поля формы для каждого огнетушителя.</span>
+<span class="sd">    """</span>
+    <span class="n">settings</span> <span class="o">=</span> <span class="n">get_settings</span><span class="p">(</span><span class="n">db</span><span class="p">)</span>
+    <span class="n">query</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">FireExtinguisher</span><span class="p">,</span> <span class="n">Location</span><span class="p">,</span> <span class="n">Status</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">Location</span><span class="p">,</span> <span class="n">FireExtinguisher</span><span class="o">.</span><span class="n">location_id</span> <span class="o">==</span> <span class="n">Location</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+        <span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">Status</span><span class="p">,</span> <span class="n">FireExtinguisher</span><span class="o">.</span><span class="n">status_id</span> <span class="o">==</span> <span class="n">Status</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">extinguisher_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">FireExtinguisher</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">extinguisher_id</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">Status</span><span class="o">.</span><span class="n">name</span> <span class="o">!=</span> <span class="n">STATUS_DECOMMISSIONED</span><span class="p">)</span>
+
+    <span class="n">cards</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">fe</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">_st</span> <span class="ow">in</span> <span class="n">query</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="n">FireExtinguisher</span><span class="o">.</span><span class="n">inventory_number</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+        <span class="n">d</span> <span class="o">=</span> <span class="n">compute_deadlines</span><span class="p">(</span><span class="n">fe</span><span class="p">,</span> <span class="n">settings</span><span class="p">)</span>
+        <span class="n">cards</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+            <span class="s2">"number"</span><span class="p">:</span> <span class="n">fe</span><span class="o">.</span><span class="n">inventory_number</span><span class="p">,</span>
+            <span class="s2">"placed_date"</span><span class="p">:</span> <span class="n">fe</span><span class="o">.</span><span class="n">commissioning_date</span><span class="p">,</span>
+            <span class="s2">"location"</span><span class="p">:</span> <span class="n">loc</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+            <span class="s2">"type"</span><span class="p">:</span> <span class="n">fe</span><span class="o">.</span><span class="n">type</span><span class="p">,</span>
+            <span class="s2">"manufacturer"</span><span class="p">:</span> <span class="n">fe</span><span class="o">.</span><span class="n">manufacturer</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">,</span>
+            <span class="s2">"serial_number"</span><span class="p">:</span> <span class="n">fe</span><span class="o">.</span><span class="n">serial_number</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">,</span>
+            <span class="s2">"manufacture_date"</span><span class="p">:</span> <span class="n">fe</span><span class="o">.</span><span class="n">manufacture_date</span><span class="p">,</span>
+            <span class="s2">"next_recharge_date"</span><span class="p">:</span> <span class="n">d</span><span class="p">[</span><span class="s2">"next_recharge_date"</span><span class="p">],</span>
+            <span class="s2">"service_life_years"</span><span class="p">:</span> <span class="n">d</span><span class="p">[</span><span class="s2">"service_life_years"</span><span class="p">],</span>
+            <span class="s2">"service_end_date"</span><span class="p">:</span> <span class="n">d</span><span class="p">[</span><span class="s2">"service_end_date"</span><span class="p">],</span>
+        <span class="p">})</span>
+    <span class="k">return</span> <span class="n">cards</span></div>
 
 
 
@@ -280,7 +354,8 @@
 <span class="sd">        Dict[str, Any]: Сводка и списки:</span>
 <span class="sd">        ``by_status``, ``by_location``, ``problems`` (просрочено и требует</span>
 <span class="sd">        обслуживания), ``upcoming_inspections``, ``recharge`` (просрочено</span>
-<span class="sd">        и скоро), ``service_life`` (истек и скоро истекает).</span>
+<span class="sd">        и скоро), ``service_life`` (истек и скоро истекает), ``tests``</span>
+<span class="sd">        (испытания просрочены или скоро).</span>
 <span class="sd">    """</span>
     <span class="n">today</span> <span class="o">=</span> <span class="n">today</span> <span class="ow">or</span> <span class="n">date</span><span class="o">.</span><span class="n">today</span><span class="p">()</span>
     <span class="n">settings</span> <span class="o">=</span> <span class="n">get_settings</span><span class="p">(</span><span class="n">db</span><span class="p">)</span>
@@ -296,7 +371,7 @@
 
     <span class="n">by_status</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="n">by_location</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
-    <span class="n">problems</span><span class="p">,</span> <span class="n">upcoming</span><span class="p">,</span> <span class="n">recharge</span><span class="p">,</span> <span class="n">service</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[],</span> <span class="p">[],</span> <span class="p">[]</span>
+    <span class="n">problems</span><span class="p">,</span> <span class="n">upcoming</span><span class="p">,</span> <span class="n">recharge</span><span class="p">,</span> <span class="n">service</span><span class="p">,</span> <span class="n">tests</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[],</span> <span class="p">[],</span> <span class="p">[],</span> <span class="p">[]</span>
     <span class="n">horizon</span> <span class="o">=</span> <span class="n">today</span> <span class="o">+</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="n">horizon_days</span><span class="p">)</span>
 
     <span class="k">for</span> <span class="n">fe</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">st</span><span class="p">,</span> <span class="n">last_date</span><span class="p">,</span> <span class="n">next_date</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">:</span>
@@ -323,10 +398,14 @@
         <span class="k">if</span> <span class="n">d</span><span class="p">[</span><span class="s2">"service_state"</span><span class="p">]</span> <span class="ow">in</span> <span class="p">(</span><span class="n">STATE_OVERDUE</span><span class="p">,</span> <span class="n">STATE_SOON</span><span class="p">):</span>
             <span class="n">service</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="o">**</span><span class="n">base</span><span class="p">,</span> <span class="s2">"service_end"</span><span class="p">:</span> <span class="n">d</span><span class="p">[</span><span class="s2">"service_end_date"</span><span class="p">],</span>
                             <span class="s2">"days_left"</span><span class="p">:</span> <span class="n">d</span><span class="p">[</span><span class="s2">"service_days_left"</span><span class="p">],</span> <span class="s2">"state"</span><span class="p">:</span> <span class="n">d</span><span class="p">[</span><span class="s2">"service_state"</span><span class="p">]})</span>
+        <span class="k">if</span> <span class="n">d</span><span class="p">[</span><span class="s2">"test_state"</span><span class="p">]</span> <span class="ow">in</span> <span class="p">(</span><span class="n">STATE_OVERDUE</span><span class="p">,</span> <span class="n">STATE_SOON</span><span class="p">):</span>
+            <span class="n">tests</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="o">**</span><span class="n">base</span><span class="p">,</span> <span class="s2">"next_test"</span><span class="p">:</span> <span class="n">d</span><span class="p">[</span><span class="s2">"next_test_date"</span><span class="p">],</span>
+                          <span class="s2">"days_left"</span><span class="p">:</span> <span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="s2">"next_test_date"</span><span class="p">]</span> <span class="o">-</span> <span class="n">today</span><span class="p">)</span><span class="o">.</span><span class="n">days</span><span class="p">,</span> <span class="s2">"state"</span><span class="p">:</span> <span class="n">d</span><span class="p">[</span><span class="s2">"test_state"</span><span class="p">]})</span>
 
     <span class="n">upcoming</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">r</span><span class="p">:</span> <span class="n">r</span><span class="p">[</span><span class="s2">"next_inspection"</span><span class="p">])</span>
     <span class="n">recharge</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">r</span><span class="p">:</span> <span class="n">r</span><span class="p">[</span><span class="s2">"next_recharge"</span><span class="p">])</span>
     <span class="n">service</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">r</span><span class="p">:</span> <span class="n">r</span><span class="p">[</span><span class="s2">"service_end"</span><span class="p">])</span>
+    <span class="n">tests</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">r</span><span class="p">:</span> <span class="n">r</span><span class="p">[</span><span class="s2">"next_test"</span><span class="p">])</span>
     <span class="n">problems</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">r</span><span class="p">:</span> <span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="s2">"next_inspection"</span><span class="p">]</span> <span class="ow">or</span> <span class="n">date</span><span class="o">.</span><span class="n">min</span><span class="p">,</span> <span class="n">r</span><span class="p">[</span><span class="s2">"inventory_number"</span><span class="p">]))</span>
 
     <span class="k">return</span> <span class="p">{</span>
@@ -340,6 +419,7 @@
         <span class="s2">"recharge"</span><span class="p">:</span> <span class="n">recharge</span><span class="p">,</span>
         <span class="s2">"recharge_warning_days"</span><span class="p">:</span> <span class="n">settings</span><span class="p">[</span><span class="s2">"recharge_warning_days"</span><span class="p">],</span>
         <span class="s2">"service_life"</span><span class="p">:</span> <span class="n">service</span><span class="p">,</span>
+        <span class="s2">"tests"</span><span class="p">:</span> <span class="n">tests</span><span class="p">,</span>
     <span class="p">}</span></div>
 
 </pre></div>

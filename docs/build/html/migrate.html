@@ -49,18 +49,23 @@
 <li class="toctree-l2"><a class="reference internal" href="app_settings.html">app_settings module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="audit.html">audit module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="auth.html">auth module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="backup.html">backup module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="db.html">db module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="deadlines.html">deadlines module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="export_utils.html">export_utils module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="main.html">main module</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">migrate module</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#migrate.backup_database"><code class="docutils literal notranslate"><span class="pre">backup_database()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#migrate.sqlite_file"><code class="docutils literal notranslate"><span class="pre">sqlite_file()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#migrate.upgrade_database"><code class="docutils literal notranslate"><span class="pre">upgrade_database()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="models.html">models module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="report_data.html">report_data module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="routers.html">routers package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="run.html">run module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="schemas.html">schemas module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="service_logic.html">service_logic module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="setup.html">setup module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="status_logic.html">status_logic module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="xlsx_export.html">xlsx_export module</a></li>
@@ -125,6 +130,12 @@
 <dd class="field-odd"><p>Optional[Path]</p>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="migrate.sqlite_file">
+<span class="sig-prename descclassname"><span class="pre">migrate.</span></span><span class="sig-name descname"><span class="pre">sqlite_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">engine</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Engine</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Path</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="reference internal" href="_modules/migrate.html#sqlite_file"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#migrate.sqlite_file" title="Ссылка на это определение"></a></dt>
+<dd><p>Возвращает путь к файлу SQLite или None для других баз и баз в памяти.</p>
 </dd></dl>
 
 <dl class="py function">

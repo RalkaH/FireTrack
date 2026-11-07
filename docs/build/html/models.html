@@ -49,8 +49,10 @@
 <li class="toctree-l2"><a class="reference internal" href="app_settings.html">app_settings module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="audit.html">audit module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="auth.html">auth module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="backup.html">backup module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="db.html">db module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="deadlines.html">deadlines module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="export_utils.html">export_utils module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="main.html">main module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="migrate.html">migrate module</a></li>
 <li class="toctree-l2 current"><a class="current reference internal" href="#">models module</a><ul>
@@ -90,12 +92,15 @@
 <li class="toctree-l4"><a class="reference internal" href="#models.FireExtinguisher.inspections"><code class="docutils literal notranslate"><span class="pre">FireExtinguisher.inspections</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#models.FireExtinguisher.inventory_number"><code class="docutils literal notranslate"><span class="pre">FireExtinguisher.inventory_number</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#models.FireExtinguisher.last_recharge_date"><code class="docutils literal notranslate"><span class="pre">FireExtinguisher.last_recharge_date</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.FireExtinguisher.last_test_date"><code class="docutils literal notranslate"><span class="pre">FireExtinguisher.last_test_date</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#models.FireExtinguisher.location"><code class="docutils literal notranslate"><span class="pre">FireExtinguisher.location</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#models.FireExtinguisher.location_id"><code class="docutils literal notranslate"><span class="pre">FireExtinguisher.location_id</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#models.FireExtinguisher.manufacture_date"><code class="docutils literal notranslate"><span class="pre">FireExtinguisher.manufacture_date</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#models.FireExtinguisher.manufacturer"><code class="docutils literal notranslate"><span class="pre">FireExtinguisher.manufacturer</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#models.FireExtinguisher.recharge_interval_months"><code class="docutils literal notranslate"><span class="pre">FireExtinguisher.recharge_interval_months</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.FireExtinguisher.serial_number"><code class="docutils literal notranslate"><span class="pre">FireExtinguisher.serial_number</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#models.FireExtinguisher.service_life_years"><code class="docutils literal notranslate"><span class="pre">FireExtinguisher.service_life_years</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.FireExtinguisher.service_records"><code class="docutils literal notranslate"><span class="pre">FireExtinguisher.service_records</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#models.FireExtinguisher.status"><code class="docutils literal notranslate"><span class="pre">FireExtinguisher.status</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#models.FireExtinguisher.status_id"><code class="docutils literal notranslate"><span class="pre">FireExtinguisher.status_id</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#models.FireExtinguisher.type"><code class="docutils literal notranslate"><span class="pre">FireExtinguisher.type</span></code></a></li>
@@ -103,6 +108,9 @@
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#models.Inspection"><code class="docutils literal notranslate"><span class="pre">Inspection</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#models.Inspection.annul_reason"><code class="docutils literal notranslate"><span class="pre">Inspection.annul_reason</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.Inspection.annulled_at"><code class="docutils literal notranslate"><span class="pre">Inspection.annulled_at</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.Inspection.annulled_by"><code class="docutils literal notranslate"><span class="pre">Inspection.annulled_by</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#models.Inspection.comments"><code class="docutils literal notranslate"><span class="pre">Inspection.comments</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#models.Inspection.created_at"><code class="docutils literal notranslate"><span class="pre">Inspection.created_at</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#models.Inspection.employee"><code class="docutils literal notranslate"><span class="pre">Inspection.employee</span></code></a></li>
@@ -126,6 +134,26 @@
 <li class="toctree-l4"><a class="reference internal" href="#models.Location.fire_extinguishers"><code class="docutils literal notranslate"><span class="pre">Location.fire_extinguishers</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#models.Location.id"><code class="docutils literal notranslate"><span class="pre">Location.id</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#models.Location.name"><code class="docutils literal notranslate"><span class="pre">Location.name</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#models.ServiceRecord"><code class="docutils literal notranslate"><span class="pre">ServiceRecord</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#models.ServiceRecord.agent_brand"><code class="docutils literal notranslate"><span class="pre">ServiceRecord.agent_brand</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.ServiceRecord.comments"><code class="docutils literal notranslate"><span class="pre">ServiceRecord.comments</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.ServiceRecord.created_at"><code class="docutils literal notranslate"><span class="pre">ServiceRecord.created_at</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.ServiceRecord.created_by"><code class="docutils literal notranslate"><span class="pre">ServiceRecord.created_by</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.ServiceRecord.fire_extinguisher"><code class="docutils literal notranslate"><span class="pre">ServiceRecord.fire_extinguisher</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.ServiceRecord.fire_extinguisher_id"><code class="docutils literal notranslate"><span class="pre">ServiceRecord.fire_extinguisher_id</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.ServiceRecord.id"><code class="docutils literal notranslate"><span class="pre">ServiceRecord.id</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.ServiceRecord.next_recharge_date"><code class="docutils literal notranslate"><span class="pre">ServiceRecord.next_recharge_date</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.ServiceRecord.next_test_date"><code class="docutils literal notranslate"><span class="pre">ServiceRecord.next_test_date</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.ServiceRecord.organization"><code class="docutils literal notranslate"><span class="pre">ServiceRecord.organization</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.ServiceRecord.post_recharge_result"><code class="docutils literal notranslate"><span class="pre">ServiceRecord.post_recharge_result</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.ServiceRecord.recharged"><code class="docutils literal notranslate"><span class="pre">ServiceRecord.recharged</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.ServiceRecord.repaired"><code class="docutils literal notranslate"><span class="pre">ServiceRecord.repaired</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.ServiceRecord.responsible"><code class="docutils literal notranslate"><span class="pre">ServiceRecord.responsible</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.ServiceRecord.service_date"><code class="docutils literal notranslate"><span class="pre">ServiceRecord.service_date</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.ServiceRecord.test_result"><code class="docutils literal notranslate"><span class="pre">ServiceRecord.test_result</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#models.ServiceRecord.tested"><code class="docutils literal notranslate"><span class="pre">ServiceRecord.tested</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#models.Status"><code class="docutils literal notranslate"><span class="pre">Status</span></code></a><ul>
@@ -154,7 +182,9 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="report_data.html">report_data module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="routers.html">routers package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="run.html">run module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="schemas.html">schemas module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="service_logic.html">service_logic module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="setup.html">setup module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="status_logic.html">status_logic module</a></li>
 <li class="toctree-l2"><a class="reference internal" href="xlsx_export.html">xlsx_export module</a></li>
@@ -191,7 +221,7 @@
 <span id="models-module"></span><h1>models module<a class="headerlink" href="#module-models" title="Ссылка на этот заголовок"></a></h1>
 <p>Модуль описания ORM-моделей системы FireTrack.
 Определяет таблицы для локаций, статусов, огнетушителей, сотрудников, проверок,
-пользователей, журнала действий и настроек.</p>
+записей о техническом обслуживании, пользователей, журнала действий и настроек.</p>
 <p>Схема базы меняется только через миграции Alembic (папка <code class="docutils literal notranslate"><span class="pre">migrations</span></code>).
 Если добавляете колонку здесь, создайте для нее новую ревизию.</p>
 <dl class="py class">
@@ -322,7 +352,9 @@
 службы. Интервалы по умолчанию зависят от вида огнетушащего вещества
 и задаются в настройках (модуль <code class="docutils literal notranslate"><span class="pre">deadlines</span></code>). Колонки
 <code class="docutils literal notranslate"><span class="pre">recharge_interval_months</span></code> и <code class="docutils literal notranslate"><span class="pre">service_life_years</span></code> позволяют
-переопределить их для конкретного экземпляра (например, по паспорту).</p>
+переопределить их для конкретного экземпляра (например, по паспорту).
+<code class="docutils literal notranslate"><span class="pre">last_recharge_date</span></code> и <code class="docutils literal notranslate"><span class="pre">last_test_date</span></code> не вводятся напрямую, а
+поддерживаются по истории <code class="docutils literal notranslate"><span class="pre">ServiceRecords</span></code> (модуль <code class="docutils literal notranslate"><span class="pre">service_logic</span></code>).</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="models.FireExtinguisher.capacity">
 <span class="sig-name descname"><span class="pre">capacity</span></span><a class="headerlink" href="#models.FireExtinguisher.capacity" title="Ссылка на это определение"></a></dt>
@@ -359,6 +391,11 @@
 <dd></dd></dl>
 
 <dl class="py attribute">
+<dt class="sig sig-object py" id="models.FireExtinguisher.last_test_date">
+<span class="sig-name descname"><span class="pre">last_test_date</span></span><a class="headerlink" href="#models.FireExtinguisher.last_test_date" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
 <dt class="sig sig-object py" id="models.FireExtinguisher.location">
 <span class="sig-name descname"><span class="pre">location</span></span><a class="headerlink" href="#models.FireExtinguisher.location" title="Ссылка на это определение"></a></dt>
 <dd></dd></dl>
@@ -384,8 +421,18 @@
 <dd></dd></dl>
 
 <dl class="py attribute">
+<dt class="sig sig-object py" id="models.FireExtinguisher.serial_number">
+<span class="sig-name descname"><span class="pre">serial_number</span></span><a class="headerlink" href="#models.FireExtinguisher.serial_number" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
 <dt class="sig sig-object py" id="models.FireExtinguisher.service_life_years">
 <span class="sig-name descname"><span class="pre">service_life_years</span></span><a class="headerlink" href="#models.FireExtinguisher.service_life_years" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.FireExtinguisher.service_records">
+<span class="sig-name descname"><span class="pre">service_records</span></span><a class="headerlink" href="#models.FireExtinguisher.service_records" title="Ссылка на это определение"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
@@ -415,6 +462,23 @@
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">models.</span></span><span class="sig-name descname"><span class="pre">Inspection</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/models.html#Inspection"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#models.Inspection" title="Ссылка на это определение"></a></dt>
 <dd><p>Базовые классы: <a class="reference internal" href="db.html#db.Base" title="db.Base"><code class="xref py py-class docutils literal notranslate"><span class="pre">Base</span></code></a></p>
 <p>Модель записи о проведенной проверке оборудования.</p>
+<p>Ошибочная проверка не удаляется, а аннулируется с указанием причины:
+она остается в истории, но не участвует в расчете статусов и отчетах.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.Inspection.annul_reason">
+<span class="sig-name descname"><span class="pre">annul_reason</span></span><a class="headerlink" href="#models.Inspection.annul_reason" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.Inspection.annulled_at">
+<span class="sig-name descname"><span class="pre">annulled_at</span></span><a class="headerlink" href="#models.Inspection.annulled_at" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.Inspection.annulled_by">
+<span class="sig-name descname"><span class="pre">annulled_by</span></span><a class="headerlink" href="#models.Inspection.annulled_by" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
 <dl class="py attribute">
 <dt class="sig sig-object py" id="models.Inspection.comments">
 <span class="sig-name descname"><span class="pre">comments</span></span><a class="headerlink" href="#models.Inspection.comments" title="Ссылка на это определение"></a></dt>
@@ -520,6 +584,99 @@
 <dl class="py attribute">
 <dt class="sig sig-object py" id="models.Location.name">
 <span class="sig-name descname"><span class="pre">name</span></span><a class="headerlink" href="#models.Location.name" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="models.ServiceRecord">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">models.</span></span><span class="sig-name descname"><span class="pre">ServiceRecord</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/models.html#ServiceRecord"><span class="viewcode-link"><span class="pre">[исходный</span> <span class="pre">код]</span></span></a><a class="headerlink" href="#models.ServiceRecord" title="Ссылка на это определение"></a></dt>
+<dd><p>Базовые классы: <a class="reference internal" href="db.html#db.Base" title="db.Base"><code class="xref py py-class docutils literal notranslate"><span class="pre">Base</span></code></a></p>
+<p>Запись о техническом обслуживании: испытание, перезарядка или ремонт.</p>
+<p>Поля соответствуют графам формы А.2 приложения А ГОСТ Р 59641-2021.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.ServiceRecord.agent_brand">
+<span class="sig-name descname"><span class="pre">agent_brand</span></span><a class="headerlink" href="#models.ServiceRecord.agent_brand" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.ServiceRecord.comments">
+<span class="sig-name descname"><span class="pre">comments</span></span><a class="headerlink" href="#models.ServiceRecord.comments" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.ServiceRecord.created_at">
+<span class="sig-name descname"><span class="pre">created_at</span></span><a class="headerlink" href="#models.ServiceRecord.created_at" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.ServiceRecord.created_by">
+<span class="sig-name descname"><span class="pre">created_by</span></span><a class="headerlink" href="#models.ServiceRecord.created_by" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.ServiceRecord.fire_extinguisher">
+<span class="sig-name descname"><span class="pre">fire_extinguisher</span></span><a class="headerlink" href="#models.ServiceRecord.fire_extinguisher" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.ServiceRecord.fire_extinguisher_id">
+<span class="sig-name descname"><span class="pre">fire_extinguisher_id</span></span><a class="headerlink" href="#models.ServiceRecord.fire_extinguisher_id" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.ServiceRecord.id">
+<span class="sig-name descname"><span class="pre">id</span></span><a class="headerlink" href="#models.ServiceRecord.id" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.ServiceRecord.next_recharge_date">
+<span class="sig-name descname"><span class="pre">next_recharge_date</span></span><a class="headerlink" href="#models.ServiceRecord.next_recharge_date" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.ServiceRecord.next_test_date">
+<span class="sig-name descname"><span class="pre">next_test_date</span></span><a class="headerlink" href="#models.ServiceRecord.next_test_date" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.ServiceRecord.organization">
+<span class="sig-name descname"><span class="pre">organization</span></span><a class="headerlink" href="#models.ServiceRecord.organization" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.ServiceRecord.post_recharge_result">
+<span class="sig-name descname"><span class="pre">post_recharge_result</span></span><a class="headerlink" href="#models.ServiceRecord.post_recharge_result" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.ServiceRecord.recharged">
+<span class="sig-name descname"><span class="pre">recharged</span></span><a class="headerlink" href="#models.ServiceRecord.recharged" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.ServiceRecord.repaired">
+<span class="sig-name descname"><span class="pre">repaired</span></span><a class="headerlink" href="#models.ServiceRecord.repaired" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.ServiceRecord.responsible">
+<span class="sig-name descname"><span class="pre">responsible</span></span><a class="headerlink" href="#models.ServiceRecord.responsible" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.ServiceRecord.service_date">
+<span class="sig-name descname"><span class="pre">service_date</span></span><a class="headerlink" href="#models.ServiceRecord.service_date" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.ServiceRecord.test_result">
+<span class="sig-name descname"><span class="pre">test_result</span></span><a class="headerlink" href="#models.ServiceRecord.test_result" title="Ссылка на это определение"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="models.ServiceRecord.tested">
+<span class="sig-name descname"><span class="pre">tested</span></span><a class="headerlink" href="#models.ServiceRecord.tested" title="Ссылка на это определение"></a></dt>
 <dd></dd></dl>
 
 </dd></dl>

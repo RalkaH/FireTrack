@@ -70,7 +70,7 @@
            <div itemprop="articleBody">
              
   <h1>Исходный код schemas</h1><div class="highlight"><pre>
-<span></span><span class="c1"># schemas.py (v1.4)</span>
+<span></span><span class="c1"># schemas.py (v1.5)</span>
 <span class="sd">"""</span>
 <span class="sd">Модуль схем Pydantic для валидации данных, сериализации и десериализации.</span>
 <span class="sd">Определяет структуру данных для входящих API-запросов и исходящих ответов.</span>
@@ -115,6 +115,15 @@
 <span class="k">class</span><span class="w"> </span><span class="nc">LocationCreate</span><span class="p">(</span><span class="n">LocationBase</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Схема для создания нового местоположения."""</span>
     <span class="k">pass</span></div>
+
+
+
+<div class="viewcode-block" id="LocationUpdate">
+<a class="viewcode-back" href="../schemas.html#schemas.LocationUpdate">[документация]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">LocationUpdate</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Схема для изменения места (передаются только изменяемые поля)."""</span>
+    <span class="n">name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">min_length</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">description</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span></div>
 
 
 
@@ -183,6 +192,7 @@
     <span class="n">service_life_years</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
         <span class="kc">None</span><span class="p">,</span> <span class="n">ge</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">le</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
         <span class="n">description</span><span class="o">=</span><span class="s2">"Срок службы, лет. Пусто: значение из настроек"</span><span class="p">)</span>
+    <span class="n">serial_number</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"Заводской номер"</span><span class="p">)</span>
 
 <div class="viewcode-block" id="FireExtinguisherBase.not_in_future">
 <a class="viewcode-back" href="../schemas.html#schemas.FireExtinguisherBase.not_in_future">[документация]</a>
@@ -215,16 +225,16 @@
     <span class="n">commissioning_date</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">date</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">location_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">status_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="n">last_recharge_date</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">date</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">recharge_interval_months</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">ge</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">le</span><span class="o">=</span><span class="mi">240</span><span class="p">)</span>
     <span class="n">service_life_years</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">ge</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">le</span><span class="o">=</span><span class="mi">50</span><span class="p">)</span>
+    <span class="n">serial_number</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 
 <div class="viewcode-block" id="FireExtinguisherUpdate.not_in_future">
 <a class="viewcode-back" href="../schemas.html#schemas.FireExtinguisherUpdate.not_in_future">[документация]</a>
-    <span class="nd">@field_validator</span><span class="p">(</span><span class="s1">'manufacture_date'</span><span class="p">,</span> <span class="s1">'commissioning_date'</span><span class="p">,</span> <span class="s1">'last_recharge_date'</span><span class="p">)</span>
+    <span class="nd">@field_validator</span><span class="p">(</span><span class="s1">'manufacture_date'</span><span class="p">,</span> <span class="s1">'commissioning_date'</span><span class="p">)</span>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">not_in_future</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">"""Валидатор: даты изготовления, ввода и перезарядки не могут быть из будущего."""</span>
+<span class="w">        </span><span class="sd">"""Валидатор: даты изготовления и ввода не могут быть из будущего."""</span>
         <span class="k">return</span> <span class="n">_date_not_in_future</span><span class="p">(</span><span class="n">v</span><span class="p">)</span></div>
 </div>
 
@@ -250,6 +260,9 @@
     <span class="n">effective_service_life_years</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">service_end_date</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">date</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">service_state</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"ok, soon, overdue, unknown"</span><span class="p">)</span>
+    <span class="n">last_test_date</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">date</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">next_test_date</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">date</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">test_state</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"ok, soon, overdue, unknown"</span><span class="p">)</span>
 
     <span class="n">model_config</span> <span class="o">=</span> <span class="n">ConfigDict</span><span class="p">(</span><span class="n">from_attributes</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
 
@@ -271,6 +284,15 @@
 <span class="k">class</span><span class="w"> </span><span class="nc">EmployeeCreate</span><span class="p">(</span><span class="n">EmployeeBase</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Схема для создания нового сотрудника."""</span>
     <span class="k">pass</span></div>
+
+
+
+<div class="viewcode-block" id="EmployeeUpdate">
+<a class="viewcode-back" href="../schemas.html#schemas.EmployeeUpdate">[документация]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">EmployeeUpdate</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Схема для изменения сотрудника (передаются только изменяемые поля)."""</span>
+    <span class="n">full_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">min_length</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">position</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">min_length</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span></div>
 
 
 
@@ -304,7 +326,7 @@
     <span class="n">next_inspection_date</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">date</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
         <span class="kc">None</span><span class="p">,</span>
         <span class="n">description</span><span class="o">=</span><span class="s2">"Дата следующей проверки. Если не указана, "</span>
-                    <span class="s2">"рассчитывается автоматически (+6 месяцев)"</span><span class="p">,</span>
+                    <span class="s2">"рассчитывается автоматически (по умолчанию через 12 месяцев)"</span><span class="p">,</span>
     <span class="p">)</span></div>
 
 
@@ -336,12 +358,56 @@
 
 
 
+<div class="viewcode-block" id="InspectionUpdate">
+<a class="viewcode-back" href="../schemas.html#schemas.InspectionUpdate">[документация]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">InspectionUpdate</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Исправление ошибочной проверки администратором.</span>
+
+<span class="sd">    Передаются только изменяемые поля. Причина обязательна и попадает</span>
+<span class="sd">    в журнал действий.</span>
+<span class="sd">    """</span>
+    <span class="n">reason</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">min_length</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">max_length</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"Причина исправления"</span><span class="p">)</span>
+    <span class="n">fire_extinguisher_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">inspection_date</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">date</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">employee_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">pressure</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">weight</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">visual_inspection</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">seal_condition</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">safety_pin_condition</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">hose_condition</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">comments</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">next_inspection_date</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">date</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="InspectionUpdate.inspection_not_in_future">
+<a class="viewcode-back" href="../schemas.html#schemas.InspectionUpdate.inspection_not_in_future">[документация]</a>
+    <span class="nd">@field_validator</span><span class="p">(</span><span class="s1">'inspection_date'</span><span class="p">)</span>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">inspection_not_in_future</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Валидатор: дата проверки не может быть из будущего."""</span>
+        <span class="k">return</span> <span class="n">_date_not_in_future</span><span class="p">(</span><span class="n">v</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="InspectionReason">
+<a class="viewcode-back" href="../schemas.html#schemas.InspectionReason">[документация]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">InspectionReason</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Причина аннулирования или восстановления проверки."""</span>
+    <span class="n">reason</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">min_length</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">max_length</span><span class="o">=</span><span class="mi">300</span><span class="p">)</span></div>
+
+
+
 <div class="viewcode-block" id="InspectionRead">
 <a class="viewcode-back" href="../schemas.html#schemas.InspectionRead">[документация]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">InspectionRead</span><span class="p">(</span><span class="n">InspectionBase</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">"""Схема для чтения данных о проверке (возвращается в API)."""</span>
     <span class="nb">id</span><span class="p">:</span> <span class="nb">int</span>
     <span class="n">created_at</span><span class="p">:</span> <span class="n">datetime</span>
+    <span class="n">annulled_at</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">datetime</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">annulled_by</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">annul_reason</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 
     <span class="n">model_config</span> <span class="o">=</span> <span class="n">ConfigDict</span><span class="p">(</span><span class="n">from_attributes</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
 
@@ -352,6 +418,7 @@
 <span class="n">USERNAME_RE</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"^[A-Za-z0-9_.-]{3,32}$"</span><span class="p">)</span>
 <span class="n">EMAIL_RE</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"^[^@\s]+@[^@\s]+\.[^@\s]+$"</span><span class="p">)</span>
 <span class="n">PASSWORD_MIN_LENGTH</span> <span class="o">=</span> <span class="mi">8</span>
+<span class="n">PASSWORD_MAX_LENGTH</span> <span class="o">=</span> <span class="mi">128</span>
 <span class="n">WEAK_PASSWORDS</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"admin123"</span><span class="p">,</span> <span class="s2">"password"</span><span class="p">,</span> <span class="s2">"12345678"</span><span class="p">,</span> <span class="s2">"123456789"</span><span class="p">,</span> <span class="s2">"qwerty123"</span><span class="p">,</span>
                   <span class="s2">"11111111"</span><span class="p">,</span> <span class="s2">"password1"</span><span class="p">,</span> <span class="s2">"firetrack"</span><span class="p">,</span> <span class="s2">"qwertyui"</span><span class="p">}</span>
 
@@ -375,6 +442,8 @@
 <span class="sd">    """</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">password</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">PASSWORD_MIN_LENGTH</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Пароль должен быть не короче </span><span class="si">{</span><span class="n">PASSWORD_MIN_LENGTH</span><span class="si">}</span><span class="s2"> символов"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">password</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">PASSWORD_MAX_LENGTH</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Пароль должен быть не длиннее </span><span class="si">{</span><span class="n">PASSWORD_MAX_LENGTH</span><span class="si">}</span><span class="s2"> символов"</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">password</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="n">WEAK_PASSWORDS</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Слишком простой пароль"</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">username</span> <span class="ow">and</span> <span class="n">password</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="n">username</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
@@ -603,25 +672,92 @@
 
 
 
-<span class="c1"># ---------- Recharge ----------</span>
+<span class="c1"># ---------- Service records ----------</span>
 
-<div class="viewcode-block" id="RechargeMark">
-<a class="viewcode-back" href="../schemas.html#schemas.RechargeMark">[документация]</a>
-<span class="k">class</span><span class="w"> </span><span class="nc">RechargeMark</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">"""Отметка о перезарядке огнетушителя."""</span>
-    <span class="n">recharge_date</span><span class="p">:</span> <span class="n">date</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"Дата перезарядки"</span><span class="p">)</span>
-    <span class="n">recharge_interval_months</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
-        <span class="kc">None</span><span class="p">,</span> <span class="n">ge</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">le</span><span class="o">=</span><span class="mi">240</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"Новый интервал по паспорту, мес. (если изменился)"</span><span class="p">)</span>
-    <span class="n">comment</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_length</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"Кто перезаряжал, номер акта"</span><span class="p">)</span>
+<div class="viewcode-block" id="ServiceRecordBase">
+<a class="viewcode-back" href="../schemas.html#schemas.ServiceRecordBase">[документация]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ServiceRecordBase</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Запись о техническом обслуживании: графы формы А.2 ГОСТ Р 59641-2021.</span>
 
-<div class="viewcode-block" id="RechargeMark.not_in_future">
-<a class="viewcode-back" href="../schemas.html#schemas.RechargeMark.not_in_future">[документация]</a>
-    <span class="nd">@field_validator</span><span class="p">(</span><span class="s2">"recharge_date"</span><span class="p">)</span>
+<span class="sd">    Если даты следующего испытания и перезарядки не указаны, сервер считает их</span>
+<span class="sd">    сам по интервалам из настроек или карточки огнетушителя.</span>
+<span class="sd">    """</span>
+    <span class="n">service_date</span><span class="p">:</span> <span class="n">date</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"Дата проведения работ"</span><span class="p">)</span>
+    <span class="n">tested</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="kc">False</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"Проведено испытание на прочность"</span><span class="p">)</span>
+    <span class="n">recharged</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="kc">False</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"Проведена перезарядка"</span><span class="p">)</span>
+    <span class="n">repaired</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="kc">False</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"Проведен ремонт"</span><span class="p">)</span>
+    <span class="n">organization</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_length</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"Организация, проводившая работы"</span><span class="p">)</span>
+    <span class="n">test_result</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_length</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"Результаты осмотра и испытания на прочность"</span><span class="p">)</span>
+    <span class="n">next_test_date</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">date</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"Срок следующего планового испытания"</span><span class="p">)</span>
+    <span class="n">agent_brand</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_length</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"Марка (концентрация) заряженного ОТВ"</span><span class="p">)</span>
+    <span class="n">post_recharge_result</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_length</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"Результат осмотра после перезарядки"</span><span class="p">)</span>
+    <span class="n">next_recharge_date</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">date</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"Дата следующей плановой перезарядки"</span><span class="p">)</span>
+    <span class="n">responsible</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_length</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"Должность, фамилия, инициалы ответственного"</span><span class="p">)</span>
+    <span class="n">comments</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_length</span><span class="o">=</span><span class="mi">300</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ServiceRecordBase.not_in_future">
+<a class="viewcode-back" href="../schemas.html#schemas.ServiceRecordBase.not_in_future">[документация]</a>
+    <span class="nd">@field_validator</span><span class="p">(</span><span class="s2">"service_date"</span><span class="p">)</span>
     <span class="nd">@classmethod</span>
     <span class="k">def</span><span class="w"> </span><span class="nf">not_in_future</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">"""Дата перезарядки не может быть из будущего."""</span>
+<span class="w">        </span><span class="sd">"""Дата работ не может быть из будущего."""</span>
         <span class="k">return</span> <span class="n">_date_not_in_future</span><span class="p">(</span><span class="n">v</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ServiceRecordBase.check_work_and_dates">
+<a class="viewcode-back" href="../schemas.html#schemas.ServiceRecordBase.check_work_and_dates">[документация]</a>
+    <span class="nd">@model_validator</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s2">"after"</span><span class="p">)</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">check_work_and_dates</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">"""Должен быть указан хотя бы один вид работ, а следующие сроки не раньше работ."""</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tested</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">recharged</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">repaired</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Укажите вид работ: испытание, перезарядка или ремонт"</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">next_test_date</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">next_recharge_date</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">value</span> <span class="ow">and</span> <span class="n">value</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">service_date</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Следующий срок не может быть раньше даты работ"</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
 </div>
+
+
+
+<div class="viewcode-block" id="ServiceRecordCreate">
+<a class="viewcode-back" href="../schemas.html#schemas.ServiceRecordCreate">[документация]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ServiceRecordCreate</span><span class="p">(</span><span class="n">ServiceRecordBase</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Новая запись о техническом обслуживании."""</span>
+    <span class="n">fire_extinguisher_id</span><span class="p">:</span> <span class="nb">int</span></div>
+
+
+
+<div class="viewcode-block" id="ServiceRecordUpdate">
+<a class="viewcode-back" href="../schemas.html#schemas.ServiceRecordUpdate">[документация]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ServiceRecordUpdate</span><span class="p">(</span><span class="n">ServiceRecordBase</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Исправление записи о техническом обслуживании (все поля целиком)."""</span>
+    <span class="n">reason</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">min_length</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">max_length</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span> <span class="n">description</span><span class="o">=</span><span class="s2">"Причина исправления"</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="ServiceRecordRead">
+<a class="viewcode-back" href="../schemas.html#schemas.ServiceRecordRead">[документация]</a>
+<span class="k">class</span><span class="w"> </span><span class="nc">ServiceRecordRead</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Запись о техническом обслуживании (возвращается в API)."""</span>
+    <span class="nb">id</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">fire_extinguisher_id</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="n">service_date</span><span class="p">:</span> <span class="n">date</span>
+    <span class="n">tested</span><span class="p">:</span> <span class="nb">bool</span>
+    <span class="n">recharged</span><span class="p">:</span> <span class="nb">bool</span>
+    <span class="n">repaired</span><span class="p">:</span> <span class="nb">bool</span>
+    <span class="n">organization</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">test_result</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">next_test_date</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">date</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">agent_brand</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">post_recharge_result</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">next_recharge_date</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">date</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">responsible</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">comments</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">created_at</span><span class="p">:</span> <span class="n">datetime</span>
+    <span class="n">created_by</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="n">model_config</span> <span class="o">=</span> <span class="n">ConfigDict</span><span class="p">(</span><span class="n">from_attributes</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
 
 </pre></div>
 

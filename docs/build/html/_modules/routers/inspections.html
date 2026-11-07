@@ -70,28 +70,37 @@
            <div itemprop="articleBody">
              
   <h1>Исходный код routers.inspections</h1><div class="highlight"><pre>
-<span></span><span class="c1"># inspections.py (v1.3)</span>
+<span></span><span class="c1"># inspections.py (v1.4)</span>
 <span class="sd">"""</span>
 <span class="sd">Модуль для управления процессом проверок огнетушителей.</span>
 <span class="sd">Содержит маршруты для создания новых записей о проверках,</span>
-<span class="sd">а также получения истории обслуживания оборудования.</span>
+<span class="sd">получения истории обслуживания, а также исправления ошибок.</span>
+
+<span class="sd">Ошибочную проверку администратор исправляет или аннулирует с указанием</span>
+<span class="sd">причины. Запись не удаляется: журнал должен оставаться полным, а все</span>
+<span class="sd">действия видны в журнале действий.</span>
 <span class="sd">"""</span>
 
-<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timezone</span><span class="p">,</span> <span class="n">date</span><span class="p">,</span> <span class="n">timedelta</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timezone</span><span class="p">,</span> <span class="n">date</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">fastapi</span><span class="w"> </span><span class="kn">import</span> <span class="n">APIRouter</span><span class="p">,</span> <span class="n">Depends</span><span class="p">,</span> <span class="n">HTTPException</span><span class="p">,</span> <span class="n">Request</span><span class="p">,</span> <span class="n">status</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">sqlalchemy.orm</span><span class="w"> </span><span class="kn">import</span> <span class="n">Session</span>
 
 <span class="kn">import</span><span class="w"> </span><span class="nn">audit</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">auth</span><span class="w"> </span><span class="kn">import</span> <span class="n">EDITOR_ROLES</span><span class="p">,</span> <span class="n">get_current_active_user</span><span class="p">,</span> <span class="n">require_role</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">app_settings</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_settings</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">auth</span><span class="w"> </span><span class="kn">import</span> <span class="n">EDITOR_ROLES</span><span class="p">,</span> <span class="n">ROLE_ADMIN</span><span class="p">,</span> <span class="n">get_current_active_user</span><span class="p">,</span> <span class="n">require_role</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">db</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_db</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deadlines</span><span class="w"> </span><span class="kn">import</span> <span class="n">add_months</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Inspection</span><span class="p">,</span> <span class="n">FireExtinguisher</span><span class="p">,</span> <span class="n">Employee</span><span class="p">,</span> <span class="n">User</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">schemas</span><span class="w"> </span><span class="kn">import</span> <span class="n">InspectionCreate</span><span class="p">,</span> <span class="n">InspectionRead</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">schemas</span><span class="w"> </span><span class="kn">import</span> <span class="n">InspectionCreate</span><span class="p">,</span> <span class="n">InspectionRead</span><span class="p">,</span> <span class="n">InspectionReason</span><span class="p">,</span> <span class="n">InspectionUpdate</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">status_logic</span><span class="w"> </span><span class="kn">import</span> <span class="n">STATUS_DECOMMISSIONED</span><span class="p">,</span> <span class="n">recalculate_statuses</span>
 
-<span class="c1"># Периодичность плановой проверки по умолчанию (около 6 месяцев)</span>
-<span class="n">DEFAULT_INSPECTION_INTERVAL_DAYS</span> <span class="o">=</span> <span class="mi">180</span>
+<span class="n">AUDIT_FIELDS</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="s2">"fire_extinguisher_id"</span><span class="p">,</span> <span class="s2">"inspection_date"</span><span class="p">,</span> <span class="s2">"employee_id"</span><span class="p">,</span> <span class="s2">"pressure"</span><span class="p">,</span> <span class="s2">"weight"</span><span class="p">,</span>
+    <span class="s2">"visual_inspection"</span><span class="p">,</span> <span class="s2">"seal_condition"</span><span class="p">,</span> <span class="s2">"safety_pin_condition"</span><span class="p">,</span>
+    <span class="s2">"hose_condition"</span><span class="p">,</span> <span class="s2">"comments"</span><span class="p">,</span> <span class="s2">"next_inspection_date"</span><span class="p">,</span>
+<span class="p">)</span>
 
 <span class="n">router</span> <span class="o">=</span> <span class="n">APIRouter</span><span class="p">(</span>
     <span class="n">prefix</span><span class="o">=</span><span class="s2">"/inspections"</span><span class="p">,</span>
@@ -117,8 +126,8 @@
 <span class="sd">    Зарегистрировать новую проверку огнетушителя.</span>
 <span class="sd">    Проверяет существование огнетушителя и сотрудника, сохраняет результаты</span>
 <span class="sd">    проверки и пересчитывает статус огнетушителя по ее итогам.</span>
-<span class="sd">    Если дата следующей проверки не указана, она рассчитывается автоматически</span>
-<span class="sd">    (через 180 дней).</span>
+<span class="sd">    Если дата следующей проверки не указана, она рассчитывается по настройке</span>
+<span class="sd">    ``inspection_interval_months`` (по умолчанию ежегодно, п. 5.1.1 ГОСТ Р 59641-2021).</span>
 
 <span class="sd">    Статус списанного огнетушителя не меняется.</span>
 
@@ -149,8 +158,8 @@
 
     <span class="n">next_inspection</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">next_inspection_date</span>
     <span class="k">if</span> <span class="n">next_inspection</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">next_inspection</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">inspection_date</span> <span class="o">+</span> <span class="n">timedelta</span><span class="p">(</span>
-            <span class="n">days</span><span class="o">=</span><span class="n">DEFAULT_INSPECTION_INTERVAL_DAYS</span><span class="p">)</span>
+        <span class="n">next_inspection</span> <span class="o">=</span> <span class="n">add_months</span><span class="p">(</span>
+            <span class="n">data</span><span class="o">.</span><span class="n">inspection_date</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">get_settings</span><span class="p">(</span><span class="n">db</span><span class="p">)[</span><span class="s2">"inspection_interval_months"</span><span class="p">]))</span>
 
     <span class="n">now</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span>
     <span class="n">insp</span> <span class="o">=</span> <span class="n">Inspection</span><span class="p">(</span>
@@ -175,10 +184,7 @@
               <span class="sa">f</span><span class="s2">"Проверка огнетушителя </span><span class="si">{</span><span class="n">extinguisher</span><span class="o">.</span><span class="n">inventory_number</span><span class="si">}</span><span class="s2"> "</span>
               <span class="sa">f</span><span class="s2">"от </span><span class="si">{</span><span class="n">data</span><span class="o">.</span><span class="n">inspection_date</span><span class="si">:</span><span class="s2">%d.%m.%Y</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">employee</span><span class="o">.</span><span class="n">full_name</span><span class="si">}</span><span class="s2">)"</span><span class="p">,</span>
               <span class="n">entity_type</span><span class="o">=</span><span class="s2">"inspection"</span><span class="p">,</span> <span class="n">entity_id</span><span class="o">=</span><span class="n">insp</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
-              <span class="n">changes</span><span class="o">=</span><span class="n">audit</span><span class="o">.</span><span class="n">diff</span><span class="p">({},</span> <span class="n">audit</span><span class="o">.</span><span class="n">snapshot</span><span class="p">(</span><span class="n">insp</span><span class="p">,</span> <span class="p">(</span>
-                  <span class="s2">"fire_extinguisher_id"</span><span class="p">,</span> <span class="s2">"inspection_date"</span><span class="p">,</span> <span class="s2">"employee_id"</span><span class="p">,</span> <span class="s2">"pressure"</span><span class="p">,</span> <span class="s2">"weight"</span><span class="p">,</span>
-                  <span class="s2">"visual_inspection"</span><span class="p">,</span> <span class="s2">"seal_condition"</span><span class="p">,</span> <span class="s2">"safety_pin_condition"</span><span class="p">,</span>
-                  <span class="s2">"hose_condition"</span><span class="p">,</span> <span class="s2">"comments"</span><span class="p">,</span> <span class="s2">"next_inspection_date"</span><span class="p">))))</span>
+              <span class="n">changes</span><span class="o">=</span><span class="n">audit</span><span class="o">.</span><span class="n">diff</span><span class="p">({},</span> <span class="n">audit</span><span class="o">.</span><span class="n">snapshot</span><span class="p">(</span><span class="n">insp</span><span class="p">,</span> <span class="n">AUDIT_FIELDS</span><span class="p">)))</span>
     <span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
     <span class="n">db</span><span class="o">.</span><span class="n">refresh</span><span class="p">(</span><span class="n">insp</span><span class="p">)</span>
 
@@ -229,6 +235,7 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">list_inspections</span><span class="p">(</span>
     <span class="n">date_from</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">date</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">date_to</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">date</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">include_annulled</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">),</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">"""</span>
@@ -238,12 +245,15 @@
 <span class="sd">    Args:</span>
 <span class="sd">        date_from (Optional[date]): Фильтр "с даты" (включительно).</span>
 <span class="sd">        date_to (Optional[date]): Фильтр "по дату" (включительно).</span>
+<span class="sd">        include_annulled (bool): Показывать и аннулированные проверки.</span>
 <span class="sd">        db (Session): Сессия базы данных.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        List[Inspection]: Отфильтрованный список проверок.</span>
 <span class="sd">    """</span>
     <span class="n">query</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">Inspection</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">include_annulled</span><span class="p">:</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">Inspection</span><span class="o">.</span><span class="n">annulled_at</span><span class="o">.</span><span class="n">is_</span><span class="p">(</span><span class="kc">None</span><span class="p">))</span>
 
     <span class="k">if</span> <span class="n">date_from</span><span class="p">:</span>
         <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">Inspection</span><span class="o">.</span><span class="n">inspection_date</span> <span class="o">&gt;=</span> <span class="n">date_from</span><span class="p">)</span>
@@ -251,6 +261,175 @@
         <span class="n">query</span> <span class="o">=</span> <span class="n">query</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">Inspection</span><span class="o">.</span><span class="n">inspection_date</span> <span class="o">&lt;=</span> <span class="n">date_to</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">query</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="n">Inspection</span><span class="o">.</span><span class="n">inspection_date</span><span class="o">.</span><span class="n">desc</span><span class="p">(),</span> <span class="n">Inspection</span><span class="o">.</span><span class="n">id</span><span class="o">.</span><span class="n">desc</span><span class="p">())</span><span class="o">.</span><span class="n">all</span><span class="p">()</span></div>
+
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_get_or_404</span><span class="p">(</span><span class="n">db</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span> <span class="n">inspection_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Inspection</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Возвращает проверку или 404."""</span>
+    <span class="n">insp</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">Inspection</span><span class="p">,</span> <span class="n">inspection_id</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">insp</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_404_NOT_FOUND</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="s2">"Проверка не найдена"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">insp</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_inventory_number</span><span class="p">(</span><span class="n">db</span><span class="p">:</span> <span class="n">Session</span><span class="p">,</span> <span class="n">extinguisher_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">"""Инвентарный номер огнетушителя для текста журнала."""</span>
+    <span class="n">fe</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">FireExtinguisher</span><span class="p">,</span> <span class="n">extinguisher_id</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">fe</span><span class="o">.</span><span class="n">inventory_number</span> <span class="k">if</span> <span class="n">fe</span> <span class="k">else</span> <span class="sa">f</span><span class="s2">"#</span><span class="si">{</span><span class="n">extinguisher_id</span><span class="si">}</span><span class="s2">"</span>
+
+
+<div class="viewcode-block" id="update_inspection">
+<a class="viewcode-back" href="../../routers.html#routers.inspections.update_inspection">[документация]</a>
+<span class="nd">@router</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="s2">"/</span><span class="si">{inspection_id}</span><span class="s2">"</span><span class="p">,</span> <span class="n">response_model</span><span class="o">=</span><span class="n">InspectionRead</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">update_inspection</span><span class="p">(</span>
+    <span class="n">inspection_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">data</span><span class="p">:</span> <span class="n">InspectionUpdate</span><span class="p">,</span>
+    <span class="n">request</span><span class="p">:</span> <span class="n">Request</span><span class="p">,</span>
+    <span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">),</span>
+    <span class="n">current_user</span><span class="p">:</span> <span class="n">User</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">require_role</span><span class="p">([</span><span class="n">ROLE_ADMIN</span><span class="p">])),</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Исправить ошибочную проверку (только администратор, с указанием причины).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        inspection_id (int): ID проверки.</span>
+<span class="sd">        data (InspectionUpdate): Изменяемые поля и причина.</span>
+<span class="sd">        request (Request): Запрос (для журнала).</span>
+<span class="sd">        db (Session): Сессия базы данных.</span>
+<span class="sd">        current_user (User): Администратор.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Inspection: Исправленная проверка.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        HTTPException: Проверка не найдена (404), аннулирована, ссылается на</span>
+<span class="sd">            несуществующие объекты или даты противоречат друг другу (400).</span>
+<span class="sd">    """</span>
+    <span class="n">insp</span> <span class="o">=</span> <span class="n">_get_or_404</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">inspection_id</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">insp</span><span class="o">.</span><span class="n">annulled_at</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_400_BAD_REQUEST</span><span class="p">,</span>
+                            <span class="n">detail</span><span class="o">=</span><span class="s2">"Аннулированную проверку нельзя исправить. Сначала восстановите ее"</span><span class="p">)</span>
+
+    <span class="n">update</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">model_dump</span><span class="p">(</span><span class="n">exclude_unset</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exclude</span><span class="o">=</span><span class="p">{</span><span class="s2">"reason"</span><span class="p">})</span>
+    <span class="k">for</span> <span class="n">required</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"fire_extinguisher_id"</span><span class="p">,</span> <span class="s2">"inspection_date"</span><span class="p">,</span> <span class="s2">"employee_id"</span><span class="p">,</span> <span class="s2">"next_inspection_date"</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">required</span> <span class="ow">in</span> <span class="n">update</span> <span class="ow">and</span> <span class="n">update</span><span class="p">[</span><span class="n">required</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_400_BAD_REQUEST</span><span class="p">,</span>
+                                <span class="n">detail</span><span class="o">=</span><span class="sa">f</span><span class="s2">"Поле '</span><span class="si">{</span><span class="n">required</span><span class="si">}</span><span class="s2">' не может быть пустым"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="s2">"fire_extinguisher_id"</span> <span class="ow">in</span> <span class="n">update</span> <span class="ow">and</span> <span class="n">db</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">FireExtinguisher</span><span class="p">,</span> <span class="n">update</span><span class="p">[</span><span class="s2">"fire_extinguisher_id"</span><span class="p">])</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_400_BAD_REQUEST</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="s2">"Огнетушитель не найден"</span><span class="p">)</span>
+    <span class="k">if</span> <span class="s2">"employee_id"</span> <span class="ow">in</span> <span class="n">update</span> <span class="ow">and</span> <span class="n">db</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">Employee</span><span class="p">,</span> <span class="n">update</span><span class="p">[</span><span class="s2">"employee_id"</span><span class="p">])</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_400_BAD_REQUEST</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="s2">"Сотрудник не найден"</span><span class="p">)</span>
+
+    <span class="n">inspection_date</span> <span class="o">=</span> <span class="n">update</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"inspection_date"</span><span class="p">,</span> <span class="n">insp</span><span class="o">.</span><span class="n">inspection_date</span><span class="p">)</span>
+    <span class="n">next_date</span> <span class="o">=</span> <span class="n">update</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"next_inspection_date"</span><span class="p">,</span> <span class="n">insp</span><span class="o">.</span><span class="n">next_inspection_date</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">next_date</span> <span class="o">&lt;</span> <span class="n">inspection_date</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_400_BAD_REQUEST</span><span class="p">,</span>
+                            <span class="n">detail</span><span class="o">=</span><span class="s2">"Дата следующей проверки не может быть раньше даты проверки"</span><span class="p">)</span>
+
+    <span class="n">old_extinguisher_id</span> <span class="o">=</span> <span class="n">insp</span><span class="o">.</span><span class="n">fire_extinguisher_id</span>
+    <span class="n">before</span> <span class="o">=</span> <span class="n">audit</span><span class="o">.</span><span class="n">snapshot</span><span class="p">(</span><span class="n">insp</span><span class="p">,</span> <span class="n">AUDIT_FIELDS</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">field</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">update</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">insp</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+    <span class="n">changes</span> <span class="o">=</span> <span class="n">audit</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">before</span><span class="p">,</span> <span class="n">audit</span><span class="o">.</span><span class="n">snapshot</span><span class="p">(</span><span class="n">insp</span><span class="p">,</span> <span class="n">AUDIT_FIELDS</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">changes</span><span class="p">:</span>
+        <span class="n">audit</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">current_user</span><span class="p">,</span> <span class="n">audit</span><span class="o">.</span><span class="n">ACTION_UPDATE</span><span class="p">,</span>
+                  <span class="sa">f</span><span class="s2">"Исправлена проверка огнетушителя </span><span class="si">{</span><span class="n">_inventory_number</span><span class="p">(</span><span class="n">db</span><span class="p">,</span><span class="w"> </span><span class="n">insp</span><span class="o">.</span><span class="n">fire_extinguisher_id</span><span class="p">)</span><span class="si">}</span><span class="s2"> "</span>
+                  <span class="sa">f</span><span class="s2">"от </span><span class="si">{</span><span class="n">insp</span><span class="o">.</span><span class="n">inspection_date</span><span class="si">:</span><span class="s2">%d.%m.%Y</span><span class="si">}</span><span class="s2">. Причина: </span><span class="si">{</span><span class="n">data</span><span class="o">.</span><span class="n">reason</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
+                  <span class="n">entity_type</span><span class="o">=</span><span class="s2">"inspection"</span><span class="p">,</span> <span class="n">entity_id</span><span class="o">=</span><span class="n">insp</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">changes</span><span class="o">=</span><span class="n">changes</span><span class="p">)</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">refresh</span><span class="p">(</span><span class="n">insp</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">changes</span><span class="p">:</span>
+        <span class="n">recalculate_statuses</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">extinguisher_ids</span><span class="o">=</span><span class="p">{</span><span class="n">old_extinguisher_id</span><span class="p">,</span> <span class="n">insp</span><span class="o">.</span><span class="n">fire_extinguisher_id</span><span class="p">})</span>
+    <span class="k">return</span> <span class="n">insp</span></div>
+
+
+
+<div class="viewcode-block" id="annul_inspection">
+<a class="viewcode-back" href="../../routers.html#routers.inspections.annul_inspection">[документация]</a>
+<span class="nd">@router</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s2">"/</span><span class="si">{inspection_id}</span><span class="s2">/annul"</span><span class="p">,</span> <span class="n">response_model</span><span class="o">=</span><span class="n">InspectionRead</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">annul_inspection</span><span class="p">(</span>
+    <span class="n">inspection_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">data</span><span class="p">:</span> <span class="n">InspectionReason</span><span class="p">,</span>
+    <span class="n">request</span><span class="p">:</span> <span class="n">Request</span><span class="p">,</span>
+    <span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">),</span>
+    <span class="n">current_user</span><span class="p">:</span> <span class="n">User</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">require_role</span><span class="p">([</span><span class="n">ROLE_ADMIN</span><span class="p">])),</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Аннулировать ошибочную проверку (только администратор, с указанием причины).</span>
+
+<span class="sd">    Запись остается в истории, но не участвует в статусах и отчетах.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        inspection_id (int): ID проверки.</span>
+<span class="sd">        data (InspectionReason): Причина.</span>
+<span class="sd">        request (Request): Запрос (для журнала).</span>
+<span class="sd">        db (Session): Сессия базы данных.</span>
+<span class="sd">        current_user (User): Администратор.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Inspection: Аннулированная проверка.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        HTTPException: Проверка не найдена (404) или уже аннулирована (400).</span>
+<span class="sd">    """</span>
+    <span class="n">insp</span> <span class="o">=</span> <span class="n">_get_or_404</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">inspection_id</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">insp</span><span class="o">.</span><span class="n">annulled_at</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_400_BAD_REQUEST</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="s2">"Проверка уже аннулирована"</span><span class="p">)</span>
+    <span class="n">reason</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">reason</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+    <span class="n">insp</span><span class="o">.</span><span class="n">annulled_at</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span>
+    <span class="n">insp</span><span class="o">.</span><span class="n">annulled_by</span> <span class="o">=</span> <span class="n">current_user</span><span class="o">.</span><span class="n">username</span>
+    <span class="n">insp</span><span class="o">.</span><span class="n">annul_reason</span> <span class="o">=</span> <span class="n">reason</span>
+    <span class="n">audit</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">current_user</span><span class="p">,</span> <span class="n">audit</span><span class="o">.</span><span class="n">ACTION_ANNUL</span><span class="p">,</span>
+              <span class="sa">f</span><span class="s2">"Аннулирована проверка огнетушителя </span><span class="si">{</span><span class="n">_inventory_number</span><span class="p">(</span><span class="n">db</span><span class="p">,</span><span class="w"> </span><span class="n">insp</span><span class="o">.</span><span class="n">fire_extinguisher_id</span><span class="p">)</span><span class="si">}</span><span class="s2"> "</span>
+              <span class="sa">f</span><span class="s2">"от </span><span class="si">{</span><span class="n">insp</span><span class="o">.</span><span class="n">inspection_date</span><span class="si">:</span><span class="s2">%d.%m.%Y</span><span class="si">}</span><span class="s2">. Причина: </span><span class="si">{</span><span class="n">reason</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
+              <span class="n">entity_type</span><span class="o">=</span><span class="s2">"inspection"</span><span class="p">,</span> <span class="n">entity_id</span><span class="o">=</span><span class="n">insp</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">refresh</span><span class="p">(</span><span class="n">insp</span><span class="p">)</span>
+    <span class="n">recalculate_statuses</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">extinguisher_ids</span><span class="o">=</span><span class="p">[</span><span class="n">insp</span><span class="o">.</span><span class="n">fire_extinguisher_id</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">insp</span></div>
+
+
+
+<div class="viewcode-block" id="restore_inspection">
+<a class="viewcode-back" href="../../routers.html#routers.inspections.restore_inspection">[документация]</a>
+<span class="nd">@router</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="s2">"/</span><span class="si">{inspection_id}</span><span class="s2">/restore"</span><span class="p">,</span> <span class="n">response_model</span><span class="o">=</span><span class="n">InspectionRead</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">restore_inspection</span><span class="p">(</span>
+    <span class="n">inspection_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">data</span><span class="p">:</span> <span class="n">InspectionReason</span><span class="p">,</span>
+    <span class="n">request</span><span class="p">:</span> <span class="n">Request</span><span class="p">,</span>
+    <span class="n">db</span><span class="p">:</span> <span class="n">Session</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">get_db</span><span class="p">),</span>
+    <span class="n">current_user</span><span class="p">:</span> <span class="n">User</span> <span class="o">=</span> <span class="n">Depends</span><span class="p">(</span><span class="n">require_role</span><span class="p">([</span><span class="n">ROLE_ADMIN</span><span class="p">])),</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">"""</span>
+<span class="sd">    Восстановить аннулированную проверку (только администратор).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        inspection_id (int): ID проверки.</span>
+<span class="sd">        data (InspectionReason): Причина.</span>
+<span class="sd">        request (Request): Запрос (для журнала).</span>
+<span class="sd">        db (Session): Сессия базы данных.</span>
+<span class="sd">        current_user (User): Администратор.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Inspection: Восстановленная проверка.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        HTTPException: Проверка не найдена (404) или не аннулирована (400).</span>
+<span class="sd">    """</span>
+    <span class="n">insp</span> <span class="o">=</span> <span class="n">_get_or_404</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">inspection_id</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">insp</span><span class="o">.</span><span class="n">annulled_at</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_400_BAD_REQUEST</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="s2">"Проверка не аннулирована"</span><span class="p">)</span>
+    <span class="n">insp</span><span class="o">.</span><span class="n">annulled_at</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">insp</span><span class="o">.</span><span class="n">annulled_by</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">insp</span><span class="o">.</span><span class="n">annul_reason</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">audit</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">current_user</span><span class="p">,</span> <span class="n">audit</span><span class="o">.</span><span class="n">ACTION_RESTORE</span><span class="p">,</span>
+              <span class="sa">f</span><span class="s2">"Восстановлена проверка огнетушителя </span><span class="si">{</span><span class="n">_inventory_number</span><span class="p">(</span><span class="n">db</span><span class="p">,</span><span class="w"> </span><span class="n">insp</span><span class="o">.</span><span class="n">fire_extinguisher_id</span><span class="p">)</span><span class="si">}</span><span class="s2"> "</span>
+              <span class="sa">f</span><span class="s2">"от </span><span class="si">{</span><span class="n">insp</span><span class="o">.</span><span class="n">inspection_date</span><span class="si">:</span><span class="s2">%d.%m.%Y</span><span class="si">}</span><span class="s2">. Причина: </span><span class="si">{</span><span class="n">data</span><span class="o">.</span><span class="n">reason</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
+              <span class="n">entity_type</span><span class="o">=</span><span class="s2">"inspection"</span><span class="p">,</span> <span class="n">entity_id</span><span class="o">=</span><span class="n">insp</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">refresh</span><span class="p">(</span><span class="n">insp</span><span class="p">)</span>
+    <span class="n">recalculate_statuses</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">extinguisher_ids</span><span class="o">=</span><span class="p">[</span><span class="n">insp</span><span class="o">.</span><span class="n">fire_extinguisher_id</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">insp</span></div>
 
 </pre></div>
 
